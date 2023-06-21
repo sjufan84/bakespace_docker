@@ -1,0 +1,16 @@
+pandas
+streamlit
+openai
+python-dotenv
+reportlab
+googlemaps
+folium
+streamlit_folium
+branca
+streamlit_extras
+streamlit-chat
+langchain
+mysql-connector-python
+pdfplumber
+google-cloud-vision
+pyspellchecker
