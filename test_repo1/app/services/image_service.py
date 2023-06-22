@@ -17,4 +17,6 @@ def generate_image(image_prompt):
         },
         headers={'api-key': api_key}
     )
+
+    # Return the json object containing the image url
     return r.json()
