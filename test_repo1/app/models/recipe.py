@@ -9,11 +9,11 @@ from pydantic import BaseModel
 
 
 class Recipe(BaseModel):
-    recipeid: int
+    #recipeid: int
     name: str
-    author: str
-    foodimg: str
-    fullimg: str
+    #author: str
+    #foodimg: str
+    #fullimg: str
     desc: str
     preptime: int
     cooktime: int
@@ -21,5 +21,5 @@ class Recipe(BaseModel):
     directions: List[str]
     ingredients: List[str]
     calories: int
-    created_on: date
+    #created_on: date.today()
     

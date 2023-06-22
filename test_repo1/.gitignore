@@ -136,3 +136,6 @@ dmypy.json
 
 # Chroma database index (large files only to be used locally)
 .chroma/
+
+# Tests folder 
+tests/

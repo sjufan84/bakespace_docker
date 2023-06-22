@@ -1,0 +1,6 @@
+openai
+streamlit
+langchain
+python-multipart
+pydantic
+uvicorn

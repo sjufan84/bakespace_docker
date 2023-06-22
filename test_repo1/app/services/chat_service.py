@@ -1,28 +1,27 @@
 # services/chat_service.py
 
-import openai
 import requests
 from .chat_history import ChatMessageHistory
 from langchain.schema import messages_to_dict
+from ..dependencies import get_openai_api_key, get_openai_org
+import openai
+#
 
 # Define a class to handle the chatbot using OpenAI and langchain
 class ChatService:
-    def __init__(self, openai_api_key: str, openai_org: str):
+    def __init__(self):
         self.chat_history = ChatMessageHistory()
-        self.openai_api_key = openai_api_key
-        self.openai_org = openai_org
+        self.openai_api_key = get_openai_api_key()
+        self.openai_org = get_openai_org()
         self.recipe = None
 
-    # Define a function to add a recipe to the message history if this is a recipe chat
     def add_recipe_to_chat(self, recipe: str):
         self.chat_history.add_user_message(f'Here is the recipe {recipe} for reference.')
         self.recipe = recipe
-        
-    # Define a function to initialize the chatbot
+
     def initialize_chat(self, initial_message: str):
         self.chat_history.add_ai_message(initial_message)
 
-    # Define a function to save the chat history as a dictionary
     def save_chat_history_dict(self):
         return messages_to_dict(self.chat_history.messages)
 
@@ -38,8 +37,8 @@ class ChatService:
     # Define a function to get a response from the chatbot
     def get_chef_response(self, question: str):
         # Set your API key
-        openai.api_key = self.openai_api_key
-        openai.organization = self.openai_org
+        openai.api_key = get_openai_api_key()
+        openai.organization = get_openai_org()
 
         if self.recipe is None:
             messages = [
@@ -83,7 +82,7 @@ class ChatService:
         
         except (requests.exceptions.RequestException, openai.error.APIError):
             response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo-0301",
+            model="gpt-3.5-turbo-16k",
             messages=messages,
             max_tokens=1250,
             frequency_penalty=0.5,

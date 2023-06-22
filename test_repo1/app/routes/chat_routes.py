@@ -2,7 +2,6 @@
 
 from fastapi import APIRouter, Depends
 from ..services.chat_service import ChatService
-from ..main import get_openai_api_key, get_openai_org
 
 router = APIRouter()
 

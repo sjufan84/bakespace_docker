@@ -1,8 +1,9 @@
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.responses import JSONResponse
-from typing import List
 
 app = FastAPI()
+
+# Functions to extract and edit text from an uploaded recipe
 
 @app.post("/extract-pdf")
 async def extract_pdf(pdf_file: UploadFile = File(...)):
@@ -37,11 +38,5 @@ async def text_recipe_edit(recipe: str = Form(...)):
 @app.post("/photo-recipe-edit")
 async def photo_recipe_edit(recipe: str = Form(...)):
     # Function to edit a photo recipe
-    # Implementation goes here
-    pass
-
-@app.post("/get-recipe-sos-answer")
-async def get_recipe_sos_answer(recipe: str = Form(...), question: str = Form(...)):
-    # Function to get an answer for a recipe related question
     # Implementation goes here
     pass
