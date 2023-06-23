@@ -139,3 +139,6 @@ dmypy.json
 
 # Tests folder 
 tests/
+
+# VSCode settings
+.vscode/
