@@ -27,7 +27,7 @@ def execute_generate_recipe(specifications: str):
     openai.api_key = get_openai_api_key()
     openai.organization = get_openai_org()
 
-    # Create the output parser
+    # Create the output parser -- this takes in the output from the model and parses it into a Pydantic object that mirrors the schema
     output_parser = PydanticOutputParser(pydantic_object=Recipe)
 
     
@@ -43,6 +43,8 @@ def execute_generate_recipe(specifications: str):
         input_variables = ["specifications"],
         partial_variables = {"format_instructions": output_parser.get_format_instructions()}
     )
+
+    # Generate the system message prompt
     system_message_prompt = SystemMessagePromptTemplate(prompt=prompt)
 
     # Define the user message.  This is the message that will be passed to the model to generate the recipe.
@@ -74,36 +76,3 @@ def execute_generate_recipe(specifications: str):
             continue
     
 
-'''try:
-    response = openai.ChatCompletion.create(
-    model="gpt-3.5-turbo",
-    messages=messages,
-    max_tokens=1250,
-    frequency_penalty=0.5,
-    presence_penalty=0.5,
-    temperature=1,
-    top_p=0.9,
-    n=1,
-)
-    # First return the recipe, and then parse it
-    recipe = response.choices[0].message.content
-    parsed_recipe = output_parser.parse(recipe)        
-
-
-except (requests.exceptions.RequestException, openai.error.APIError):
-    response = openai.ChatCompletion.create(
-    model="gpt-3.5-turbo-16k",
-    messages=messages,
-    max_tokens=1250,
-    frequency_penalty=0.5,
-    presence_penalty=0.5,
-    temperature=1,
-    top_p=0.9,
-    n=1,
-)
-
-    recipe = response.choices[0].message.content
-    parsed_recipe = output_parser.parse(recipe)
-
-return parsed_recipe'''
-        

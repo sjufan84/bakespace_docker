@@ -3,9 +3,10 @@ from ..dependencies import get_openai_api_key, get_openai_org
 from ..models.pairing import Pairing
 from langchain.output_parsers import PydanticOutputParser
 from langchain.chat_models import ChatOpenAI
-from typing import List
-from langchain.prompts import PromptTemplate, ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
 import requests
+from langchain.prompts import (
+PromptTemplate, ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
+)
 
 ## Function to generate a pairing based on the requested pairing type and the recipe text
 
@@ -14,7 +15,7 @@ def get_pairing(recipe: str, pairing_type: str) -> Pairing:
     openai.api_key = get_openai_api_key()
     openai.organization = get_openai_org()
     
-    # Create the output parser
+    # Create the output parser -- this takes in the output from the model and parses it into a Pydantic object that mirrors the schema
     output_parser = PydanticOutputParser(pydantic_object=Pairing)
     
     # Create the prompt template from langchain to query the model and parse the output

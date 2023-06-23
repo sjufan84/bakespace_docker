@@ -1,5 +1,6 @@
-# services/chat_history.py
+# services/chat_history_service.py
 
+# Define a class to handle the chat history
 class ChatMessageHistory:
     def __init__(self):
         self.messages = []
@@ -15,3 +16,5 @@ class ChatMessageHistory:
 
     def add_ai_message(self, content):
         self.add_message("ai", content)
+
+
