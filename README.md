@@ -53,7 +53,7 @@ pip install -r requirements.txt
 **Contact Information:**
 
 To contact the developers of this project, please reach out via
-email [mailto:dave_thomas@enoughwebapp.com](here).
+email [here](mailto:dave_thomas@enoughwebapp.com).
 
 **License**
 
