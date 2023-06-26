@@ -1,4 +1,4 @@
-from fastapi import UploadFile
+'''from fastapi import UploadFile
 from typing import List
 import io
 import openai
@@ -236,5 +236,5 @@ class ExtractionService:
         if last_uploaded_file.type in allowed_image_types:
             return ExtractionService.photo_recipe_edit(full_recipe_text)
         else:
-            return ExtractionService.text_recipe_edit(full_recipe_text)
+            return ExtractionService.text_recipe_edit(full_recipe_text)'''
 

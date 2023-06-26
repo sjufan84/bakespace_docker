@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, Form, File
+'''from fastapi import APIRouter, UploadFile, Form, File
 from ..services.extraction_service import ExtractionService  
 
 router = APIRouter()
@@ -34,4 +34,4 @@ async def text_recipe_edit_endpoint(recipe: str = Form(...)):
 @router.post("/photo-recipe-edit")
 async def photo_recipe_edit_endpoint(recipe: str = Form(...)):
     edited_recipe = ExtractionService.photo_recipe_edit(recipe)
-    return {"edited_recipe": edited_recipe}
+    return {"edited_recipe": edited_recipe}'''
