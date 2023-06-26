@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from .routes import *
 
-app = FastAPI()
+app = FastAPI(docs_url="/docs")
 
 # Include all the routers in your FastAPI application
 for router in routers:
