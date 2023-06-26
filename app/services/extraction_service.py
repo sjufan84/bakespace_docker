@@ -2,14 +2,18 @@ from fastapi import UploadFile
 from typing import List
 import io
 import openai
-import os
+from ..dependencies import get_openai_api_key, get_openai_org, get_google_vision_credentials
 from google.cloud import vision
-from google.oauth2 import service_account
 from spellchecker import SpellChecker
 import pdfplumber
+import requests
 from dotenv import load_dotenv
+load_dotenv()
 
-class RecipeService:
+class ExtractionService:
+    # Get the OpenAI API key from the .env file and the Google Vision credentials\
+    openai.api_key = get_openai_api_key()
+    openai.organization = get_openai_org()
 
     @staticmethod
     def extract_pdf(pdf_file: io.BytesIO) -> str:
@@ -22,7 +26,11 @@ class RecipeService:
 
     @staticmethod
     def detect_document(uploaded_image):
+        
+        # Get the Google Vision credentials
+        credentials = get_google_vision_credentials()
 
+        # Initialize the Google Vision client
         client = vision.ImageAnnotatorClient(credentials=credentials)
 
         #with io.BytesIO(uploaded_image) as image_file:
@@ -65,7 +73,8 @@ class RecipeService:
         return response_text
     
     # Define a function to run the extracted text through a spellchecker
-    def spellcheck_text(text):
+    def spellcheck_text(text: str) -> str:
+
 
         # Load the custom domain-specific list
         with open("./resources/new_ingredients.txt", "r") as file:
@@ -102,26 +111,130 @@ class RecipeService:
 
     @staticmethod
     def text_recipe_edit(recipe: str) -> str:
-        # Your text editing function here
-        pass
+        # Create the messages to send to the OpenAI API
+        messages = [
+            {"role": "system", "content": "You are a helpful Chef who edits user's recipes to make them more readable."},
+            {"role": "user", "content": f"Reformat and clean up the following extracted recipe text {recipe}, ensuring that the ingredient names are correct..."}
+        ]
+        # Create a list of models to try -- will need to stay updated as the models change and become deprecated
+        models = ["gpt-3.5-turbo", "gpt-3.5-turbo", "gpt-3.5-turbo-0301"]
+        for model in models:
+            try:
+                response = openai.ChatCompletion.create(
+                    model=model,
+                    messages=messages,
+                    max_tokens=750,
+                    frequency_penalty=0.1,
+                    presence_penalty=0.1,
+                    temperature=0.6,
+                    n=1,
+                    top_p=1
+                )
+                edited_recipe = response.choices[0].message.content
+                return edited_recipe
+            except (requests.exceptions.RequestException, openai.error.APIError):
+                continue
+
+        return "Recipe editing failed."
 
     @staticmethod
     def photo_recipe_edit(recipe: str) -> str:
-        # Your photo editing function here
-        pass
+        # Create the messages to send to the OpenAI API for the photo recipe editing
+        messages = [
+            {"role": "system", "content": "You are a helpful Chef who edits user's recipes to make them more readable."},
+            {"role": "user", "content": f"Reformat and clean up the following extracted recipe text {recipe}, ensuring that the ingredient names are correct..."}
+        ]
+        # Create a list of models to try -- will need to stay updated as the models change and become deprecated
+        models = ["gpt-4", "gpt-4-0314", "gpt-3.5-turbo"]
+        for model in models:
+            try:
+                response = openai.ChatCompletion.create(
+                    model=model,
+                    messages=messages,
+                    max_tokens=750,
+                    frequency_penalty=0.1,
+                    presence_penalty=0.1,
+                    temperature=0.6,
+                    n=1,
+                    top_p=1
+                )
+                edited_recipe = response.choices[0].message.content
+                return edited_recipe
+            except (requests.exceptions.RequestException, openai.error.APIError):
+                continue
+
+        return "Recipe editing failed."
 
     @staticmethod
     def get_recipe_sos_answer(recipe: str, question: str) -> str:
-        # Your answer extraction function here
-        pass
+        # Create the messages to send to the OpenAI API for the recipe SOS
+        messages = [
+            {"role": "system", "content": "You are a helpful Chef who answers user's questions about recipes."},
+            {"role": "user", "content": f"I have this recipe {recipe}, and I was hoping you could answer my question {question} about it."}
+        ]
+        # Create a list of models to try -- will need to stay updated as the models change and become deprecated
+        models = ["gpt-3.5-turbo", "gpt-3.5-turbo-0301"]
+        for model in models:
+            try:
+                response = openai.ChatCompletion.create(
+                    model=model,
+                    messages=messages,
+                    max_tokens=750,
+                    frequency_penalty=0.5,
+                    presence_penalty=0.75,
+                    temperature=1,
+                    n=1
+                )
+                answer = response.choices[0].message.content
+                return answer
+            except (requests.exceptions.RequestException, openai.error.APIError):
+                try:
+                    response = openai.ChatCompletion.create(
+                        model="gpt-3.5-turbo-0301",
+                        messages=messages,
+                        max_tokens=500,
+                        frequency_penalty=0.2,
+                        temperature=1,
+                        n=1,
+                        presence_penalty=0.2
+                    )
+                    answer = response.choices[0].message.content
+                    return answer
+                except (requests.exceptions.RequestException, openai.error.APIError):
+                     return "Failed to extract an answer."
 
     @staticmethod
+    # Extract the text from all of the files and concatenate if necessary
     def extract_and_concatenate_text(recipe_files: List[UploadFile], recipe_text_area: str) -> str:
-        # Your text extraction function here
-        pass
+        allowed_image_types = ["image/jpeg", "image/png", "image/jpg"]
+        full_recipe_text = ""
 
-    @staticmethod
+        for recipe_file in recipe_files:
+            if recipe_file.type == "application/pdf":
+                recipe_text = ExtractionService.extract_pdf(recipe_file)
+            elif recipe_file.type == "text/plain":
+                recipe_text = ExtractionService.extract_text_from_txt(recipe_file)
+            elif recipe_text_area != "":
+                recipe_text = recipe_text_area
+            elif recipe_file.type in allowed_image_types:
+                recipe_text = ExtractionService.detect_document(recipe_file)
+                recipe_text = ExtractionService.spellcheck_text(recipe_text)
+            else:
+                print(f"Unsupported file type: {recipe_file.type}")
+                continue
+
+            full_recipe_text += recipe_text + "\n\n"
+
+        return full_recipe_text
+
+
     def edit_recipe(full_recipe_text: str, recipe_files: List[UploadFile]) -> str:
-        # Your editing function here
-        pass
+        # Depending on the file type, use a different model to edit the recipe
+        allowed_image_types = ["image/jpeg", "image/png", "image/jpg"]
+        last_uploaded_file = recipe_files[-1]
+
+        if last_uploaded_file.type in allowed_image_types:
+            return ExtractionService.photo_recipe_edit(full_recipe_text)
+        else:
+            return ExtractionService.text_recipe_edit(full_recipe_text)
 

@@ -5,3 +5,9 @@ pydantic==1.10.9
 python-dotenv==1.0.0
 Requests==2.31.0
 uvicorn==0.22.0
+pandas
+reportlab
+# googlemaps
+pdfplumber
+google-cloud-vision
+pyspellchecker

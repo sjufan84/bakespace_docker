@@ -142,3 +142,13 @@ tests/
 
 # VSCode settings
 .vscode/
+
+# TOML config file
+secrets.toml
+
+# Environments
+.toml
+toml/
+TOML/
+toml.bak/
+TOML.bak/
