@@ -69,6 +69,11 @@ def execute_generate_recipe(specifications: str):
             recipe = chat(messages).content
 
             parsed_recipe = output_parser.parse(recipe)
+            
+            # We need to create a "recipe_text" field for the recipe to be returned to the user
+            # This will be a string that includes all of the recipe information so that we can
+            # Use it for functions downstream
+            parsed_recipe.recipe_text = f"{parsed_recipe.name}\n\n{parsed_recipe.desc}\n\n{parsed_recipe.ingredients}\n\n{parsed_recipe.directions}\n\nPrep Time: {parsed_recipe.preptime}\nCook Time: {parsed_recipe.cooktime}\nTotal Time: {parsed_recipe.totaltime}\n\nServings: {parsed_recipe.servings}\n\nCalories: {parsed_recipe.calories}"
 
             return parsed_recipe
 

@@ -4,8 +4,8 @@ import requests
 from .chat_history_service import ChatMessageHistory
 from langchain.schema import messages_to_dict
 from ..dependencies import get_openai_api_key, get_openai_org
+from ..models.chat import Message
 import openai
-#
 
 # Define a class to handle the chatbot using OpenAI and langchain
 class ChatService:
@@ -36,10 +36,10 @@ class ChatService:
         return messages_to_dict(self.chat_history.messages)
 
     # Define a function to add messages to the chatbot
-    def add_message_to_chat(self, message: str, role: str):
-        if role == "user":
+    def add_message_to_chat(self, message: Message):
+        if message.role == "user":
             self.chat_history.add_user_message(message)
-        elif role == "ai":
+        elif message.role == "ai":
             self.chat_history.add_ai_message(message)
 
         return self.chat_history

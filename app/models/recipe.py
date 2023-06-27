@@ -14,9 +14,11 @@ class Recipe(BaseModel):
     desc: str
     preptime: int
     cooktime: int
+    totaltime: int
     servings: int
     directions: List[str]
     ingredients: List[str]
     calories: int
-    #created_on: date.today()
+    recipe_text: str
+    # created_on: date.today()
     

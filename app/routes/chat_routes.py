@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter, Depends
 from ..services.chat_service import ChatService
+from ..models.chat import Message
 
 router = APIRouter()
 
@@ -19,8 +20,8 @@ async def initialize_chat_endpoint(initial_message: str, chat_service: ChatServi
 
 # Add a message to the chat -- provides the next message to the model to continue the conversation.  @TODO create an enum for the role with the values of "user" and "ai"
 @router.post("/add_message_to_chat")
-async def add_message_endpoint(message: str, role: str, chat_service: ChatService = Depends(ChatService)):
-    chat_service.add_message_to_chat(message, role)
+async def add_message_endpoint(message: Message, chat_service: ChatService = Depends(ChatService)):
+    chat_service.add_message_to_chat(message)
     return {"detail": "Message added to chat."}
 
 @router.get("/get_chef_response")
