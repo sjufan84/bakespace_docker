@@ -1,10 +1,9 @@
 import requests
+from typing import List, Union
 from langchain.memory import ChatMessageHistory
 from langchain.schema import messages_to_dict
 from ..dependencies import get_openai_api_key, get_openai_org
 import openai
-import streamlit as st
-from typing import List
 
 # Define a class to handle the chatbot using OpenAI and langchain
 class ChatService:
