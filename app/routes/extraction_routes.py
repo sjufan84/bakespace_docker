@@ -1,9 +1,11 @@
-from fastapi import APIRouter, Form, Request
+from fastapi import APIRouter, UploadFile, File
 from pydantic import BaseModel
-from ..services.extraction_service import ExtractionService  
+from ..services.extraction_service import ExtractionService 
+from ..models.recipe import Recipe 
+from typing import List
 
-class Recipe(BaseModel):
-    recipe: str
+
+
 
 class TextData(BaseModel):
     text: str
@@ -11,20 +13,11 @@ class TextData(BaseModel):
 router = APIRouter()
 
 @router.post("/extract-pdf")
-async def extract_pdf_endpoint(request: Request):
-    form_data = await request.form()
-    pdf_file = form_data["pdf_file"]
-    content = await pdf_file.read()
-    recipe = ExtractionService.extract_pdf(content)
-    return {"recipe": recipe}
-
-@router.post("/detect-document")
-async def detect_document_endpoint(request: Request):
-    form_data = await request.form()
-    uploaded_image = form_data["uploaded_image"]
-    content = await uploaded_image.read()
-    detected_text = ExtractionService.detect_document(content)
-    return {"detected_text": detected_text}
+async def extract_pdf_endpoint(pdfs: List[UploadFile] = File(...)) -> List[str]:
+    # Upload the pdf files and pass them to the extraction service
+    extracted_texts = ExtractionService.extract_pdf_file_contents(pdfs)
+    
+    return extracted_texts
 
 @router.post("/spellcheck-text")
 async def spellcheck_text_endpoint(text_data: TextData):
@@ -32,15 +25,28 @@ async def spellcheck_text_endpoint(text_data: TextData):
     return {"corrected_text": corrected_text}
 
 @router.post("/extract-text-from-txt")
-async def extract_text_from_txt_endpoint(request: Request):
-    form_data = await request.form()
-    file = form_data["file"]
-    content = await file.read()
-    text = ExtractionService.extract_text_from_txt(content)
-    return {"text": text}
+async def extract_text_from_txt_endpoint(text_files: List[UploadFile] = File(...)) -> List[str]:
+    # Extract the text from the txt files
+    txt_files = [await text_file.read() for text_file in text_files]
+    extracted_texts = ExtractionService.extract_text_file_contents(txt_files)
 
-@router.post("/recipe-edit")
-async def recipe_edit_endpoint(recipe: str):
-    edited_recipe = ExtractionService.edit_recipe_text(recipe)
-    return {"edited_recipe": edited_recipe}
+    return extracted_texts
+    
+# Define a route to extract the text from the images
+# The images will be passed as a list of UploadFile objects
+@router.post("/extract-text-from-images")
+async def extract_text_from_images_endpoint(images: List[UploadFile] = File(...)) -> List[str]:
+    # Upload the images and pass them to the extraction service
+    images = [await image.read() for image in images]
+    # The images must be in bytes format to be uploaded
+    extracted_texts = ExtractionService.extract_image_text(images)
+    
+    return extracted_texts
 
+# Define a route to format the text
+@router.post("/format-recipe")
+async def format_text_endpoint(raw_text: str) -> Recipe:
+    # Pass the raw text to the extraction service
+    recipe = ExtractionService.format_recipe_text(raw_text)
+    # Return the formatted recipe
+    return recipe

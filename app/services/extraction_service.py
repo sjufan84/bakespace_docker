@@ -1,71 +1,33 @@
-from fastapi import UploadFile, HTTPException
+from fastapi import HTTPException
 from typing import List
 from google.cloud import vision
 from spellchecker import SpellChecker
+from fastapi import UploadFile, File
+from io import BytesIO
 import pdfplumber
-import io
 import openai
 from ..dependencies import get_openai_api_key, get_openai_org, get_google_vision_credentials
 import requests
+from langchain.output_parsers import PydanticOutputParser
+from langchain.chat_models import ChatOpenAI
+from langchain.prompts import (
+        PromptTemplate,
+        ChatPromptTemplate,
+        SystemMessagePromptTemplate,
+        HumanMessagePromptTemplate
+)
+from ..models.recipe import Recipe
 from dotenv import load_dotenv
 import os
 
 load_dotenv()
 
 class ExtractionService:
-    # Get the OpenAI API key from the .env file and the Google Vision credentials
-    openai.api_key = get_openai_api_key()
-    openai.organization = get_openai_org()
-
     @staticmethod
-    def extract_pdf(pdf_file: io.BytesIO) -> str:
-        # Here we are going to use the pdfplumber library to extract the text from the PDF file
-        with pdfplumber.open(pdf_file) as pdf:
-            text = ""
-            for page in pdf.pages:
-                text += page.extract_text()
-        return text
+    def get_google_vision_credentials():
+        # return your Google Vision API credentials
+        pass
 
-    @staticmethod
-    def detect_document(uploaded_image: io.BytesIO) -> str:
-        # Get the Google Vision credentials
-        credentials = get_google_vision_credentials()
-        # Initialize the Google Vision client
-        client = vision.ImageAnnotatorClient(credentials=credentials)
-
-        # Performs text detection on the image file
-        response = client.document_text_detection(image=uploaded_image)
-
-        # Extract the text from the response
-        for page in response.full_text_annotation.pages:
-            for block in page.blocks:
-                print('\nBlock confidence: {}\n'.format(block.confidence))
-                for paragraph in block.paragraphs:
-                    print('Paragraph confidence: {}'.format(
-                        paragraph.confidence))
-                    for word in paragraph.words:
-                        word_text = ''.join([
-                            symbol.text for symbol in word.symbols
-                        ])
-                        print('Word text: {} (confidence: {})'.format(
-                            word_text, word.confidence))
-                        for symbol in word.symbols:
-                            print('\tSymbol: {} (confidence: {})'.format(
-                                symbol.text, symbol.confidence))
-        
-        response_text = response.full_text_annotation.text
-
-        # Check for errors
-        if response.error.message:
-            raise Exception(
-                '{}\nFor more info on error messages, check: '
-                'https://cloud.google.com/apis/design/errors'.format(
-                    response.error.message))
-        
-        # Perform spellcheck on the extracted text
-        response_text = ExtractionService.spellcheck_text(response_text)
-
-        return response_text
 
     @staticmethod
     def spellcheck_text(text: str) -> str:
@@ -102,13 +64,96 @@ class ExtractionService:
         return corrected_text
 
     @staticmethod
-    def extract_text_from_txt(file: io.BytesIO) -> str:
+    def extract_text_file_contents(uploaded_files: List[bytes]) -> List[str]:
+        # Initialize an empty list to hold the extracted texts
+        extracted_texts = []
+        
+        # Loop over each file
+        for uploaded_file in uploaded_files:
+            # Decode the file contents from bytes to string
+            file_contents = uploaded_file.decode()
+
+            # Perform spellcheck on the file contents
+            file_contents = ExtractionService.spellcheck_text(file_contents)
+
+            # Add the file contents to the list
+            extracted_texts.append(file_contents)
+
+        # Return the list of file contents
+        return extracted_texts
+
+
+    @staticmethod
+    def extract_pdf_file_contents(uploaded_files: List[UploadFile] = File(...)) -> List[str]:
+        # Initialize an empty list to hold the extracted texts
+        extracted_texts = []
+        
+        # Loop over each file
+        for uploaded_file in uploaded_files:
+            # Read the file with PdfFileReader
+            pdf = pdfplumber.open(uploaded_file.file)
+
+            # Extract the text from each page
+            file_contents = ""
+
+            for page in pdf.pages:
+                file_contents += page.extract_text()
+
+
+            # Perform spellcheck on the file contents
+            file_contents = ExtractionService.spellcheck_text(file_contents)
+
+            # Add the file contents to the list
+            extracted_texts.append(file_contents)
+
+        # Return the list of file contents as a string
+        return extracted_texts
+
+    @staticmethod
+    def extract_image_text(uploaded_images: List[bytes]) -> List[str]:
+        # Get the Google Vision credentials
+        credentials = get_google_vision_credentials()
+        # Initialize the Google Vision client
+        client = vision.ImageAnnotatorClient(credentials=credentials)
+        
+        # Initialize a list to hold the extracted texts
+        extracted_texts = []
+
+        # Performs text detection on the image file
+        for image in uploaded_images:
+
+            image = vision.Image(content=image)
+            response = client.document_text_detection(image=image)
+
+            # Extract the text from the response
+            response_text = response.full_text_annotation.text
+            # Perform spellcheck on the extracted text
+            response_text = ExtractionService.spellcheck_text(response_text)
+            # Add the extracted text to the list
+            extracted_texts.append(response_text)
+
+            # Check for errors
+            if response.error.message:
+                raise Exception(
+                    '{}\nFor more info on error messages, check: '
+                    'https://cloud.google.com/apis/design/errors'.format(
+                        response.error.message))
+
+        
+
+        return extracted_texts
+
+
+
+
+    #@staticmethod
+    #def extract_text_from_txt(file: io.BytesIO) -> str:
         # Extract text from a text file
-        text = file.read()
-        # Ensure text is decoded if it's in bytes
-        if isinstance(text, bytes):
-            text = text.decode("utf-8")
-        return text
+    #    text = file.read()
+    #    # Ensure text is decoded if it's in bytes
+    #    if isinstance(text, bytes):
+    #        text = text.decode("utf-8")
+    #    return text
 
     @staticmethod
     def get_model_for_editing(file_type: str) -> str:
@@ -119,68 +164,65 @@ class ExtractionService:
             return "gpt-3.5-turbo"
 
     @staticmethod
-    # @ TODO -- fix the parsing on the backend to align with the BakeSpace API Recipe format
-    def edit_recipe_text(recipe: str) -> str:
-        # Create the messages to send to the OpenAI API
-        messages = [
-            {"role": "system", "content": "You are a helpful Chef who edits user's recipes to make them more readable."},
-            {"role": "user", "content": f"Reformat and clean up the following extracted recipe text {recipe}, ensuring that the ingredient names are correct..."}
-        ]
-        model_names = ['gpt-4', 'gpt-3.5-turbo']
-        for model in model_names:
+    def format_recipe_text(recipe_text: str) -> Recipe:
+        # Set your API key
+        openai.api_key = get_openai_api_key()
+        openai.organization = get_openai_org()
 
+        # Create the output parser -- this takes in the output from the model and parses it into a Pydantic object that mirrors the schema
+        output_parser = PydanticOutputParser(pydantic_object=Recipe)
+
+        
+        # Create the prompt template from langchain to query the model and parse the output
+        # We will format system, user, and AI messages separately and then pass the formatted messages to the model to
+        # generate the recipe in a specific format using the output parser
+
+        # Define the first system message.  This let's the model know what type of output\
+        # we are expecting and in what format it needs to be in.
+        prompt = PromptTemplate(
+            template = "You are a master chef helping a user reformat a recipe from recipe text {recipe_text} that\
+                    has been extracted from an uploaded recipe that may contain errors and / or be in a different format.\
+                    The formatted recipe text {recipe_text} should be returned in this format{format_instructions}.",
+            input_variables = ["recipe_text"],
+            partial_variables = {"format_instructions": output_parser.get_format_instructions()}
+        )
+
+            # Generate the system message prompt
+        system_message_prompt = SystemMessagePromptTemplate(prompt=prompt)
+
+        # Define the user message.  This is the message that will be passed to the model to generate the recipe.
+        human_template = "Help me format the recipe text {recipe_text} I have uploaded.  Please ensure the returned prep time, cook time, and total time are integers in minutes.  If any of the times are n/a\
+                    as in a raw dish, return 0 for that time.  Round the times to the nearest 5 minutes to provide a cushion and make for a more readable recipe.  Estimate the number of calories per serving if not provided."
+        human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)    
+        
+        # Create the chat prompt template
+        chat_prompt = ChatPromptTemplate.from_messages([system_message_prompt, human_message_prompt])
+
+        # format the messages to feed to the model
+        messages = chat_prompt.format_prompt(recipe_text=recipe_text).to_messages()
+
+        # Create a list of models to loop through in case one fails
+        models = ["gpt-3.5-turbo-0613", "gpt-3.5-turbo"]
+
+        # Loop through the models and try to generate the recipe
+        for model in models:
             try:
-                response = openai.ChatCompletion.create(
-                    model=model,
-                    messages=messages,
-                    max_tokens=750,
-                    frequency_penalty=0.1,
-                    presence_penalty=0.1,
-                    temperature=0.6,
-                    n=1,
-                    top_p=1
-                )
-                edited_recipe = response.choices[0].message.content
-                return edited_recipe
-            except (requests.exceptions.RequestException, openai.error.APIError):
-                if model == model_names[-1]:
-                    raise HTTPException(status_code=500, detail="Unable to connect to the OpenAI API.")
-                else:
-                    continue
+                chat = ChatOpenAI(model_name = model, temperature = 1, max_retries=3)
 
+                recipe = chat(messages).content
 
-
+                parsed_recipe = output_parser.parse(recipe)
                 
+                # We need to create a "recipe_text" field for the recipe to be returned to the user
+                # This will be a string that includes all of the recipe information so that we can
+                # Use it for functions downstream
+                parsed_recipe.recipe_text = f"{parsed_recipe.name}\n\n{parsed_recipe.desc}\n\n{parsed_recipe.ingredients}\n\n{parsed_recipe.directions}\n\nPrep Time: {parsed_recipe.preptime}\nCook Time: {parsed_recipe.cooktime}\nTotal Time: {parsed_recipe.totaltime}\n\nServings: {parsed_recipe.servings}\n\nCalories: {parsed_recipe.calories}"
 
+                return parsed_recipe
 
-    @staticmethod
-    def extract_and_concatenate_text(recipe_files: List[UploadFile], recipe_text_area: str) -> str:
-        allowed_image_types = ["image/jpeg", "image/png", "image/jpg"]
-        full_recipe_text = ""
+            except (requests.exceptions.RequestException, openai.error.APIError):
+                continue
 
-        for recipe_file in recipe_files:
-            content = recipe_file.file.read()
-            if recipe_file.content_type == "application/pdf":
-                recipe_text = ExtractionService.extract_pdf(io.BytesIO(content))
-            elif recipe_file.content_type == "text/plain":
-                recipe_text = ExtractionService.extract_text_from_txt(io.BytesIO(content))
-            elif recipe_text_area != "":
-                recipe_text = recipe_text_area
-            elif recipe_file.content_type in allowed_image_types:
-                recipe_text = ExtractionService.detect_document(io.BytesIO(content))
-            else:
-                raise HTTPException(status_code=400, detail=f"Unsupported file type: {recipe_file.content_type}")
-
-            full_recipe_text += recipe_text + "\n\n"
-
-        return full_recipe_text
-
-    @staticmethod
-    def edit_recipe(full_recipe_text: str, recipe_files: List[UploadFile]) -> str:
-        # Depending on the file type, use a different model to edit the recipe
-        last_uploaded_file = recipe_files[-1]
-        model_name = ExtractionService.get_model_for_editing(last_uploaded_file.content_type)
-        return ExtractionService.edit_recipe_text(full_recipe_text, model_name)
 
 
 

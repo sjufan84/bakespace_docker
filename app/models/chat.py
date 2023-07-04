@@ -11,5 +11,9 @@ class Role(str, Enum):
 class Message(BaseModel):
     content: str = Field(description="The content of the message")
     role: Role = Field(description="The role of the message. One of 'ai' or 'user'")
-    
-    # @TODO -- what other fields do we need for the message class?
+
+class ChatSession(BaseModel):
+    context: str = Field(description="The context of the chat session")
+    messages: list[Message] = Field(description="The messages of the chat session")
+
+   
