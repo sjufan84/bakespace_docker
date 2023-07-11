@@ -1,7 +1,12 @@
 from fastapi import FastAPI
 from .routes import *
+from .middleware.session_middleware import SessionMiddleware
 
 app = FastAPI(docs_url="/docs")
+
+# Add a middleware to your FastAPI application
+app.add_middleware(SessionMiddleware)
+
 
 # Include all the routers in your FastAPI application
 for router in routers:

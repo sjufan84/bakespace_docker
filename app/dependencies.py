@@ -13,3 +13,4 @@ def get_openai_org():
 def get_google_vision_credentials():
     config = toml.load("secrets.toml")
     return service_account.Credentials.from_service_account_info(config['gcp_service_account'])
+

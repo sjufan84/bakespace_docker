@@ -3,7 +3,6 @@ from typing import List
 from google.cloud import vision
 from spellchecker import SpellChecker
 from fastapi import UploadFile, File
-from io import BytesIO
 import pdfplumber
 import openai
 from ..dependencies import get_openai_api_key, get_openai_org, get_google_vision_credentials
@@ -62,107 +61,7 @@ class ExtractionService:
         corrected_text = ' '.join(corrected_tokens)
 
         return corrected_text
-
-    @staticmethod
-    def extract_text_file_contents(uploaded_files: List[bytes]) -> List[str]:
-        # Initialize an empty list to hold the extracted texts
-        extracted_texts = []
-        
-        # Loop over each file
-        for uploaded_file in uploaded_files:
-            # Decode the file contents from bytes to string
-            file_contents = uploaded_file.decode()
-
-            # Perform spellcheck on the file contents
-            file_contents = ExtractionService.spellcheck_text(file_contents)
-
-            # Add the file contents to the list
-            extracted_texts.append(file_contents)
-
-        # Return the list of file contents
-        return extracted_texts
-
-
-    @staticmethod
-    def extract_pdf_file_contents(uploaded_files: List[UploadFile] = File(...)) -> List[str]:
-        # Initialize an empty list to hold the extracted texts
-        extracted_texts = []
-        
-        # Loop over each file
-        for uploaded_file in uploaded_files:
-            # Read the file with PdfFileReader
-            pdf = pdfplumber.open(uploaded_file.file)
-
-            # Extract the text from each page
-            file_contents = ""
-
-            for page in pdf.pages:
-                file_contents += page.extract_text()
-
-
-            # Perform spellcheck on the file contents
-            file_contents = ExtractionService.spellcheck_text(file_contents)
-
-            # Add the file contents to the list
-            extracted_texts.append(file_contents)
-
-        # Return the list of file contents as a string
-        return extracted_texts
-
-    @staticmethod
-    def extract_image_text(uploaded_images: List[bytes]) -> List[str]:
-        # Get the Google Vision credentials
-        credentials = get_google_vision_credentials()
-        # Initialize the Google Vision client
-        client = vision.ImageAnnotatorClient(credentials=credentials)
-        
-        # Initialize a list to hold the extracted texts
-        extracted_texts = []
-
-        # Performs text detection on the image file
-        for image in uploaded_images:
-
-            image = vision.Image(content=image)
-            response = client.document_text_detection(image=image)
-
-            # Extract the text from the response
-            response_text = response.full_text_annotation.text
-            # Perform spellcheck on the extracted text
-            response_text = ExtractionService.spellcheck_text(response_text)
-            # Add the extracted text to the list
-            extracted_texts.append(response_text)
-
-            # Check for errors
-            if response.error.message:
-                raise Exception(
-                    '{}\nFor more info on error messages, check: '
-                    'https://cloud.google.com/apis/design/errors'.format(
-                        response.error.message))
-
-        
-
-        return extracted_texts
-
-
-
-
-    #@staticmethod
-    #def extract_text_from_txt(file: io.BytesIO) -> str:
-        # Extract text from a text file
-    #    text = file.read()
-    #    # Ensure text is decoded if it's in bytes
-    #    if isinstance(text, bytes):
-    #        text = text.decode("utf-8")
-    #    return text
-
-    @staticmethod
-    def get_model_for_editing(file_type: str) -> str:
-        allowed_image_types = ["image/jpeg", "image/png", "image/jpg"]
-        if file_type in allowed_image_types:
-            return "gpt-4"
-        else:
-            return "gpt-3.5-turbo"
-
+    
     @staticmethod
     def format_recipe_text(recipe_text: str) -> Recipe:
         # Set your API key
@@ -202,7 +101,7 @@ class ExtractionService:
         messages = chat_prompt.format_prompt(recipe_text=recipe_text).to_messages()
 
         # Create a list of models to loop through in case one fails
-        models = ["gpt-3.5-turbo-0613", "gpt-3.5-turbo"]
+        models = ["gpt-3.5-turbo-0613", "gpt-3.5-turbo", "gpt-3.5-turbo-16k", "gpt-3.5-turbo-16k-0613"]
 
         # Loop through the models and try to generate the recipe
         for model in models:
@@ -211,17 +110,129 @@ class ExtractionService:
 
                 recipe = chat(messages).content
 
-                parsed_recipe = output_parser.parse(recipe)
+                try:
+                    parsed_recipe = output_parser.parse(recipe)
                 
-                # We need to create a "recipe_text" field for the recipe to be returned to the user
-                # This will be a string that includes all of the recipe information so that we can
-                # Use it for functions downstream
-                parsed_recipe.recipe_text = f"{parsed_recipe.name}\n\n{parsed_recipe.desc}\n\n{parsed_recipe.ingredients}\n\n{parsed_recipe.directions}\n\nPrep Time: {parsed_recipe.preptime}\nCook Time: {parsed_recipe.cooktime}\nTotal Time: {parsed_recipe.totaltime}\n\nServings: {parsed_recipe.servings}\n\nCalories: {parsed_recipe.calories}"
+                    # We need to create a "recipe_text" field for the recipe to be returned to the user
+                    # This will be a string that includes all of the recipe information so that we can
+                    # Use it for functions downstream
+                    parsed_recipe.recipe_text = f"{parsed_recipe.name}\n\n{parsed_recipe.desc}\n\n{parsed_recipe.ingredients}\n\n{parsed_recipe.directions}\n\nPrep Time: {parsed_recipe.preptime}\nCook Time: {parsed_recipe.cooktime}\nTotal Time: {parsed_recipe.totaltime}\n\nServings: {parsed_recipe.servings}\n\nCalories: {parsed_recipe.calories}"
 
-                return parsed_recipe
+                    return parsed_recipe
+                except Exception as e:
+                    print(e)
+                    continue
 
             except (requests.exceptions.RequestException, openai.error.APIError):
                 continue
+
+
+    @staticmethod
+    def extract_text_file_contents(uploaded_files: List[bytes]) -> List[str]:
+        # Initialize an empty list to hold the extracted texts
+        extracted_texts = []
+        
+        # Loop over each file
+        for uploaded_file in uploaded_files:
+            # Decode the file contents from bytes to string
+            file_contents = uploaded_file.decode()
+
+            # Perform spellcheck on the file contents
+            file_contents = ExtractionService.spellcheck_text(file_contents)
+
+            # Add the file contents to the list
+            extracted_texts.append(file_contents)
+
+            # Concatenate the extracted texts into a single string
+            extracted_text = "\n\n".join(extracted_texts)
+
+        # Return the list of file contents
+        return extracted_text
+
+
+    @staticmethod
+    def extract_pdf_file_contents(uploaded_files: List[UploadFile] = File(...)) -> List[str]:
+        # Initialize an empty list to hold the extracted texts
+        extracted_texts = []
+        
+        # Loop over each file
+        for uploaded_file in uploaded_files:
+            # Read the file with PdfFileReader
+            pdf = pdfplumber.open(uploaded_file.file)
+
+            # Extract the text from each page
+            file_contents = ""
+
+            for page in pdf.pages:
+                file_contents += page.extract_text()
+
+
+            # Perform spellcheck on the file contents
+            file_contents = ExtractionService.spellcheck_text(file_contents)
+
+            # Add the file contents to the list
+            extracted_texts.append(file_contents)
+
+        # Return the list of file contents as a string
+        return extracted_texts
+
+    @staticmethod
+    def extract_image_text(uploaded_images: List[bytes]) -> str:
+        # Get the Google Vision credentials
+        credentials = get_google_vision_credentials()
+        # Initialize the Google Vision client
+        client = vision.ImageAnnotatorClient(credentials=credentials)
+        
+        # Initialize a list to hold the extracted texts
+        extracted_texts = []
+
+        # Performs text detection on the image file
+        for image in uploaded_images:
+
+            image = vision.Image(content=image)
+            response = client.document_text_detection(image=image)
+
+            # Extract the text from the response
+            response_text = response.full_text_annotation.text
+            # Perform spellcheck on the extracted text
+            response_text = ExtractionService.spellcheck_text(response_text)
+            # Add the extracted text to the list
+            extracted_texts.append(response_text)
+
+            # Check for errors
+            if response.error.message:
+                raise Exception(
+                    '{}\nFor more info on error messages, check: '
+                    'https://cloud.google.com/apis/design/errors'.format(
+                        response.error.message))
+
+        
+        # @TODO - is this how we want the texts returned?
+        # Concatenate the texts into a single string
+        extracted_texts = " ".join(extracted_texts)
+
+        return extracted_texts
+
+
+
+
+    #@staticmethod
+    #def extract_text_from_txt(file: io.BytesIO) -> str:
+        # Extract text from a text file
+    #    text = file.read()
+    #    # Ensure text is decoded if it's in bytes
+    #    if isinstance(text, bytes):
+    #        text = text.decode("utf-8")
+    #    return text
+
+    #@staticmethod
+    #def get_model_for_editing(file_type: str) -> str:
+    #    allowed_image_types = ["image/jpeg", "image/png", "image/jpg"]
+    #    if file_type in allowed_image_types:
+    #        return "gpt-4"
+    #    else:
+    #        return "gpt-3.5-turbo"
+
 
 
 
