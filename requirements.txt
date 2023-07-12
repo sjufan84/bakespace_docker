@@ -11,3 +11,4 @@ reportlab
 pdfplumber
 google-cloud-vision
 pyspellchecker
+redis
