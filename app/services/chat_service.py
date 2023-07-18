@@ -1,26 +1,26 @@
-import requests
-from ..middleware.session_middleware import RedisStore  
+""" This module defines the ChatService class, which is responsible for managing the chatbot. """
 import json
-# from urllib.parse import urlparse
-from ..dependencies import get_openai_api_key, get_openai_org
 from typing import Optional
+import requests
 import openai
-import uuid
+from ..middleware.session_middleware import RedisStore
+from ..dependencies import get_openai_api_key, get_openai_org
 
 class ChatMessage:
+    """ A class to represent a chat message. """
     def __init__(self, content, role):
         self.content = content
         self.role = role
-    
     def format_message(self):
+        """ Format the message for the chat history. """
         # Return a dictionary with the format {"role": role, "content": content}
         return {"role": self.role, "content": self.content}
-    
 
 class ChatService:
-    def __init__(self, session_id: str = None, store: RedisStore = None):
-        self.session_id = session_id or str(uuid.uuid4())
+    """ A class to represent the chatbot. """
+    def __init__(self, store: RedisStore = None):
         self.store = store or RedisStore()
+        self.session_id = self.store.session_id
         chat_history = self.store.redis.get(f'{self.session_id}:chat_history')
         if chat_history:
             self.chat_history = chat_history
@@ -28,18 +28,19 @@ class ChatService:
             self.chat_history = []
 
     def load_chat_history(self):
+        """ Load the chat history from Redis. """
         try:
             chat_history_json = self.store.redis.get(f'{self.session_id}:chat_history')
             if chat_history_json:
                 chat_history_dict = json.loads(chat_history_json)
-                return [message for message in chat_history_dict]
-            else:
-                return []
+                return list(chat_history_dict)
+            return []
         except Exception as e:
             print(f"Failed to load chat history from Redis: {e}")
             return []
-
+        
     def save_chat_history(self):
+        """ Save the chat history to Redis. """
         try:
             # Save the chat history to redis
             chat_history_json = json.dumps(self.chat_history)
@@ -47,25 +48,27 @@ class ChatService:
         except Exception as e:
             print(f"Failed to save chat history to Redis: {e}")
         return self.chat_history
-  
+    
     def add_user_message(self, message: str):
-        # Format the message and append it to the chat history
+        """ Format the message and append it to the chat history """
         user_message = ChatMessage(message, "user").format_message()
         self.chat_history.append(user_message)
         # Save the chat history to redis
         return self.save_chat_history()
-
-    def add_chef_message(self, message: str):\
+    
+    # Define a function to add a message from the chef to the chat history
+    def add_chef_message(self, message: str):
+        """ Add a message from the chef to the chat history. """
         # Format the message and append it to the chat history  
         chef_message = ChatMessage(message, "ai").format_message()
         self.chat_history.append(chef_message)
         # Save the chat history to redis
         return self.save_chat_history()
-
+    
     # Define a function to initialize the chatbot with context and an optional recipe
     def initialize_chat(self, context: str, recipe_text: Optional[str] = None):    
-         # Check to see if the context is "recipe" -- if it is, we need to retrieve the
-        # recipe from the session state and use that to generate the initial message
+        """ Check to see if the context is "recipe" -- if it is, we need to retrieve the
+        # recipe from the session state and use that to generate the initial message """
         if context == "recipe":
             initial_message = {
                                     "role": "system", 
@@ -82,15 +85,19 @@ class ChatService:
                                    You are a master chef answering a user's questions about cooking.  Your chat history so far is {self.chat_history[1:]}
                                     """
                                     }
-            # Append the initial message to the chat history
-            self.chat_history = [initial_message]
+        # Append the initial message to the chat history
+        self.chat_history = [initial_message]
 
-            # Save the chat history to redis
-            return self.save_chat_history()
+        # Save the chat history to redis
+        self.save_chat_history()
+
+        # Return the initial message
+        return initial_message
 
 
     # Define a function to get a response from the chatbot
     def get_chef_response(self, question: str):
+        """ Get a response from the chatbot. """
         # Set your API key
         openai.api_key = get_openai_api_key()
         openai.organization = get_openai_org()
@@ -147,7 +154,7 @@ class ChatService:
 
     
 
-    # Define a function to clear the chat history
     def clear_chat_history(self):
+        """ Clear the chat history. """
         self.chat_history = []
         self.save_chat_history()

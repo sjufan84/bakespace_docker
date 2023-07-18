@@ -1,34 +1,25 @@
-# services/recipe_service.py
-
+""" This module contains the recipe service class. """
+import json
 import openai
-from ..dependencies import get_openai_api_key, get_openai_org
+import requests
+from langchain.chat_models import ChatOpenAI
+from langchain.output_parsers import PydanticOutputParser
 from langchain.prompts import (
     PromptTemplate,
     ChatPromptTemplate,
     SystemMessagePromptTemplate,
     HumanMessagePromptTemplate
 )
-from ..middleware.session_middleware import RedisStore
-import requests
-from langchain.chat_models import ChatOpenAI
-import uuid
-import json
-
-### @TODO: Integrate the chat functions into this format
-# from langchain.schema import (
-#    AIMessage, 
-#    HumanMessage, 
-#    SystemMessage
-# )
-from langchain.output_parsers import PydanticOutputParser
-
-
 from ..models.recipe import Recipe
+from ..dependencies import get_openai_api_key, get_openai_org
+from ..middleware.session_middleware import RedisStore
 
 class RecipeService:
-    def __init__(self, session_id: str = None, store: RedisStore = None):
-        self.session_id = session_id or str(uuid.uuid4())
+    """ A class to represent the recipe service. """
+    def __init__(self, store: RedisStore = None):
         self.store = store or RedisStore()
+        self.session_id = self.store.session_id
+       
         recipe_history = self.store.redis.getrange(f'{self.session_id}_recipe_history', start = 0, end = -1)
         if recipe_history:
             self.recipe_history = recipe_history
@@ -51,6 +42,7 @@ class RecipeService:
         
     # Create a function to save the recipe history to redis
     def save_recipe_history(self):
+        """ Save the recipe history to Redis. """
         try:
             # Save the recipe history to redis
             recipe_history_json = json.dumps(self.recipe_history)
@@ -84,6 +76,7 @@ class RecipeService:
     
     # Create a function to delete a recipe from the store by the recipe_name
     def delete_recipe(self, recipe_name: str):
+        """ Delete a recipe from the store by the recipe_name """
         try:
             # Delete the recipe from redis
             self.store.redis.delete(f'{self.session_id}_recipe_history : {recipe_name}')
@@ -93,6 +86,7 @@ class RecipeService:
     
     # Create a function to delete the recipe history from the store
     def delete_recipe_history(self):
+        """ Delete the recipe history from the store """
         try:
             # Delete the recipe history from redis
             self.store.redis.delete(f'{self.session_id}_recipe_history : *')
@@ -100,8 +94,8 @@ class RecipeService:
             print(f"Failed to delete recipe history from Redis: {e}")
         return self.recipe_history
 
-    # The primary function to generate a recipe
     def execute_generate_recipe(self, specifications: str):
+        """ Generate a recipe based on the specifications provided """
         # Set your API key
         openai.api_key = get_openai_api_key()
         openai.organization = get_openai_org()
@@ -125,7 +119,7 @@ class RecipeService:
 
         # Generate the system message prompt
         system_message_prompt = SystemMessagePromptTemplate(prompt=prompt)
-
+        
         # Define the user message.  This is the message that will be passed to the model to generate the recipe.
         human_template = "Create a delicious recipe based on the specifications {specifications} provided.  Please ensure the returned prep time, cook time, and total time are integers in minutes.  If any of the times are n/a\
                     as in a raw dish, return 0 for that time.  Round the times to the nearest 5 minutes to provide a cushion and make for a more readable recipe."
@@ -143,16 +137,14 @@ class RecipeService:
         # Loop through the models and try to generate the recipe
         for model in models:
             try:
+                # Create the chat object
                 chat = ChatOpenAI(model_name = model, temperature = 1, max_retries=3)
 
+                # Generate the recipe
                 recipe = chat(messages).content
 
+                # Parse the recipe
                 parsed_recipe = output_parser.parse(recipe)
-                
-                # We need to create a "recipe_text" field for the recipe to be returned to the user
-                # This will be a string that includes all of the recipe information so that we can
-                # Use it for functions downstream
-                parsed_recipe.recipe_text = f"{parsed_recipe.name}\n\n{parsed_recipe.desc}\n\n{parsed_recipe.ingredients}\n\n{parsed_recipe.directions}\n\nPrep Time: {parsed_recipe.preptime}\nCook Time: {parsed_recipe.cooktime}\nTotal Time: {parsed_recipe.totaltime}\n\nServings: {parsed_recipe.servings}\n\nCalories: {parsed_recipe.calories}"
 
                 # Save the recipe history to redis
                 self.save_recipe(parsed_recipe.name, parsed_recipe)
@@ -161,7 +153,3 @@ class RecipeService:
 
             except (requests.exceptions.RequestException, openai.error.APIError):
                 continue
-
-
-        
-
