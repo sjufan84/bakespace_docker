@@ -19,7 +19,8 @@ router = APIRouter()
 
 # The main route for the recipe service
 @router.post("/generate_recipe")
-async def generate_recipe(specifications: Annotated[str, "I would love a good recipe for chicken noodle soup"], recipe_service: RecipeService = Depends(get_recipe_service)) -> Recipe:
+async def generate_recipe(specifications: Annotated[str, "I would love a good recipe for chicken noodle soup"],
+                           recipe_service: RecipeService = Depends(get_recipe_service)) -> Recipe:
     """ 
     Primary route for the recipe service. 
     Client needs to extract session_id from the response and include it in the headers of subsequent requests.

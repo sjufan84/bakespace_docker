@@ -7,7 +7,6 @@ Requests==2.31.0
 uvicorn==0.22.0
 pandas
 reportlab
-# googlemaps
 pdfplumber
 google-cloud-vision
 pyspellchecker
