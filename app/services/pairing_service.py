@@ -12,12 +12,13 @@ from ..dependencies import get_openai_api_key, get_openai_org
 from ..models.pairing import Pairing
 from ..middleware.session_middleware import RedisStore
 
+
 class PairingService:
     """ A class to represent the pairing service. """
     def __init__(self, store: RedisStore = None):
         self.store = store or RedisStore()
         self.session_id = self.store.session_id
-        pairing_history = self.store.redis.getrange(f'{self.session_id}_pairing_history', start = 0, end = -1)
+        pairing_history = self.store.redis.get(f'{self.session_id}_pairing_history')
         if pairing_history:
             self.pairing_history = pairing_history
         else:

@@ -1,11 +1,16 @@
-""" Define the chat routes.  This is where the API endpoints are defined. """
+""" Define the chat routes.  This is where the API endpoints are defined.  The user will receive a session_id
+    when they first connect to the API.  This session_id will be passed in the headers of all subsequent requests. """
 from typing import Optional
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Header
 from ..services.chat_service import ChatService
 from ..middleware.session_middleware import RedisStore, get_redis_store
 
 # Define a router object
 router = APIRouter()
+
+def get_session_id(session_id: str = Header(...)):
+    """ Dependency function to get the session id from the header """
+    return session_id
 
 # A new dependency function to get the chat service
 # We need to get the session_id from the headers
@@ -24,7 +29,7 @@ async def add_user_message(message: str, chat_service: ChatService = Depends(get
 
 # Create a route to initialize the chat
 @router.post("/initialize_chat")
-async def initialize_chat(context: str, recipe_text: Optional[str], chat_service: ChatService = Depends(get_chat_service)):
+async def initialize_chat(context: str, recipe_text: Optional[str], chat_service: ChatService = Depends(get_chat_service)) -> dict:
     """ Define the function to initialize the chat.  Takes in context and chat_service. """
     initial_message = chat_service.initialize_chat(context, recipe_text)
     return {"initial_message": initial_message}

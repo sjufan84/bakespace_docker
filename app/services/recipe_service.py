@@ -19,12 +19,13 @@ class RecipeService:
     def __init__(self, store: RedisStore = None):
         self.store = store or RedisStore()
         self.session_id = self.store.session_id
-       
-        recipe_history = self.store.redis.getrange(f'{self.session_id}_recipe_history', start = 0, end = -1)
+
+        recipe_history = self.store.redis.lrange(f'{self.session_id}_recipe_history', start = 0, end = -1)
         if recipe_history:
             self.recipe_history = recipe_history
         else:
             self.recipe_history = []
+
 
 
     # Create a function to load the recipe history from redis

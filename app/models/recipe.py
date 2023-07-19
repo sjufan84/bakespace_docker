@@ -21,3 +21,27 @@ class Recipe(BaseModel):
         """ Return the recipe text. """
         return f"{self.name} {self.desc} {self.preptime} {self.cooktime} {self.totaltime} {self.servings} {self.directions} {self.ingredients} {self.calories}"
     
+    class Config:
+        schema_extra = {
+            "examples": [
+                {
+                    "name": "Chocolate Chip Cookies",
+                    "desc": "A delicious chocolate chip cookie recipe.",
+                    "preptime": 10,
+                    "cooktime": 15,
+                    "totaltime": 25,
+                    "servings": 12,
+                    "directions": [
+                        "Preheat oven to 350 degrees.",
+                        "Mix ingredients together.",
+                        "Bake for 15 minutes."
+                    ],
+                    "ingredients": [
+                        "1 cup flour",
+                        "1 cup sugar",
+                        "1 cup chocolate chips"
+                    ],
+                    "calories": 250
+                }
+            ]
+        }

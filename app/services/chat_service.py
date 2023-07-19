@@ -6,6 +6,7 @@ import openai
 from ..middleware.session_middleware import RedisStore
 from ..dependencies import get_openai_api_key, get_openai_org
 
+
 class ChatMessage:
     """ A class to represent a chat message. """
     def __init__(self, content, role):
