@@ -20,7 +20,7 @@ class InitialMessage(BaseModel):
     """ Define the InitialMessage model. """
     initial_message: Message = Field(description="The initial message of the chat session")
 
-    class Config:
+    '''class Config:
         """ Example response schema """
         schema_extra = {
             "examples": [
@@ -53,7 +53,7 @@ class ChefResponse(BaseModel):
                 }
             ]
         }
-
+'''
 class ChatSession(BaseModel):
     """ Define the ChatSession model. """
     context: str = Field(description="The context of the chat session")

@@ -1,11 +1,17 @@
-from fastapi import HTTPException
+""" 
+The extraction service that handles the extraction of text from pdf, image, and text files.
+It also handles the spellcheck of the extracted text. The extracted text is then passed to 
+the formatting service to be formatted into a recipe and then returned to the user as a 
+Recipe object in the same format as the Bakespace data model.
+"""
 from typing import List
+import os
+from dotenv import load_dotenv
+from fastapi import HTTPException, UploadFile
 from google.cloud import vision
 from spellchecker import SpellChecker
-from fastapi import UploadFile, File
 import pdfplumber
 import openai
-from ..dependencies import get_openai_api_key, get_openai_org, get_google_vision_credentials
 import requests
 from langchain.output_parsers import PydanticOutputParser
 from langchain.chat_models import ChatOpenAI
@@ -15,21 +21,25 @@ from langchain.prompts import (
         SystemMessagePromptTemplate,
         HumanMessagePromptTemplate
 )
+from ..dependencies import get_openai_api_key, get_openai_org, get_google_vision_credentials
 from ..models.recipe import Recipe
-from dotenv import load_dotenv
-import os
+from ..middleware.session_middleware import RedisStore
+
+
 
 load_dotenv()
 
 class ExtractionService:
-    @staticmethod
-    def get_google_vision_credentials():
-        # return your Google Vision API credentials
-        pass
-
-
-    @staticmethod
-    def spellcheck_text(text: str) -> str:
+    """ A class to represent the extraction service.  Will be initiated with file(s) that the user
+    has uploaded for text extraction."""
+    def __init__(self, store: RedisStore = None):
+        # Initialize the store
+        self.store = store or RedisStore()
+        # Initialize the session_id
+        self.session_id = self.store.session_id
+        
+    def spellcheck_text(self, text: str) -> str:
+        """ Spellcheck the text. """
         # Load the custom domain-specific list
         file_path = "./resources/new_ingredients.txt"
         if not os.path.isfile(file_path):
@@ -62,8 +72,8 @@ class ExtractionService:
 
         return corrected_text
     
-    @staticmethod
-    def format_recipe_text(recipe_text: str) -> Recipe:
+    def format_recipe_text(self, recipe_text: str) -> Recipe:
+        """ Format the recipe text into a recipe object. """
         # Set your API key
         openai.api_key = get_openai_api_key()
         openai.organization = get_openai_org()
@@ -126,36 +136,57 @@ class ExtractionService:
             except (requests.exceptions.RequestException, openai.error.APIError):
                 continue
 
+    def extract_file_contents(self, uploaded_files: List[UploadFile]) -> List[bytes]:
+        """Ensure the files are in bytes and return them."""
+        # Convert the file to bytes if it's not already
+        uploaded_files_bytes = [file.file.read() if not isinstance(file.file, bytes) else file.file for file in uploaded_files]
+        return uploaded_files_bytes
 
-    @staticmethod
-    def extract_text_file_contents(uploaded_files: List[bytes]) -> List[str]:
+    def extract_text_file_contents(self, uploaded_files: List[UploadFile]) -> str:
+        """ Extract the text from a text file. Expects a list of text files. """
+        # Confirm the file type is text
+        for file in uploaded_files:
+            if file.content_type != "text/plain":
+                raise HTTPException(status_code=400, detail=f"File type {file.content_type} not supported.")
+        # Get the bytes content of the files
+        uploaded_files_bytes = self.extract_file_contents(uploaded_files)
+        
         # Initialize an empty list to hold the extracted texts
         extracted_texts = []
         
-        # Loop over each file
-        for uploaded_file in uploaded_files:
-            # Decode the file contents from bytes to string
-            file_contents = uploaded_file.decode()
-
+        # Loop over each file and decode the contents
+        for uploaded_file_bytes in uploaded_files_bytes:
+            # Ensure text is decoded if it's in bytes
+            file_contents = uploaded_file_bytes.decode("utf-8")
+            
             # Perform spellcheck on the file contents
-            file_contents = ExtractionService.spellcheck_text(file_contents)
+            file_contents = self.spellcheck_text(file_contents)
 
             # Add the file contents to the list
             extracted_texts.append(file_contents)
 
-            # Concatenate the extracted texts into a single string
-            extracted_text = "\n\n".join(extracted_texts)
+        # Concatenate the extracted texts into a single string
+        extracted_text = "\n\n".join(extracted_texts)
 
-        # Return the list of file contents
         return extracted_text
 
 
-    @staticmethod
-    def extract_pdf_file_contents(uploaded_files: List[UploadFile] = File(...)) -> List[str]:
+
+    def extract_pdf_file_contents(self, uploaded_files: List[UploadFile]) -> str:
+        """ Extract the text from a pdf file. Expects a list of pdf files. """
+
         # Initialize an empty list to hold the extracted texts
         extracted_texts = []
+
+        # Confirm the file type is pdf
+        for file in uploaded_files:
+            if file.content_type != "application/pdf":
+                raise HTTPException(status_code=400, detail=f"File type {file.content_type} not supported.")
+
+        # Convert the file to bytes if it's not already
+        uploaded_files = [file.file.read() if isinstance(file.file, bytes) else file.file for file in uploaded_files]
         
-        # Loop over each file
+        # Loop over each file and extract the text
         for uploaded_file in uploaded_files:
             # Read the file with PdfFileReader
             pdf = pdfplumber.open(uploaded_file.file)
@@ -168,23 +199,33 @@ class ExtractionService:
 
 
             # Perform spellcheck on the file contents
-            file_contents = ExtractionService.spellcheck_text(file_contents)
+            file_contents = self.spellcheck_text(file_contents)
 
             # Add the file contents to the list
             extracted_texts.append(file_contents)
 
-        # Return the list of file contents as a string
-        return extracted_texts
+            # Concatenate the extracted texts into a single string
+            extracted_text = "\n\n".join(extracted_texts)
 
-    @staticmethod
-    def extract_image_text(uploaded_images: List[bytes]) -> str:
+        # Return the list of file contents as a string
+        return extracted_text
+
+    def extract_image_text(self, uploaded_images: List[UploadFile]) -> str:
+        """ Extract the text from an image. Expects a list of images."""
+        # Check to ensure that the file type is an image
+        for file in uploaded_images:
+            if file.content_type not in ["image/jpeg", "image/png", "image/jpg"]:
+                raise HTTPException(status_code=400, detail=f"File type {file.content_type} not supported.")
         # Get the Google Vision credentials
         credentials = get_google_vision_credentials()
         # Initialize the Google Vision client
         client = vision.ImageAnnotatorClient(credentials=credentials)
-        
+    
         # Initialize a list to hold the extracted texts
         extracted_texts = []
+
+        # Convert the images to bytes if they're not already
+        uploaded_images = [image.file.read() if isinstance(image.file, bytes) else image.file for image in uploaded_images]
 
         # Performs text detection on the image file
         for image in uploaded_images:
@@ -195,45 +236,17 @@ class ExtractionService:
             # Extract the text from the response
             response_text = response.full_text_annotation.text
             # Perform spellcheck on the extracted text
-            response_text = ExtractionService.spellcheck_text(response_text)
+            response_text = self.spellcheck_text(response_text)
             # Add the extracted text to the list
             extracted_texts.append(response_text)
 
             # Check for errors
             if response.error.message:
-                raise Exception(
-                    '{}\nFor more info on error messages, check: '
-                    'https://cloud.google.com/apis/design/errors'.format(
-                        response.error.message))
-
-        
-        # @TODO - is this how we want the texts returned?
+                raise HTTPException(
+                    status_code=400, detail=f"Error: {response.error.message}"
+                )
+    # @TODO - is this how we want the texts returned?
         # Concatenate the texts into a single string
         extracted_texts = " ".join(extracted_texts)
 
         return extracted_texts
-
-
-
-
-    #@staticmethod
-    #def extract_text_from_txt(file: io.BytesIO) -> str:
-        # Extract text from a text file
-    #    text = file.read()
-    #    # Ensure text is decoded if it's in bytes
-    #    if isinstance(text, bytes):
-    #        text = text.decode("utf-8")
-    #    return text
-
-    #@staticmethod
-    #def get_model_for_editing(file_type: str) -> str:
-    #    allowed_image_types = ["image/jpeg", "image/png", "image/jpg"]
-    #    if file_type in allowed_image_types:
-    #        return "gpt-4"
-    #    else:
-    #        return "gpt-3.5-turbo"
-
-
-
-
-

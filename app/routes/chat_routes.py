@@ -4,7 +4,7 @@ from typing import Union, Annotated
 from fastapi import APIRouter, Depends, Header, Query
 from ..services.chat_service import ChatService
 from ..middleware.session_middleware import RedisStore, get_redis_store
-from ..models.chat import InitialMessage, ChefResponse
+from ..models.chat import InitialMessage
 
 
 # Define a router object
@@ -56,7 +56,7 @@ async def add_chef_message(message: str, chat_service: ChatService = Depends(get
 
 
 @router.post("/get_chef_response/")
-async def get_chef_response(question: str, chat_service: ChatService = Depends(get_chat_service)) -> ChefResponse:
+async def get_chef_response(question: str, chat_service: ChatService = Depends(get_chat_service)):
     """ Define the function to get a chef response.  Takes in question and chat_service.  The chat needs to be
     initialized with context or a recipe before this function is called so that the chat history is not empty.
     Returns a dictionary of the chef response. """
