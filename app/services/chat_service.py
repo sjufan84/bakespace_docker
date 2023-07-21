@@ -45,7 +45,7 @@ class ChatService:
         try:
             # Save the chat history to redis
             chat_history_json = json.dumps(self.chat_history)
-            self.store.set(f'{self.session_id}:chat_history', chat_history_json)
+            self.store.redis.set(f'{self.session_id}:chat_history', chat_history_json)
         except Exception as e:
             print(f"Failed to save chat history to Redis: {e}")
         return self.chat_history

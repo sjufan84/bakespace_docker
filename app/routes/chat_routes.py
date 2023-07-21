@@ -33,7 +33,7 @@ async def add_user_message(message: str, chat_service: ChatService = Depends(get
 @router.post("/initialize_general_chat")
 async def initialize_general_chat(context: Annotated[Union[str, None],
     Query(examples = ["The user is gluten free and has questions about baking.\
-    "])] = None, chat_service: ChatService = Depends(get_chat_service)) -> InitialMessage:
+    "])] = None, chat_service: ChatService = Depends(get_chat_service)):
     """ Define the function to initialize a general chat session.
     Takes in context, if any and chat_service. """
     initial_message = chat_service.initialize_general_chat(context=context)
@@ -42,7 +42,7 @@ async def initialize_general_chat(context: Annotated[Union[str, None],
 # Create a route to initialize the chat
 @router.post("/initialize_recipe_chat")
 async def initialize_recipe_chat(recipe_text: Annotated[str, "The text of the recipe that the user\
-    has questions about"], chat_service: ChatService = Depends(get_chat_service)) -> InitialMessage:
+    has questions about"], chat_service: ChatService = Depends(get_chat_service)):
     """ Define the function to initialize the chat.  Takes in the recipe text and chat_service. """
     initial_message = chat_service.initialize_recipe_chat(recipe_text=recipe_text)
     return {"Initial message succesfully generated for recipe chat:" : initial_message}
