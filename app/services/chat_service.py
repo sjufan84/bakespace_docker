@@ -34,7 +34,7 @@ class ChatService:
             chat_history_json = self.store.redis.get(f'{self.session_id}:chat_history')
             if chat_history_json:
                 chat_history_dict = json.loads(chat_history_json)
-                return list(chat_history_dict)
+                return chat_history_dict
             return []
         except Exception as e:
             print(f"Failed to load chat history from Redis: {e}")
@@ -113,7 +113,7 @@ class ChatService:
 
         messages = self.load_chat_history()
 
-        self.chat_history = [message for message in self.chat_history]
+        self.chat_history = messages
 
         # Format the message and add it to the chat history
         user_message = ChatMessage(question, "user").format_message()
