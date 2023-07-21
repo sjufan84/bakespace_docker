@@ -113,6 +113,8 @@ class ChatService:
 
         messages = self.load_chat_history()
 
+        self.chat_history = [message for message in self.chat_history]
+
         # Format the message and add it to the chat history
         user_message = ChatMessage(question, "user").format_message()
 
