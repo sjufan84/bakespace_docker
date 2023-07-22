@@ -1,5 +1,12 @@
+""" This module contains the FastAPI application. It's responsible for 
+    creating the FastAPI application and including the routers."""
 from fastapi import FastAPI
-from .routes import *
+# Import routers
+from app.routes.chat_routes import router as chat_routes
+from app.routes.recipe_routes import router as recipe_routes
+from app.routes.pairings_routes import router as pairings
+from app.routes.image_routes import router as image_routes
+from app.routes.extraction_routes import router as extraction_routes
 from .middleware.session_middleware import SessionMiddleware
 
 description = """
@@ -73,20 +80,6 @@ app = FastAPI(
 
 # Add a middleware to your FastAPI application
 app.add_middleware(SessionMiddleware)
-
-
-# Include all the routers in your FastAPI application
-for router in routers:
-    app.include_router(router)
-# Additional configuration or middleware setup if needed
-# ...
-
-# Import routers
-from app.routes.chat_routes import router as chat_routes
-from app.routes.recipe_routes import router as recipe_routes
-from app.routes.pairings_routes import router as pairings
-from app.routes.image_routes import router as image_routes
-from app.routes.extraction_routes import router as extraction_routes
 
 # Include routers
 app.include_router(chat_routes)
