@@ -20,7 +20,7 @@ router = APIRouter()
 # The main route for the recipe service
 @router.post("/generate_recipe")
 async def generate_recipe(specifications: Annotated[str, "I would love a good recipe for chicken noodle soup"],
-                           recipe_service: RecipeService = Depends(get_recipe_service)) -> Recipe:
+                           recipe_service: RecipeService = Depends(get_recipe_service)):
     """ 
     Primary route for the recipe service. 
     Client needs to extract session_id from the response and include it in the headers of subsequent requests.
@@ -29,52 +29,26 @@ async def generate_recipe(specifications: Annotated[str, "I would love a good re
     return response
 
 # The route for the recipe service to get the recipe by name and session_id
-@router.get("/get_recipe_by_name", include_in_schema=False)
-async def get_recipe_by_name(recipe_name: str, recipe_service: RecipeService = Depends(get_recipe_service)):
+@router.get("/load_recipe", include_in_schema=True)
+async def get_recipe_by_name(recipe_service: RecipeService = Depends(get_recipe_service)):
     """ 
     Route for the recipe service to get the recipe by name and session_id. 
     Client must include session_id in the request headers.
     """
-    response = recipe_service.load_recipe(recipe_name=recipe_name)
+    response = recipe_service.load_recipe()
     return response
 
 # The route to delete a recipe by name and session_id
-@router.delete("/delete_recipe_by_name", include_in_schema=False)
-async def delete_recipe_by_name(recipe_name: str, recipe_service: RecipeService = Depends(get_recipe_service)):
+@router.delete("/delete_recipe", include_in_schema=True)
+async def delete_recipe(recipe_service: RecipeService = Depends(get_recipe_service)):
     """ 
     Route to delete a recipe by name and session_id. 
     Client must include session_id in the request headers.
     """
-    response = recipe_service.delete_recipe(recipe_name=recipe_name)
+    response = recipe_service.delete_recipe()
     return response
 
-@router.get("/view_recipe_history", include_in_schema=False)
-async def view_saved_recipes(recipe_service: RecipeService = Depends(get_recipe_service)):
-    """ 
-    The route to view the saved recipes by session_id -- should return a list of recipe dictionaries / json objects. 
-    Client must include session_id in the request headers.
-    """
-    response = recipe_service.load_recipe_history()
-    return response
 
-@router.delete("/clear_recipe_history", include_in_schema=False)
-async def clear_saved_recipes(recipe_service: RecipeService = Depends(get_recipe_service)):
-    """ 
-    The route to clear the saved recipes by session_id. 
-    Client must include session_id in the request headers.
-    """
-    response = recipe_service.delete_recipe_history()
-    return response
-
-# The route to save the recipe history to the store
-@router.post("/save_recipe_history", include_in_schema=False)
-async def save_recipe_history(recipe_service: RecipeService = Depends(get_recipe_service)):
-    """ 
-    The route to save the recipe history to the store. 
-    Client must include session_id in the request headers.
-    """
-    response = recipe_service.save_recipe_history()
-    return response
 
 
 

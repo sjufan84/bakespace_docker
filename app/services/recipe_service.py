@@ -22,46 +22,17 @@ class RecipeService:
     def __init__(self, store: RedisStore = None):
         self.store = store or RedisStore()
         self.session_id = self.store.session_id
+        self.recipe = self.load_recipe()
+        if not self.recipe:
+            self.recipe = None
 
-        recipe_history = self.store.redis.lrange(f'{self.session_id}_recipe_history', start = 0, end = -1)
-        if recipe_history:
-            self.recipe_history = recipe_history
-        else:
-            self.recipe_history = []
-
-
-
-    # Create a function to load the recipe history from redis
-    def load_recipe_history(self):
-        try:
-            recipe_history_json = self.store.redis.getrange(f'{self.session_id}_recipe_history', start = 0, end = -1)
-            if recipe_history_json:
-                recipe_history_dict = json.loads(recipe_history_json)
-                return [message for message in recipe_history_dict]
-            else:
-                return []
-        except Exception as e:
-            print(f"Failed to load recipe history from Redis: {e}")
-            return []
-        
-    # Create a function to save the recipe history to redis
-    def save_recipe_history(self):
-        """ Save the recipe history to Redis. """
-        try:
-            # Save the recipe history to redis
-            recipe_history_json = json.dumps(self.recipe_history)
-            self.store.redis.setrange(f'{self.session_id}_recipe_history', 0, recipe_history_json)
-        except Exception as e:
-            print(f"Failed to save recipe history to Redis: {e}")
-        return self.recipe_history
-    
     # Create a function to be able to load a recipe from the store by the recipe_name
-    def load_recipe(self, recipe_name: str):
+    def load_recipe(self):
         try:
-            recipe_json = self.store.redis.get(f'{self.session_id}_recipe_history : {recipe_name}')
+            # Load the recipe hash from redis with all of the keys
+            recipe_json = self.store.redis.hgetall(f'{self.session_id}_recipe')
             if recipe_json:
-                recipe_dict = json.loads(recipe_json)
-                return recipe_dict
+                return recipe_json
             else:
                 return None
         except Exception as e:
@@ -69,99 +40,92 @@ class RecipeService:
             return None
         
     # Create a function to save a recipe to the store by the recipe_name
-    def save_recipe(self, recipe_name: str, recipe: dict):
+    def save_recipe(self, recipe):
         try:
             # Save the recipe to redis
-            recipe_json = json.dumps(recipe_name)
-            self.store.redis.set(f'{self.session_id}_recipe_history : {recipe_name}', recipe_json)
+            self.store.redis.hmset(f'{self.session_id}_recipe', mapping = recipe)
         except Exception as e:
             print(f"Failed to save recipe to Redis: {e}")
         return recipe
     
     # Create a function to delete a recipe from the store by the recipe_name
-    def delete_recipe(self, recipe_name: str):
+    def delete_recipe(self):
         """ Delete a recipe from the store by the recipe_name """
         try:
             # Delete the recipe from redis
-            self.store.redis.delete(f'{self.session_id}_recipe_history : {recipe_name}')
+            self.store.redis.delete(f'{self.session_id}_recipe')
         except Exception as e:
             print(f"Failed to delete recipe from Redis: {e}")
-        return recipe_name
+        return {"message": "Recipe deleted."}
     
-    # Create a function to delete the recipe history from the store
-    def delete_recipe_history(self):
-        """ Delete the recipe history from the store """
+
+
+    def execute_generate_recipe(self, specifications: str):
+        """ Generate a recipe based on the specifications provided """
         try:
-            # Delete the recipe history from redis
-            self.store.redis.delete(f'{self.session_id}_recipe_history : *')
+            # Set your API key
+            logging.debug("Setting API key and organization.")
+            openai.api_key = get_openai_api_key()
+            openai.organization = get_openai_org()
+
+            # Create the output parser -- this takes in the output from the model and parses it into a Pydantic object that mirrors the schema
+            logging.debug("Creating output parser.")
+            output_parser = PydanticOutputParser(pydantic_object=Recipe)
+
+            # Define the first system message.  This let's the model know what type of output\
+            # we are expecting and in what format it needs to be in.
+            logging.debug("Creating system message prompt.")
+            prompt = PromptTemplate(
+                template = "You are a master chef creating a based on a user's specifications {specifications}.\
+                            The recipe should be returned in this format{format_instructions}.",
+                input_variables = ["specifications"],
+                partial_variables = {"format_instructions": output_parser.get_format_instructions()}
+            )
+            system_message_prompt = SystemMessagePromptTemplate(prompt=prompt)
+            
+            # Define the user message.
+            logging.debug("Creating user message prompt.")
+            human_template = "Create a delicious recipe based on the specifications {specifications} provided.  Please ensure the returned prep time, cook time, and total time are integers in minutes.  If any of the times are n/a\
+                        as in a raw dish, return 0 for that time.  Round the times to the nearest 5 minutes to provide a cushion and make for a more readable recipe."
+            human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)    
+            
+            # Create the chat prompt template
+            logging.debug("Creating chat prompt.")
+            chat_prompt = ChatPromptTemplate.from_messages([system_message_prompt, human_message_prompt])
+
+            # format the messages to feed to the model
+            messages = chat_prompt.format_prompt(specifications=specifications).to_messages()
+
+            # Create a list of models to loop through in case one fails
+            models = ["gpt-3.5-turbo-0613", "gpt-3.5-turbo-16k-0613", "gpt-3.5-turbo", "gpt-3.5-turbo-16k"]
+
+            # Loop through the models and try to generate the recipe
+            for model in models:
+                try:
+                    logging.debug(f"Trying model: {model}.")
+                    
+                    # Create the chat object
+                    chat = ChatOpenAI(model_name = model, temperature = 1, max_retries=3, timeout=15)
+
+                    # Generate the recipe
+                    recipe = chat(messages).content
+
+                    # Parse the recipe
+                    parsed_recipe = output_parser.parse(recipe)
+
+                    redis_dict = {str(key): str(value) for key, value in dict(parsed_recipe).items()}
+
+
+                    # Save the recipe history to redis
+                    self.save_recipe(redis_dict)
+
+                    return {"Recipe": parsed_recipe, "session_id": self.session_id}
+
+                except (requests.exceptions.RequestException, requests.exceptions.ConnectTimeout, openai.error.APIError) as e:
+                    logging.error(f"Error with model: {model}. Error: {str(e)}")
+                    continue
+            
+
         except Exception as e:
-            print(f"Failed to delete recipe history from Redis: {e}")
-        return self.recipe_history
-
-
-def execute_generate_recipe(self, specifications: str):
-    """ Generate a recipe based on the specifications provided """
-    try:
-        # Set your API key
-        logging.debug("Setting API key and organization.")
-        openai.api_key = get_openai_api_key()
-        openai.organization = get_openai_org()
-
-        # Create the output parser -- this takes in the output from the model and parses it into a Pydantic object that mirrors the schema
-        logging.debug("Creating output parser.")
-        output_parser = PydanticOutputParser(pydantic_object=Recipe)
-
-        # Define the first system message.  This let's the model know what type of output\
-        # we are expecting and in what format it needs to be in.
-        logging.debug("Creating system message prompt.")
-        prompt = PromptTemplate(
-            template = "You are a master chef creating a based on a user's specifications {specifications}.\
-                        The recipe should be returned in this format{format_instructions}.",
-            input_variables = ["specifications"],
-            partial_variables = {"format_instructions": output_parser.get_format_instructions()}
-        )
-        system_message_prompt = SystemMessagePromptTemplate(prompt=prompt)
-        
-        # Define the user message.
-        logging.debug("Creating user message prompt.")
-        human_template = "Create a delicious recipe based on the specifications {specifications} provided.  Please ensure the returned prep time, cook time, and total time are integers in minutes.  If any of the times are n/a\
-                    as in a raw dish, return 0 for that time.  Round the times to the nearest 5 minutes to provide a cushion and make for a more readable recipe."
-        human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)    
-        
-        # Create the chat prompt template
-        logging.debug("Creating chat prompt.")
-        chat_prompt = ChatPromptTemplate.from_messages([system_message_prompt, human_message_prompt])
-
-        # format the messages to feed to the model
-        messages = chat_prompt.format_prompt(specifications=specifications).to_messages()
-
-        # Create a list of models to loop through in case one fails
-        models = ["gpt-3.5-turbo-0613", "gpt-3.5-turbo-16k-0613", "gpt-3.5-turbo", "gpt-3.5-turbo-16k"]
-
-        # Loop through the models and try to generate the recipe
-        for model in models:
-            try:
-                logging.debug(f"Trying model: {model}.")
-                
-                # Create the chat object
-                chat = ChatOpenAI(model_name = model, temperature = 1, max_retries=3, timeout=15)
-
-                # Generate the recipe
-                recipe = chat(messages).content
-
-                # Parse the recipe
-                parsed_recipe = output_parser.parse(recipe)
-
-                # Save the recipe history to redis
-                self.save_recipe(parsed_recipe.name, parsed_recipe)
-
-                return parsed_recipe
-
-            except (requests.exceptions.RequestException, requests.exceptions.ConnectTimeout, openai.error.APIError) as e:
-                logging.error(f"Error with model: {model}. Error: {str(e)}")
-                continue
-        
-
-    except Exception as e:
-        logging.error(f"Unexpected error: {str(e)}")
-        return None
+            logging.error(f"Unexpected error: {str(e)}")
+            return None
