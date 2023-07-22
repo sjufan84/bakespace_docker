@@ -113,8 +113,8 @@ class RecipeService:
                     # Parse the recipe
                     parsed_recipe = output_parser.parse(recipe)
 
+                    # Convert the recipe to a dictionary for saving to redis
                     redis_dict = {str(key): str(value) for key, value in dict(parsed_recipe).items()}
-
 
                     # Save the recipe history to redis
                     self.save_recipe(redis_dict)

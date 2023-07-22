@@ -15,8 +15,21 @@ def get_pairing_service(store: RedisStore = Depends(get_redis_store)) -> Pairing
 
 @router.post("/generate_pairing")
 # Generate the pairing
-async def generate_pairing(recipe_text: str, pairing_type: str, pairing_service: PairingService = Depends(get_pairing_service)):
+async def generate_pairing(recipe_text: str, pairing_type: str, pairing_service:
+    PairingService = Depends(get_pairing_service)):
     """ Primary route for the pairing service. User must pass session_id in the headers. """
     return pairing_service.get_pairing(recipe=recipe_text, pairing_type=pairing_type)
     # @TODO: Figure out how we want to parse the data
     # on the backend and if we want to return multiple pairings
+
+@router.get("/load_pairing")
+# Load the pairing
+async def load_pairing(pairing_service: PairingService = Depends(get_pairing_service)):
+    """ Route to load the pairing. User must pass session_id in the headers. """
+    return pairing_service.load_pairing()
+
+@router.delete("/delete_pairing")
+# Delete the pairing
+async def delete_pairing(pairing_service: PairingService = Depends(get_pairing_service)):
+    """ Route to delete the pairing. User must pass session_id in the headers. """
+    return pairing_service.delete_pairing()

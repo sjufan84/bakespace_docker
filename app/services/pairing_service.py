@@ -1,6 +1,6 @@
 """ This module contains the functions to generate a pairing based on the requested pairing
  type and the recipe text. """
-import json
+import logging
 import openai
 import requests
 from langchain.output_parsers import PydanticOutputParser
@@ -18,13 +18,15 @@ class PairingService:
     def __init__(self, store: RedisStore = None):
         self.store = store or RedisStore()
         self.session_id = self.store.session_id
-        pairing_history = self.store.redis.get(f'{self.session_id}_pairing_history')
-        if pairing_history:
-            self.pairing_history = pairing_history
-        else:
-            self.pairing_history = []
+        self.recipe = self.store.redis.hgetall(f'{self.session_id}_pairing')
+        if not self.recipe:
+            self.recipe = None
+        self.pairing = self.load_pairing()
+        if not self.pairing:
+            self.pairing = None
 
 
+    
     def get_pairing(self, recipe: str, pairing_type: str):
         """ Generate a pairing based on the requested pairing type and the recipe text. """
         # Set your API key
@@ -63,27 +65,56 @@ class PairingService:
         messages = chat_prompt.format_prompt(recipe=recipe, pairing_type=pairing_type).to_messages()
 
         # Create a list of models to loop through in case one fails
-        models = ["gpt-3.5-turbo", "gpt-3.5-turbo-16k"]
+        models = ["gpt-3.5-turbo-0613", "gpt-3.5-turbo-16k-0613", "gpt-3.5-turbo", "gpt-3.5-turbo-16k"]
 
         # Loop through the models and try to generate the recipe
         for model in models:
             try:
+                logging.debug(f"Trying model: {model}.")
                 chat = ChatOpenAI(n=1, model_name = model, temperature = 1, max_retries=3)
                 pairings = chat(messages).content
                 # Parse the output
                 parsed_pairings = output_parser.parse(pairings)
 
-                # Save the pairing to the pairing history
-                self.store.redis.append(f'{self.session_id}_pairing_history', json.dumps(dict(parsed_pairings)))
+                # Convert the keys and values to strings for saving to redis
+                redis_dict = {str(key): str(value) for key, value in dict(parsed_pairings).items()}
 
-                 # Return the pairing
+                # Save the pairing to redis
+                self.save_pairing(redis_dict)
+
+                    # Return the pairing
                 return parsed_pairings
 
             except (requests.exceptions.RequestException, openai.error.APIError):
                 continue
 
-       
+    def load_pairing(self):
+        """ Load the pairing from redis. """
+        try:
+            pairing = self.store.redis.hgetall(f'{self.session_id}_pairing')
+            if pairing:
+                return pairing
+            else:
+                return None
+        except Exception as e:
+            print(f"Failed to load pairing from Redis: {e}")
+            return None
+        
+    def save_pairing(self, pairing: dict):
+        """ Save the pairing to redis. """
+        try:
+            self.store.redis.hmset(f'{self.session_id}_pairing', mapping = pairing)
+        except Exception as e:
+            print(f"Failed to save pairing to Redis: {e}")
+
+        return pairing
     
-    def get_pairing_history(self):
-        """ Get the pairing history for the current session. """
-        return self.pairing_history
+    def delete_pairing(self):
+        """ Delete the pairing from redis. """
+        try:
+            self.store.redis.delete(f'{self.session_id}_pairing')
+        except Exception as e:
+            print(f"Failed to delete pairing from Redis: {e}")
+
+        return {"message": "Pairing deleted."}
+    
