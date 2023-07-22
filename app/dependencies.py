@@ -14,3 +14,6 @@ def get_google_vision_credentials():
     config = toml.load("secrets.toml")
     return service_account.Credentials.from_service_account_info(config['gcp_service_account'])
 
+def get_stability_api_key():
+    return os.getenv("STABLE_DIFFUSION_API_KEY")
+
