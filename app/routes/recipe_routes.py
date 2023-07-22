@@ -19,11 +19,13 @@ router = APIRouter()
 
 # The main route for the recipe service
 @router.post("/generate_recipe")
-async def generate_recipe(specifications: Annotated[str, "I would love a good recipe for chicken noodle soup"],
-                           recipe_service: RecipeService = Depends(get_recipe_service)):
+async def generate_recipe(specifications: Annotated[str, "I would love a good\
+    recipe for chicken noodle soup"], recipe_service: RecipeService =
+    Depends(get_recipe_service)):
     """ 
     Primary route for the recipe service. 
-    Client needs to extract session_id from the response and include it in the headers of subsequent requests.
+    Client needs to extract session_id from the response and include it in the headers
+    of subsequent requests.
     """
     response = recipe_service.execute_generate_recipe(specifications=specifications)
     return response
@@ -47,9 +49,3 @@ async def delete_recipe(recipe_service: RecipeService = Depends(get_recipe_servi
     """
     response = recipe_service.delete_recipe()
     return response
-
-
-
-
-
-

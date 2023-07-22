@@ -44,7 +44,6 @@ class ChatService:
     def save_chat_history(self):
         """ Save the chat history to Redis. """
         try:
-            # Save the chat history to redis
             chat_history_json = json.dumps(self.chat_history)
             self.store.redis.set(f'{self.session_id}:chat_history', chat_history_json)
         except Exception as e:
@@ -60,8 +59,7 @@ class ChatService:
     
     # Define a function to add a message from the chef to the chat history
     def add_chef_message(self, message: str):
-        """ Add a message from the chef to the chat history. """
-        # Format the message and append it to the chat history  
+        """ Add a message from the chef to the chat history. """  
         chef_message = ChatMessage(message, "ai").format_message()
         self.chat_history.append(chef_message)
         # Save the chat history to redis
@@ -84,7 +82,8 @@ class ChatService:
         self.save_chat_history()
 
         # Return the initial message, session_id, and chat_history as a json object
-        return {"session_id": self.session_id, "chat_history": self.chat_history, "initial_message": initial_message}
+        return {"session_id": self.session_id, "chat_history": self.chat_history,
+        "initial_message": initial_message}
 
     def initialize_recipe_chat(self, recipe_text: str) -> dict:
         """ Initialize the chatbot with a recipe. """
@@ -102,7 +101,8 @@ class ChatService:
         self.save_chat_history()
 
         # Return the initial message, session_id, and chat_history as a json object
-        return {"session_id": self.session_id, "chat_history": self.chat_history, "initial_message": initial_message}
+        return {"session_id": self.session_id, "chat_history": self.chat_history,
+        "initial_message": initial_message}
 
 
 
@@ -124,7 +124,8 @@ class ChatService:
         self.chat_history.append(user_message)
         
         # List of models to use
-        models = ["gpt-turbo-3.5-16k-0613", "gpt-turbo-3.5-16k", "gpt-3.5-turbo-0613", "gpt-3.5-turbo"]
+        models = ["gpt-turbo-3.5-16k-0613", "gpt-turbo-3.5-16k", "gpt-3.5-turbo-0613",
+        "gpt-3.5-turbo"]
 
         # Iterate through the models until you get a successful response
         for model in models:
@@ -165,17 +166,17 @@ class ChatService:
         self.save_chat_history()
 
         # Return the session_id, the chat_history, and the chef_response as a json object
-        return {"session_id": self.session_id, "chat_history": self.chat_history, "chef_response": chef_response}
-
+        return {"session_id": self.session_id, "chat_history": self.chat_history,
+        "chef_response": chef_response}
 
     def clear_chat_history(self):
         """ Clear the chat history. """
         self.chat_history = []
         self.save_chat_history()
         # Return the session_id, the chat_history, and "Chat history cleared" as a json object
-        return {"session_id": self.session_id, "chat_history": self.chat_history, "message": "Chat history cleared"}
+        return {"session_id": self.session_id, "chat_history": self.chat_history,
+        "message": "Chat history cleared"}
     
-
     def check_status(self):
         """ Return the session id and any user data from Redis. """
         return {"session_id": self.session_id, "chat_history": self.chat_history}

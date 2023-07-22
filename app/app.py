@@ -97,9 +97,8 @@ app = FastAPI(
 # Add a middleware to your FastAPI application
 app.add_middleware(SessionMiddleware)
 
+routers = [chat_routes, recipe_routes, pairings, image_routes, extraction_routes]
+
 # Include routers
-app.include_router(chat_routes)
-app.include_router(recipe_routes)
-app.include_router(pairings)
-app.include_router(image_routes)
-app.include_router(extraction_routes)
+for router in routers:
+    app.include_router(router)
