@@ -42,7 +42,7 @@ class RedisStore:
     """ Define a class to store the session_id. """
     def __init__(self, session_id: Optional[str] = None):
         self.redis = redis.Redis(decode_responses=True)
-        self.session_id = session_id or "default_key"
+        self.session_id = session_id or str(uuid4())
 
 
 def get_redis_store(request: Request) -> RedisStore:

@@ -1,5 +1,6 @@
 """ This module contains the recipe service class. """
 import json
+import logging
 import openai
 import requests
 from langchain.chat_models import ChatOpenAI
@@ -13,6 +14,8 @@ from langchain.prompts import (
 from ..models.recipe import Recipe
 from ..dependencies import get_openai_api_key, get_openai_org
 from ..middleware.session_middleware import RedisStore
+
+logging.basicConfig(level=logging.DEBUG)
 
 class RecipeService:
     """ A class to represent the recipe service. """
@@ -95,38 +98,38 @@ class RecipeService:
             print(f"Failed to delete recipe history from Redis: {e}")
         return self.recipe_history
 
-    def execute_generate_recipe(self, specifications: str):
-        """ Generate a recipe based on the specifications provided """
+
+def execute_generate_recipe(self, specifications: str):
+    """ Generate a recipe based on the specifications provided """
+    try:
         # Set your API key
+        logging.debug("Setting API key and organization.")
         openai.api_key = get_openai_api_key()
         openai.organization = get_openai_org()
 
         # Create the output parser -- this takes in the output from the model and parses it into a Pydantic object that mirrors the schema
+        logging.debug("Creating output parser.")
         output_parser = PydanticOutputParser(pydantic_object=Recipe)
-
-        
-        # Create the prompt template from langchain to query the model and parse the output
-        # We will format system, user, and AI messages separately and then pass the formatted messages to the model to
-        # generate the recipe in a specific format using the output parser
 
         # Define the first system message.  This let's the model know what type of output\
         # we are expecting and in what format it needs to be in.
+        logging.debug("Creating system message prompt.")
         prompt = PromptTemplate(
             template = "You are a master chef creating a based on a user's specifications {specifications}.\
                         The recipe should be returned in this format{format_instructions}.",
             input_variables = ["specifications"],
             partial_variables = {"format_instructions": output_parser.get_format_instructions()}
         )
-
-        # Generate the system message prompt
         system_message_prompt = SystemMessagePromptTemplate(prompt=prompt)
         
-        # Define the user message.  This is the message that will be passed to the model to generate the recipe.
+        # Define the user message.
+        logging.debug("Creating user message prompt.")
         human_template = "Create a delicious recipe based on the specifications {specifications} provided.  Please ensure the returned prep time, cook time, and total time are integers in minutes.  If any of the times are n/a\
                     as in a raw dish, return 0 for that time.  Round the times to the nearest 5 minutes to provide a cushion and make for a more readable recipe."
         human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)    
         
         # Create the chat prompt template
+        logging.debug("Creating chat prompt.")
         chat_prompt = ChatPromptTemplate.from_messages([system_message_prompt, human_message_prompt])
 
         # format the messages to feed to the model
@@ -138,8 +141,10 @@ class RecipeService:
         # Loop through the models and try to generate the recipe
         for model in models:
             try:
+                logging.debug(f"Trying model: {model}.")
+                
                 # Create the chat object
-                chat = ChatOpenAI(model_name = model, temperature = 1, max_retries=3)
+                chat = ChatOpenAI(model_name = model, temperature = 1, max_retries=3, timeout=15)
 
                 # Generate the recipe
                 recipe = chat(messages).content
@@ -152,5 +157,11 @@ class RecipeService:
 
                 return parsed_recipe
 
-            except (requests.exceptions.RequestException, openai.error.APIError):
+            except (requests.exceptions.RequestException, requests.exceptions.ConnectTimeout, openai.error.APIError) as e:
+                logging.error(f"Error with model: {model}. Error: {str(e)}")
                 continue
+        
+
+    except Exception as e:
+        logging.error(f"Unexpected error: {str(e)}")
+        return None

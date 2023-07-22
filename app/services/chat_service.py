@@ -3,6 +3,7 @@ import json
 from typing import Union
 import requests
 import openai
+import logging
 from ..middleware.session_middleware import RedisStore
 from ..dependencies import get_openai_api_key, get_openai_org
 
@@ -82,8 +83,8 @@ class ChatService:
         # Save the chat history to redis
         self.save_chat_history()
 
-        # Return the initial message
-        return initial_message
+        # Return the initial message, session_id, and chat_history as a json object
+        return {"session_id": self.session_id, "chat_history": self.chat_history, "initial_message": initial_message}
 
     def initialize_recipe_chat(self, recipe_text: str) -> dict:
         """ Initialize the chatbot with a recipe. """
@@ -100,8 +101,9 @@ class ChatService:
         # Save the chat history to redis
         self.save_chat_history()
 
-        # Return the initial message
-        return initial_message
+        # Return the initial message, session_id, and chat_history as a json object
+        return {"session_id": self.session_id, "chat_history": self.chat_history, "initial_message": initial_message}
+
 
 
     # Define a function to get a response from the chatbot
@@ -121,54 +123,59 @@ class ChatService:
         # Append the user message to the chat history
         self.chat_history.append(user_message)
         
+        # List of models to use
+        models = ["gpt-turbo-3.5-16k-0613", "gpt-turbo-3.5-16k", "gpt-3.5-turbo-0613", "gpt-3.5-turbo"]
 
-        # Use the OpenAI API to generate a recipe
-        try:
-            response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=messages,
-            max_tokens=750,
-            frequency_penalty=0.5,
-            presence_penalty=0.5,
-            temperature=1,
-            top_p=0.9,
-            n=1,
-        )
-            chef_response = response.choices[0].message.content
+        # Iterate through the models until you get a successful response
+        for model in models:
+            try:
+                response = requests.post(
+                    url="https://api.openai.com/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {openai.api_key}"},
+                    json={
+                        "model": model,
+                        "messages": messages,
+                        "max_tokens": 750,
+                        "frequency_penalty": 0.5,
+                        "presence_penalty": 0.5,
+                        "temperature": 1,
+                        "top_p": 0.9,
+                        "n": 1,
+                    },
+                    timeout=15,
+                )
+                response.raise_for_status()
+                break  # If the response is successful, exit the loop
+
+            except (requests.exceptions.RequestException, requests.exceptions.HTTPError) as err:
+                logging.error(f"Request failed for model {model} due to: {err}")
+                if model == models[-1]:  # If this is the last model in the list
+                    raise  # Propagate the error up
+                else:
+                    continue  # Try the next model
+
+        response_json = response.json()
+        chef_response = response_json["choices"][0]["message"]["content"]
             
-            # Convert the chef_response to a message and append it to the chat history
-            chef_response = ChatMessage(chef_response, "system").format_message()
-            self.chat_history.append(chef_response)
+        # Convert the chef_response to a message and append it to the chat history
+        chef_response = ChatMessage(chef_response, "system").format_message()
+        self.chat_history.append(chef_response)
 
-            # Save the chat history to redis
-            return self.save_chat_history()
+        # Save the chat history to redis
+        self.save_chat_history()
 
+        # Return the session_id, the chat_history, and the chef_response as a json object
+        return {"session_id": self.session_id, "chat_history": self.chat_history, "chef_response": chef_response}
 
-        except (requests.exceptions.RequestException, openai.error.APIError):
-            response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo-16k",
-            messages=messages,
-            max_tokens=750,
-            frequency_penalty=0.5,
-            presence_penalty=0.5,
-            temperature=1,
-            top_p=0.9,
-            n=1,
-        )
-          
-            # Convert the chef_response to a message and append it to the chat history
-            chef_response = ChatMessage(chef_response, "system").format_message()
-            self.chat_history.append(chef_response)
-
-            # Save the chat history to redis
-            self.save_chat_history()
-
-            # Return the chef response
-            return chef_response
-
-    
 
     def clear_chat_history(self):
         """ Clear the chat history. """
         self.chat_history = []
         self.save_chat_history()
+        # Return the session_id, the chat_history, and "Chat history cleared" as a json object
+        return {"session_id": self.session_id, "chat_history": self.chat_history, "message": "Chat history cleared"}
+    
+
+    def check_status(self):
+        """ Return the session id and any user data from Redis. """
+        return {"session_id": self.session_id, "chat_history": self.chat_history}

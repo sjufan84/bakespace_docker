@@ -22,7 +22,7 @@ class Recipe(BaseModel):
         """ Return the recipe text. """
         return f"{self.name} {self.desc} {self.preptime} {self.cooktime} {self.totaltime} {self.servings} {self.directions} {self.ingredients} {self.calories}"
     
-    '''class Config:
+    class Config:
         """ Configure the Recipe model.  Returns a Recipe object as a dictionary. """
         schema_extra = {
             "examples": [
@@ -46,4 +46,4 @@ class Recipe(BaseModel):
                     "calories": 250
                 }
             ]
-        }'''
+        }
