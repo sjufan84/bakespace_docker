@@ -17,6 +17,7 @@ class Message(BaseModel):
     role: Role = Field(description="The role of the message. One of 'ai' or 'user'")
 
 class ChatResponse(BaseModel):
+    """ Define the ChatResponse model. """
     session_id: str = Field(description="The session id.")
     chat_history: list[Message] = Field(description="The chat history.")
 
@@ -25,15 +26,15 @@ class InitialMessage(BaseModel):
     """ Define the InitialMessage model. """
     initial_message: Message = Field(description="The initial message of the chat session")
     
-
     class Config:
         """ Example response schema """
         schema_extra = {
             "examples": [
                 {
                     "role": "system",
-                    "content": "You are a master chef answering a user's questions about cooking.  The context, if any,\
-                        is None.  Your chat history so far is []",
+                    "content": """You are a master chef answering a user's
+                    questions about cooking.  The context, if any,
+                        is None.  Your chat history so far is []""",
                     "session_id": "The session id.",
                     "chat_history": [
                         {
