@@ -1,9 +1,9 @@
 """ This module defines the ChatService class, which is responsible for managing the chatbot. """
 import json
 from typing import Union
+import logging
 import requests
 import openai
-import logging
 from ..middleware.session_middleware import RedisStore
 from ..dependencies import get_openai_api_key, get_openai_org
 
