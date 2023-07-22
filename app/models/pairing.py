@@ -1,5 +1,5 @@
 """ Create a model for the Pairing class """
-from pydantic import BaseModel, Field
+from pydantic. import BaseModel, Field
 
 
 # Create a Pairing class that inherits from the BaseModel class
