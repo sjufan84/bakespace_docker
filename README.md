@@ -1,6 +1,6 @@
 # BakespaceAI FastAPI
 
-## Project Overview
+## Project Overview -- Beta
 
 BakespaceAI FastAPI is a powerful backend solution designed to provide an array of functionality to be integrated with Bakespace website. With this backend, users can interact with Large Language Models (LLMs) via several endpoints to personalize their culinary experiences.
 
