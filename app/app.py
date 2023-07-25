@@ -1,6 +1,7 @@
 """ This module contains the FastAPI application. It's responsible for 
     creating the FastAPI application and including the routers."""
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 # Import routers
 from app.routes.chat_routes import router as chat_routes
 from app.routes.recipe_routes import router as recipe_routes
@@ -43,28 +44,30 @@ offering a complete dining experience.
 
 This project leverages several Python libraries to deliver its functionalities. These include:
 
-*FastAPI* | *Langchain* | *OpenAI* | *Pydantic* | *Python-dotenv* | *Requests* | *Uvicorn*
+*FastAPI* | *Langchain* | *OpenAI* | *Pydantic* | *Python-dotenv* | *Requests* | *Uvicorn* | *Redis*
 
-**FastAPI (0.98.0)**: This is a modern, fast (high-performance), web framework for building APIs
+**FastAPI**: This is a modern, fast (high-performance), web framework for building APIs
 with Python 3.6+ based on standard Python type hints.
 
-**Langchain (0.0.209)**: A library used to parse and handle natural language text. In this project,
+**Langchain**: A library used to parse and handle natural language text. In this project,
 it's used to process and analyze textual data.
 
-**OpenAI (0.27.7)**: OpenAI's Python client library, used for interacting with the OpenAI API. It
+**OpenAI**: OpenAI's Python client library, used for interacting with the OpenAI API. It
 allows access to powerful AI models for tasks like translation, text completion, and more.
 
-**Pydantic (1.10.9**): A data validation library used to set the data types of incoming request data.
+**Pydantic**): A data validation library used to set the data types of incoming request data.
 It also provides helpers to convert between types, and to parse complex data structures.
 
-**Python-dotenv (1.0.0)**: This library is used to separate secret credentials and your code. It allows
+**Python-dotenv**: This library is used to separate secret credentials and your code. It allows
 you to add, edit, and load environment variables from .env files.
 
-**Requests (2.31.0)**: A simple, yet powerful HTTP library used to send HTTP requests. It abstracts the
+**Requests**: A simple, yet powerful HTTP library used to send HTTP requests. It abstracts the
 complexities of making requests behind a simple API.
 
-**Uvicorn (0.22.0)**: An ASGI server that's needed to run your FastAPI applications. It provides
+**Uvicorn**: An ASGI server that's needed to run your FastAPI applications. It provides
 a lightning-fast, asynchronous server for Python applications.
+
+**Redis**: A key-value store used to store session data. It's used to store the session ID
 
 ## Installation
 
@@ -96,6 +99,15 @@ app = FastAPI(
 
 # Add a middleware to your FastAPI application
 app.add_middleware(SessionMiddleware)
+
+# Allow CORS for your streamlit frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['*'],  # Adjust this in production!
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 routers = [chat_routes, recipe_routes, pairings, image_routes, extraction_routes]
 

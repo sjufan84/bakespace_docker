@@ -20,7 +20,7 @@ logging.basicConfig(level=logging.DEBUG)
 class RecipeService:
     """ A class to represent the recipe service. """
     def __init__(self, store: RedisStore = None):
-        self.store = store or RedisStore()
+        self.store = store
         self.session_id = self.store.session_id
         self.recipe = self.load_recipe()
         if not self.recipe:

@@ -1,9 +1,14 @@
 """ The routes for the extraction service """
-from typing import List, Union, Annotated
-from fastapi import APIRouter, UploadFile, Depends, Header, File
-from ..models.recipe import Recipe 
+import base64
+from typing import List
+from pathlib import Path
+from fastapi import APIRouter, UploadFile, Depends, Header, HTTPException, File, Body
 from ..services.extraction_service import ExtractionService
 from ..middleware.session_middleware import RedisStore, get_redis_store
+from ..models.recipe import FormattedRecipe
+from ..models.extraction import ExtractedTextResponse
+
+UPLOAD_DIR = Path(__file__).parent.parent.parent / "uploads"
 
 # A new dependency function:
 def get_extraction_service(store: RedisStore = Depends(get_redis_store)) -> ExtractionService:
@@ -30,45 +35,97 @@ a success message.  The uploaded files can then be passed to the appropriate end
 for text extraction and recipe formatting.
 """
 
-@router.post("/extract-text-from-text-files", include_in_schema=False)
-async def extract_text_from_text_files_endpoint(file: UploadFile = File(...),
-    extraction_service: ExtractionService = Depends(get_extraction_service)):
-    """ Define the function to extract text from text files.  Takes in text files, confirms
-    that they are text files, converts them to bytes if necessary, and then returns the
-    extracted text as a string. """
-    extracted_text = extraction_service.extract_text_file_contents(file)
-    # Pass the files to the extraction service
-    #extracted_text = extraction_service.extract_text_file_contents(file)
-    # If successful, return the extracted text
-    return extracted_text
+# Define a function for each file type
+file_handlers = {
+    "jpg": ("image/jpeg", lambda contents, extraction_service: extraction_service.extract_image_text(contents)),  # "image/jpeg
+    "jpeg": ("image/jpeg", lambda contents, extraction_service: extraction_service.extract_image_text(contents)),
+    "png": ("image/png", lambda contents, extraction_service: extraction_service.extract_image_text(contents)),
+    "pdf": ("application/pdf", lambda contents, extraction_service: extraction_service.extract_pdf_file_contents(contents)),
+    "txt": ("text/plain", lambda contents, extraction_service: extraction_service.extract_text_file_contents(contents)),
+}
 
-@router.post("/extract-text-from-pdf-files", include_in_schema=False)
-async def extract_text_from_pdf_files_endpoint(files: List[UploadFile],
-    extraction_service: ExtractionService = Depends(get_extraction_service)) -> str:
-    """ Define the function to extract text from pdf files.  Takes in pdfs, confirms
-    that they are pdfs, converts them to bytes if necessary, and then returns the 
-    extracted text as a string. """
-    # Convert the files to a list if they are not already
-    files_list = [files] if not isinstance(files, list) else files
-    # Pass the files to the extraction service
-    extracted_text = extraction_service.extract_pdf_file_contents(files_list)
-    # If successful, return the extracted text
-    return extracted_text
+@router.post(
+    "/upload-files/",
+    response_description="The processed text from uploaded files.",
+    summary="Upload and process files.",
+    description="Upload one or more files. The files should be of the same type and one of the following: pdf, txt, jpg, jpeg, png. The file contents are extracted and processed.",
+    tags=["Recipe Text Extraction Endpoints"],
+    responses = {200: {"model": ExtractedTextResponse, "description": "OK", "examples": {
+        "application/json": {
+            "Files uploaded successfully",
+            "Extracted Recipe Text: ",
+        }
+    }}})
 
-@router.post("/extract-text-from-images", include_in_schema=False)
-async def extract_text_from_images_endpoint(images: List[UploadFile],
-    extraction_service: ExtractionService = Depends(get_extraction_service)):
-    """ Define the function to extract text from images.  Takes in images and passes them to the extraction service. """
-    # Convert the files to a list if they are not already
-    images_list = [images] if not isinstance(images, list) else images
-    # The images must be in bytes format to be uploaded
-    extracted_text = extraction_service.extract_image_text(images_list)
-    # If successful, return the extracted text
-    return extracted_text
+async def create_upload_files(
+    files: List[UploadFile] = File(..., description="The list of files to upload."),
+    extraction_service: ExtractionService = Depends(get_extraction_service)
+):
+    """ Define the function to upload files.  Takes in a list of files. """
+    # First we need to make sure that the files are of the same type and they are in our list of accepted file types
+    file_types = set([file.filename.split(".")[-1] for file in files])
+    # Raise an error if the file types are not in our list of accepted file types
+    if not file_types.issubset(file_handlers.keys()):
+        raise HTTPException(status_code=400, detail="Invalid file type")
+    # Check that the file types are the same
+    if len(file_types) > 1:
+        raise HTTPException(status_code=400, detail="Files must be of the same type")
+    # If the file type is pdf, send it to the pdf endpoint with the file.file attribute
+    file_type = file_types.pop()
+    if file_type== "pdf":
+        extracted_text = extraction_service.extract_pdf_file_contents([file.file for file in files])
+        formatted_text = extraction_service.format_recipe_text(extracted_text)
+        return {"filenames": [file.filename for file in files], "types": file_types,
+        "contents" : extracted_text, "formatted_text": formatted_text}
+    # If the file type is text, send it to the text endpoint with the file.file attribute
+    if file_type == "txt":
+        extracted_text = extraction_service.extract_text_file_contents([file.file.read().decode('utf-8',
+        errors = 'ignore') for file in files])
+        formatted_text = extraction_service.format_recipe_text(extracted_text)
+        return {"filenames": [file.filename for file in files], "types": file_types, "contents" :
+        extracted_text, "formatted_text": formatted_text}
+    # If the file type is an image, send it to the image endpoint with the files encoded as base64
+    if file_type in ["jpg", "jpeg", "png"]:
+        # Encode the images as base64
+        encoded_images = [base64.b64encode(file.file.read()).decode("utf-8") for file in files]
+        extracted_text = extraction_service.extract_image_text(encoded_images)
+        formatted_text = extraction_service.format_recipe_text(extracted_text)
+        return {"filenames": [file.filename for file in files], "types": file_types,
+        "contents" : extracted_text, "formatted_text": formatted_text}
 
-@router.post("/format-recipe", include_in_schema=False)
-async def format_text_endpoint(recipe_text: str, 
-    extraction_service: ExtractionService = Depends(get_extraction_service)) -> Recipe:
+@router.post(
+    "/format-recipe",
+    response_description="The formatted recipe text.",
+    summary="Format a raw recipe text.",
+    description="Takes the raw recipe text that should have been returned from the\
+    extraction methods, and formats it.",
+    tags=["Recipe Text Extraction Endpoints"],
+    responses = {200: {"model": FormattedRecipe, "description": "OK", "examples": {
+        "application/json": {
+            "name": "Chicken Noodle Soup",
+            "ingredients": [
+                "1 tablespoon butter",
+                "1/2 cup chopped onion",
+                "1/2 cup chopped celery",
+                "4 (14.5 ounce) cans chicken broth",
+            ],
+            "instructions": [
+                "In a large pot over medium heat, melt butter. Cook onion and celery in butter until just tender, 5 minutes.",
+                "Pour in chicken and vegetable broths and stir in chicken, noodles, carrots, basil, oregano, salt and pepper.",
+                "Bring to a boil, then reduce heat and simmer 20 minutes before serving."
+            ],
+            "prep_time": "10 minutes",
+            "cook_time": "30 minutes",
+            "total_time": "40 minutes",
+            "servings": 6,
+            "calories": 250
+        }
+    }}})
+
+async def format_text_endpoint(
+    recipe_text: str = Body(..., description="The raw recipe text to format."),
+    extraction_service: ExtractionService = Depends(get_extraction_service)
+) -> FormattedRecipe:
     """ Define the function to format text.  Takes in the raw
     recipe text that should have been returned from the extraction methods. """
     recipe = extraction_service.format_recipe_text(recipe_text)

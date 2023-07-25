@@ -1,8 +1,6 @@
 """Initiating the middleware"""
 
 # Initial Imports
-from typing import Optional
-from uuid import uuid4
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.responses import Response
 from fastapi import FastAPI, Request
@@ -16,11 +14,6 @@ class SessionMiddleware(BaseHTTPMiddleware):
     ) -> Response:
         # Extract the session_id from the headers
         session_id = request.headers.get("session_id")
-        if session_id is None:
-            # If there is no session_id in the headers, generate a new one
-            session_id = str(uuid4())
-
-        # Get user data from Redis
         store = RedisStore(session_id)
         user_data = store.redis.get(session_id)
 
@@ -40,9 +33,9 @@ class SessionMiddleware(BaseHTTPMiddleware):
 # Create a RedisStore class to store the session_id
 class RedisStore:
     """ Define a class to store the session_id. """
-    def __init__(self, session_id: Optional[str] = None):
+    def __init__(self, session_id: str):
         self.redis = redis.Redis(decode_responses=True)
-        self.session_id = session_id or str(uuid4())
+        self.session_id = session_id 
 
 
 def get_redis_store(request: Request) -> RedisStore:

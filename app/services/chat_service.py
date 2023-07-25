@@ -21,7 +21,7 @@ class ChatMessage:
 class ChatService:
     """ A class to represent the chatbot. """
     def __init__(self, store: RedisStore = None):
-        self.store = store or RedisStore()
+        self.store = store
         self.session_id = self.store.session_id
         chat_history = self.store.redis.get(f'{self.session_id}:chat_history')
         if chat_history:
@@ -124,7 +124,7 @@ class ChatService:
         self.chat_history.append(user_message)
         
         # List of models to use
-        models = ["gpt-turbo-3.5-16k-0613", "gpt-turbo-3.5-16k", "gpt-3.5-turbo-0613",
+        models = ["gpt-3.5-turbo-16k-0613", "gpt-3.5-turbo-16k", "gpt-3.5-turbo-0613",
         "gpt-3.5-turbo"]
 
         # Iterate through the models until you get a successful response

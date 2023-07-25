@@ -16,7 +16,7 @@ from ..middleware.session_middleware import RedisStore
 class PairingService:
     """ A class to represent the pairing service. """
     def __init__(self, store: RedisStore = None):
-        self.store = store or RedisStore()
+        self.store = store 
         self.session_id = self.store.session_id
         self.recipe = self.store.redis.hgetall(f'{self.session_id}_pairing')
         if not self.recipe:
@@ -118,3 +118,48 @@ class PairingService:
 
         return {"message": "Pairing deleted."}
     
+    def format_recipe_text(self, recipe_text: str):
+        """ Format the recipe text into a recipe object. """
+        # Set your API key
+        openai.api_key = get_openai_api_key()
+        openai.organization = get_openai_org()
+
+        # Define the messages for the prompt:
+        messages = [
+            {
+            "role": "system", "content": f"Format the recipe text {recipe_text} that has been extracted from\
+            a recipe file that the user has uploaded.  Return the formatted recipe text as a string in\
+            a standard recipe format.  If there is information that seems missing or unclear,\
+            do your best to fill in the missing information."
+            },
+            {
+            "role": "user", "content": f"Format the recipe text {recipe_text} into a standard recipe format please."
+            }
+        ]
+           
+        # Create a list of models to loop through in case one fails
+        models = ["gpt-3.5-turbo-0613", "gpt-3.5-turbo", "gpt-3.5-turbo-16k", "gpt-3.5-turbo-16k-0613"]
+
+        # Loop through the models and try to generate the recipe
+        for model in models:
+            try:
+                response = openai.ChatCompletion.create(
+                    model=model,
+                    messages=messages,
+                    temperature=0.9,
+                    max_tokens=1500,
+                    top_p=1,
+                    frequency_penalty=0.0,
+                    presence_penalty=0.0,
+                )
+
+                recipe = response.choices[0].message.content
+                return recipe
+                    # We need to create a "recipe_text" field for the recipe to be returned to the user
+                    # This will be a string that includes all of the recipe information so that we can
+                    # Use it for functions downstream
+
+            except (requests.exceptions.RequestException, openai.error.APIError):
+                continue
+        
+        return recipe
