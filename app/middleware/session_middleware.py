@@ -14,12 +14,14 @@ class SessionMiddleware(BaseHTTPMiddleware):
     ) -> Response:
         # Extract the session_id from the headers
         session_id = request.headers.get("session_id")
-        store = RedisStore(session_id)
-        user_data = store.redis.get(session_id)
 
-        # Add user data to the request state
-        if user_data is not None:
-            request.state.user_data = user_data
+        if session_id is None:
+            # Handle the case when there is no session_id provided.
+            # You can return an error response or assign a default session_id
+            return Response("No session_id provided", status_code=400)
+
+        # You might not need to store the session_id in Redis at this point
+        # since you said that user data is retrieved during each API call
 
         # Proceed to the next middleware or route handler
         response = await call_next(request)
@@ -28,6 +30,7 @@ class SessionMiddleware(BaseHTTPMiddleware):
         response.headers["session_id"] = session_id
 
         return response
+
 
 
 # Create a RedisStore class to store the session_id
