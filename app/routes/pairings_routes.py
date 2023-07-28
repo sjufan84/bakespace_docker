@@ -1,12 +1,12 @@
 """ Pairings routes for the API """
-from fastapi import APIRouter, Depends, Header
-from ..middleware.session_middleware import RedisStore, get_redis_store
+from fastapi import APIRouter, Depends
+from ..middleware.session_middleware import RedisStore
 from ..services.pairing_service import PairingService
 from ..models.pairing import Pairing
 router = APIRouter()
 
 # A new dependency function:
-def get_pairing_service(store: RedisStore = Depends(get_redis_store)):
+def get_pairing_service(store: RedisStore = Depends(RedisStore)):
     """ Define a function to get the chat service. """
     return PairingService(store=store)
 

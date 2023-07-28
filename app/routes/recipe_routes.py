@@ -1,12 +1,12 @@
 """ This module contains the routes for the recipe service """
 from typing import Annotated
 from fastapi import APIRouter, Depends
-from ..middleware.session_middleware import RedisStore, get_redis_store
+from ..middleware.session_middleware import RedisStore
 from ..services.recipe_service import RecipeService
 from ..models.recipe import Recipe
 
 # A new dependency function:
-def get_recipe_service(store: RedisStore = Depends(get_redis_store)):
+def get_recipe_service(store: RedisStore = Depends(RedisStore)):
     """ Define a function to get the chat service. """
     return RecipeService(store=store)
 
