@@ -15,7 +15,7 @@ class SessionMiddleware(BaseHTTPMiddleware):
         # Extract the session_id from the headers
         session_id = request.query_params.get("session_id")
 
-        if session_id is None:
+        if not session_id:
             # Handle the case when there is no session_id provided.
             # You can return an error response or assign a default session_id
             return Response("No session_id provided", status_code=400)
