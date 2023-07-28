@@ -8,7 +8,6 @@ from app.routes.recipe_routes import router as recipe_routes
 from app.routes.pairings_routes import router as pairings
 from app.routes.image_routes import router as image_routes
 from app.routes.extraction_routes import router as extraction_routes
-from .middleware.session_middleware import SessionMiddleware
 
 description = """
 # BakespaceAI FastAPI
@@ -96,9 +95,6 @@ app = FastAPI(
                 "url": "https://opensource.org/licenses/MIT"
             }
 )
-
-# Add a middleware to your FastAPI application
-app.add_middleware(SessionMiddleware)
 
 # Allow CORS for your streamlit frontend
 app.add_middleware(
