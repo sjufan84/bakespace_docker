@@ -8,65 +8,48 @@ import redis
 
 
 class SessionMiddleware(BaseHTTPMiddleware):
-    """ We need the middleware to extract the session_id from the query parameters
-    and pass it to the RedisStore class. """
-    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
-        """ Define the dispatch method. """
-        # Get the session_id from the query parameters
+    """ Define a class to represent the session middleware. """
+    async def dispatch(
+        self, request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
+        # Extract the session_id from the headers
         session_id = request.query_params.get("session_id")
-        # Pass the session_id to the RedisStore class
-        request.state.store = get_redis_store(session_id)
-        # Return the response
+
+        if session_id is None:
+            # Handle the case when there is no session_id provided.
+            # You can return an error response or assign a default session_id
+            return Response("No session_id provided", status_code=400)
+        
+        request.state.session_id = session_id
+
+        # You might not need to store the session_id in Redis at this point
+        # since you said that user data is retrieved during each API call
+
+        # Proceed to the next middleware or route handler
         response = await call_next(request)
+
+        # Set the session_id in the response headers for client to use in further interactions
+        response.headers["session_id"] = request.state.session_id
+
         return response
+
+
 
 # Create a RedisStore class to store the session_id
 class RedisStore:
     """ Define a class to store the session_id. """
     def __init__(self, session_id: str):
-        """ Define the constructor. """
-        # Set the session_id
-        self.session_id = session_id
-        # Create a connection to Redis
-        self.redis = redis.Redis(host='localhost', port=6379, db=0)
-        
-    def get(self, key: str) -> str:
-        """ Define a function to get the key. """
-        # Get the value from Redis
-        value = self.redis.get(f"{self.session_id}_{key}")
-        # Return the value
-        return value
-    
-    def set(self, key: str, value: str) -> None:
-        """ Define a function to set the key. """
-        # Set the value in Redis
-        self.redis.set(f"{self.session_id}_{key}", value)
-        
-    def delete(self, key: str) -> None:
-        """ Define a function to delete the key. """
-        # Delete the value from Redis
-        self.redis.delete(f"{self.session_id}_{key}")
-        
-    def exists(self, key: str) -> bool:
-        """ Define a function to check if the key exists. """
-        # Check if the key exists
-        return self.redis.exists(f"{self.session_id}_{key}")
-    
-    def clear(self):
-        """ Define a function to clear the session. """
-        # Get all the keys
-        keys = self.redis.keys(f"{self.session_id}*")
-        # Delete all the keys
-        self.redis.delete(*keys)
+        self.redis = redis.Redis(decode_responses=True)
+        self.session_id = session_id 
 
-# Create a function to get the RedisStore
-def get_redis_store(session_id: str) -> RedisStore:
-    """ Define a function to get the RedisStore. """
-    # Return the RedisStore
+
+def get_redis_store(request: Request, session_id : str) -> RedisStore:
+    """ Create a function to get the RedisStore. """
+    session_id = request.query_params.get("session_id")
+    # You can include any configuration logic here if needed
     return RedisStore(session_id)
 
 
 app = FastAPI()
 
-# Add the middleware
 app.add_middleware(SessionMiddleware)
