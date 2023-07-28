@@ -1,7 +1,6 @@
 """ This module contains the FastAPI application. It's responsible for 
     creating the FastAPI application and including the routers."""
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 # Import routers
 from app.routes.chat_routes import router as chat_routes
 from app.routes.recipe_routes import router as recipe_routes
@@ -94,15 +93,6 @@ app = FastAPI(
                 "name": "MIT License",
                 "url": "https://opensource.org/licenses/MIT"
             }
-)
-
-# Allow CORS for your streamlit frontend
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=['*'],  # Adjust this in production!
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
 )
 
 routers = [chat_routes, recipe_routes, pairings, image_routes, extraction_routes]
