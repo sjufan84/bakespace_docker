@@ -15,6 +15,9 @@ class SessionMiddleware(BaseHTTPMiddleware):
         # Extract the session_id from the headers
         session_id = request.query_params.get("session_id")
 
+        print(f"Query parameters: {request.query_params}")  # Debug line
+        print(f"Session ID: {session_id}")  # Debug line
+
         if not session_id:
             # Handle the case when there is no session_id provided.
             # You can return an error response or assign a default session_id
@@ -32,6 +35,7 @@ class SessionMiddleware(BaseHTTPMiddleware):
         response.headers["session_id"] = request.state.session_id
 
         return response
+
 
 
 
