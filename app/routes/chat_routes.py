@@ -2,7 +2,7 @@
 The user will receive a session_id when they first connect to the API.
 This session_id will be passed in the headers of all subsequent requests. """
 from typing import Union, Annotated
-from fastapi import APIRouter, Depends, Header, Query
+from fastapi import APIRouter, Depends, Query
 from ..services.chat_service import ChatService
 from ..middleware.session_middleware import RedisStore, get_redis_store
 from ..models.chat import InitialMessage, ChefResponse, ChatHistory
@@ -10,15 +10,13 @@ from ..models.chat import InitialMessage, ChefResponse, ChatHistory
 # Define a router object
 router = APIRouter()
 
-def get_session_id(session_id: str = Header(...)):
-    """ Dependency function to get the session id from the header """
-    return session_id
 
 # A new dependency function to get the chat service
 # We need to get the session_id from the headers
 def get_chat_service(store: RedisStore = Depends(get_redis_store)):
-    """ Define a function to get the chat service.  Takes in session_id and store."""
+    """ Define a function to get the chat service. """
     return ChatService(store=store)
+
 
 # Add an endpoint that is a "status call" to make sure the API is working.
 # It should return the session_id and the chat history, if any.

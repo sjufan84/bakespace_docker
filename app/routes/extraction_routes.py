@@ -2,7 +2,7 @@
 import base64
 from typing import List
 from pathlib import Path
-from fastapi import APIRouter, UploadFile, Depends, Header, HTTPException, File, Body
+from fastapi import APIRouter, UploadFile, Depends, HTTPException, File, Body
 from ..services.extraction_service import ExtractionService
 from ..middleware.session_middleware import RedisStore, get_redis_store
 from ..models.recipe import FormattedRecipe
@@ -11,14 +11,11 @@ from ..models.extraction import ExtractedTextResponse
 UPLOAD_DIR = Path(__file__).parent.parent.parent / "uploads"
 
 # A new dependency function:
-def get_extraction_service(store: RedisStore = Depends(get_redis_store)) -> ExtractionService:
-    """ Dependency function to get the recipe service """
+def get_extraction_service(store: RedisStore = Depends(get_redis_store)):
+    """ Define a function to get the chat service. """
     return ExtractionService(store=store)
 
 
-def get_session_id(session_id: str = Header(...)):
-    """ Dependency function to get the session id from the header """
-    return session_id
 
 router = APIRouter()
 
