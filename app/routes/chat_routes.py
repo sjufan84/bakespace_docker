@@ -12,7 +12,8 @@ router = APIRouter()
 
 
 # A new dependency function to get the chat service
-# We need to get the session_id from the headers
+# We need to get the session_id from the query parameters
+# and pass it to the ChatService
 def get_chat_service(store: RedisStore = Depends(get_redis_store)):
     """ Define a function to get the chat service. """
     return ChatService(store=store)

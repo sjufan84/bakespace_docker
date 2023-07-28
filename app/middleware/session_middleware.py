@@ -8,23 +8,17 @@ import redis
 
 
 class SessionMiddleware(BaseHTTPMiddleware):
-    """ Define a class to represent the session middleware. """
-    async def dispatch(
-        self, request: Request, call_next: RequestResponseEndpoint
-    ) -> Response:
-        # Extract the session_id from the query parameters
-        session_id = request.query_params.get("session_id")
-
-        if session_id is None:
-            # Handle the case when there is no session_id provided.
-            return Response("No session_id provided", status_code=400)
-
-        # Store the session_id in the request state so it can be accessed later
-        request.state.session_id = session_id
-
-        # Proceed to the next middleware or route handler
+    """ We need the middleware to extract the session_id from the query parameters
+    and inject the RedisStore into the request state. """
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+        """ Define the dispatch method. """
+        # Get the session_id from the query parameters
+        session_id = request.query_params.get('session_id')
+        # Inject the RedisStore into the request state
+        request.state.store = get_redis_store(session_id)
+        # Call the next middleware
         response = await call_next(request)
-
+        # Return the response
         return response
 
 # Create a RedisStore class to store the session_id
@@ -34,13 +28,13 @@ class RedisStore:
         self.redis = redis.Redis(decode_responses=True)
         self.session_id = session_id 
 
-def get_redis_store(request: Request):
-    """ Create a function to get the RedisStore. """
-    # You can include any configuration logic here if needed
-    return RedisStore(request.state.session_id)
-
-
-
+# Define the "get_redis_store" function
+# This function will be used as a dependency in the routes
+# and should retrieve the session_id from the query parameters
+# and return a RedisStore object
+def get_redis_store(session_id: str):
+    """ Define a function to get the RedisStore object. """
+    return RedisStore(session_id)
 
 app = FastAPI()
 
