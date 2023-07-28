@@ -4,7 +4,7 @@ This session_id will be passed in the headers of all subsequent requests. """
 from typing import Union, Annotated
 from fastapi import APIRouter, Depends, Query
 from ..services.chat_service import ChatService
-from ..middleware.session_middleware import RedisStore
+from ..middleware.session_middleware import RedisStore, get_redis_store
 from ..models.chat import InitialMessage, ChefResponse, ChatHistory
 
 # Define a router object
@@ -13,7 +13,7 @@ router = APIRouter()
 
 # A new dependency function to get the chat service
 # We need to get the session_id from the headers
-def get_chat_service(store: RedisStore = Depends(RedisStore)):
+def get_chat_service(store: RedisStore = Depends(get_redis_store)):
     """ Define a function to get the chat service. """
     return ChatService(store=store)
 

@@ -1,11 +1,11 @@
 """ Image generation routes for the API """
 from fastapi import APIRouter, Depends
-from ..middleware.session_middleware import RedisStore
+from ..middleware.session_middleware import RedisStore, get_redis_store
 from ..services.image_service import ImageService
 router = APIRouter()
 
 # A new dependency function:
-def get_image_service(store: RedisStore = Depends(RedisStore)):
+def get_image_service(store: RedisStore = Depends(get_redis_store)):
     """ Define a function to get the chat service. """
     return ImageService(store=store)
 
