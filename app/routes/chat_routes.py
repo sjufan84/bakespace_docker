@@ -4,7 +4,7 @@ This session_id will be passed in the headers of all subsequent requests. """
 from typing import Union, Annotated
 from fastapi import APIRouter, Depends, Query
 from ..services.chat_service import ChatService
-from ..middleware.session_middleware import RedisStore, get_redis_store
+from ..middleware.session_middleware import get_redis_store
 from ..models.chat import InitialMessage, ChefResponse, ChatHistory
 
 # Define a router object
@@ -14,7 +14,7 @@ router = APIRouter()
 # A new dependency function to get the chat service
 # We need to get the session_id from the query parameters
 # and pass it to the ChatService
-def get_chat_service(store: RedisStore = Depends(get_redis_store)):
+def get_chat_service(store=Depends(get_redis_store)):
     """ Define a function to get the chat service. """
     return ChatService(store=store)
 
@@ -66,7 +66,7 @@ async def initialize_general_chat(context: Annotated[Union[str, None],
     return {"Initial message succesfully generated for general chat:" : response}
 
 # Create a route to initialize the chat
-@router.post("/initialize_recipe_chat",  response_description="The initial message\
+@router.post("/initialize_recipe_chat/",  response_description="The initial message\
     and the chat history.",
     summary="Initialize a recipe chat session.",
     description="Initialize a general chat session by passing in recipe_text as a string.",

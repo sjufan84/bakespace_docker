@@ -1,5 +1,5 @@
 """ Image generation routes for the API """
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Header
 from ..middleware.session_middleware import RedisStore, get_redis_store
 from ..services.image_service import ImageService
 router = APIRouter()
