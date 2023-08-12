@@ -1,10 +1,21 @@
-$(document).ready(function () {
-    // Slide-up chat box
+function openChat() {
+    $('#chat-bubble').hide();
     $('#chat-box').slideDown();
-    var sessionId = 'test12345'; // Replace with actual session ID if needed
+}
+
+function closeChat() {
+    $('#chat-box').hide();
+    $('#chat-bubble').show();
+}
+
+$(document).ready(function () {
+    // Show chat bubble initially
+    $('#chat-bubble').show();
+    var sessionId = 'test-session-id';
 
     $('#send-btn').click(function () {
-        var question = $('#user-input').val();
+        // Existing AJAX code
+        var question = $('#user-input').val(); // Use "user-input" instead of "question"
         $('#user-input').val('');
 
         // Fetch response from FastAPI
