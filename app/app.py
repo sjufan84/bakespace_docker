@@ -1,14 +1,18 @@
 """ This module contains the FastAPI application. It's responsible for 
     creating the FastAPI application and including the routers."""
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 # Import routers
 from app.routes.chat_routes import router as chat_routes
 from app.routes.recipe_routes import router as recipe_routes
 from app.routes.pairings_routes import router as pairings
 from app.routes.image_routes import router as image_routes
 from app.routes.extraction_routes import router as extraction_routes
+# Import middleware
+from .middleware.session_middleware import SessionMiddleware
 
-description = """
+
+DESCRIPTION = """
 # BakespaceAI FastAPI
 
 ## Project Overview
@@ -78,25 +82,35 @@ pip install -r requirements.txt
 
 
 app = FastAPI(
-    title = "BakeSpace AI",
-    description = description,
-    version = "0.1",
-    summary = "Backend to allow BakeSpace users to interact\
+    title="BakeSpace AI",
+    description=DESCRIPTION,
+    version="0.1",
+    summary="Backend to allow BakeSpace users to interact\
             with Large Language Models (LLMs) to personalize\
             their culinary experiences.",
-            contact = {
-                "name": "Dave Thomas",
-                "url": "https://enoughwebapp.com",
-                "email": "dave_thomas@enoughwebapp.com"
-            },
-            license_info = {
-                "name": "MIT License",
-                "url": "https://opensource.org/licenses/MIT"
-            }
+    contact={
+        "name": "Dave Thomas",
+        "url": "https://enoughwebapp.com",
+        "email": "dave_thomas@enoughwebapp.com"
+    },
+    license_info={
+        "name": "MIT License",
+        "url": "https://opensource.org/licenses/MIT"
+    }
 )
 
-routers = [chat_routes, recipe_routes, pairings, image_routes, extraction_routes]
+# Allow CORS for your front end
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['*'],  # Adjust this in production!
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.add_middleware(SessionMiddleware)
 
 # Include routers
+routers = [chat_routes, recipe_routes, pairings, image_routes, extraction_routes]
 for router in routers:
     app.include_router(router)

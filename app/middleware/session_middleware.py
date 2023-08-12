@@ -2,9 +2,7 @@
 
 # Initial Imports
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
-from starlette.responses import Response
-from fastapi import FastAPI, Request, Response
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import Request, Response
 import redis
 
 
@@ -49,15 +47,3 @@ def get_redis_store(request: Request) -> RedisStore:
     return RedisStore(session_id)
 
 
-
-app = FastAPI()
-
-app.add_middleware(SessionMiddleware)
-# Allow CORS for your streamlit frontend
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=['*'],  # Adjust this in production!
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)

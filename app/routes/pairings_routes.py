@@ -1,13 +1,10 @@
 """ Pairings routes for the API """
-from fastapi import APIRouter, Depends, Header
+from fastapi import APIRouter, Depends
 from ..middleware.session_middleware import RedisStore, get_redis_store
 from ..services.pairing_service import PairingService
 from ..models.pairing import Pairing
 router = APIRouter()
 
-def get_session_id(session_id: str = Header(...)):
-    """ Dependency function to get the session id from the header """
-    return session_id
 
 # A new dependency function:
 def get_pairing_service(store: RedisStore = Depends(get_redis_store)) -> PairingService:
