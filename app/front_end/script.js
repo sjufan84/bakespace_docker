@@ -15,7 +15,7 @@ $(document).ready(function () {
 
     $('#send-btn').click(function () {
         // Existing AJAX code
-        var question = $('#user-input').val(); // Use "user-input" instead of "question"
+        var question = $('#user-input').val(); // 
         $('#user-input').val('');
 
         // Fetch response from FastAPI
