@@ -70,7 +70,8 @@ class RecipeService:
             openai.api_key = get_openai_api_key()
             openai.organization = get_openai_org()
 
-            # Create the output parser -- this takes in the output from the model and parses it into a Pydantic object that mirrors the schema
+            # Create the output parser -- this takes in the output
+            #  from the model and parses it into a Pydantic object that mirrors the schema
             logging.debug("Creating output parser.")
             output_parser = PydanticOutputParser(pydantic_object=Recipe)
 
@@ -98,13 +99,17 @@ class RecipeService:
             
             # Create the chat prompt template
             logging.debug("Creating chat prompt.")
-            chat_prompt = ChatPromptTemplate.from_messages([system_message_prompt, human_message_prompt])
+            chat_prompt = ChatPromptTemplate.from_messages([system_message_prompt,
+                                                            human_message_prompt])
 
             # format the messages to feed to the model
             messages = chat_prompt.format_prompt(specifications=specifications).to_messages()
 
             # Create a list of models to loop through in case one fails
-            models = ["gpt-3.5-turbo-0613", "gpt-3.5-turbo-16k-0613", "gpt-3.5-turbo", "gpt-3.5-turbo-16k"]
+            models = [
+                "gpt-3.5-turbo-0613", "gpt-3.5-turbo-16k-0613",
+                "gpt-3.5-turbo", "gpt-3.5-turbo-16k"
+                ]
 
             # Loop through the models and try to generate the recipe
             for model in models:
@@ -128,8 +133,11 @@ class RecipeService:
 
                     return {"recipe": parsed_recipe, "session_id": self.session_id}
 
-                except (requests.exceptions.RequestException, requests.exceptions.ConnectTimeout, openai.error.APIError) as e:
-                    logging.error(f"Error with model: {model}. Error: {str(e)}")
+                except (
+                    requests.exceptions.RequestException,
+                    requests.exceptions.ConnectTimeout, openai.error.APIError) as e:
+                    logging.error(f"Error with model: {model}. Error: {str(e)}"
+                    )
                     continue
             
 

@@ -1,7 +1,8 @@
-""" This module defines the ChatService class, which is responsible for managing the chatbot. """
-import json
-from typing import Union
+""" This module defines the chat service and it's
+related functions. """
 import logging
+from typing import Union
+import json
 import requests
 import openai
 from langchain.chat_models import ChatOpenAI
@@ -23,10 +24,12 @@ class ChatMessage:
     def __init__(self, content, role):
         self.content = content
         self.role = role
+
     def format_message(self):
         """ Format the message for the chat history. """
         # Return a dictionary with the format {"role": role, "content": content}
         return {"role": self.role, "content": self.content}
+
 
 class ChatService:
     """ A class to represent the chat service. """
@@ -41,46 +44,40 @@ class ChatService:
             self.chat_history = []
 
     def load_chat_history(self):
+        """ Load the chat history from Redis and return as a dict. """
         try:
             chat_history_json = self.store.redis.get(f'{self.session_id}:chat_history')
-            if chat_history_json:
-                chat_history_dict = json.loads(chat_history_json.decode("utf-8"))
-                return chat_history_dict
-            return []
+            return json.loads(chat_history_json.decode("utf-8")) if chat_history_json else []
         except Exception as e:
-            print(f"Failed to load chat history from Redis: {e}")
+            logging.error(f"Failed to load chat history from Redis: {e}")
             return []
 
-        
     def save_chat_history(self):
         """ Save the chat history to Redis. """
         try:
             chat_history_json = json.dumps(self.chat_history)
             self.store.redis.set(f'{self.session_id}:chat_history', chat_history_json)
         except Exception as e:
-            print(f"Failed to save chat history to Redis: {e}")
+            logging.error(f"Failed to save chat history to Redis: {e}")
         return self.chat_history
-    
+
+    def add_message(self, message: str, role: str):
+        """ Add a message to the chat history and save it. """
+        formatted_message = ChatMessage(message, role).format_message()
+        self.chat_history.append(formatted_message)
+        return self.save_chat_history()
+
     def add_user_message(self, message: str):
-        """ Format the message and append it to the chat history """
-        user_message = ChatMessage(message, "user").format_message()
-        self.chat_history.append(user_message)
-        # Save the chat history to redis
-        return self.save_chat_history()
-    
-    # Define a function to add a message from the chef to the chat history
+        """ Add a user message to the chat history. """
+        return self.add_message(message, "user")
+
     def add_chef_message(self, message: str):
-        """ Add a message from the chef to the chat history. """  
-        chef_message = ChatMessage(message, "ai").format_message()
-        self.chat_history.append(chef_message)
-        # Save the chat history to redis
-        return self.save_chat_history()
+        """ Add a chef message to the chat history. """
+        return self.add_message(message, "ai")
 
-
-    # Define a function to get a new recipe from the chatbot
     def get_new_recipe(self, user_question: str, original_recipe: dict,
-                    recipe_service: RecipeService, recipe: Union[Recipe, str] = None,
-                    chef_type: str = "general"):
+                       recipe_service: RecipeService, recipe: Union[Recipe, str] = None,
+                       chef_type: str = "general"):
         """ Get a new recipe from the chatbot. """
         # Set the api key and organization
         openai.api_key = get_openai_api_key()
@@ -102,7 +99,7 @@ class ChatService:
         logging.debug("Creating output parser.")
         output_parser = PydanticOutputParser(pydantic_object=Recipe)
 
-        # Define the first system message.  This let's the model know what type of output\
+        # Define the first system message.  This let's the model know what type of output
         # we are expecting and in what format it needs to be in.
         logging.debug("Creating system message prompt.")
     
@@ -115,7 +112,8 @@ class ChatService:
                 Please return the new recipe in the same format as the original recipe."
             },
             {
-                "role" : "user", "content" : f"Please help me change the recipe {original_recipe} based on my question {user_question}\
+                "role" : "user", "content" : f"Please help me change the recipe\
+                {original_recipe} based on my question {user_question}\
                 and return the new recipe in the same format as the original recipe."
             }
         ]
@@ -168,8 +166,8 @@ class ChatService:
                 continue
 
     def get_recipe_chef_response(self, question: str, recipe_service: RecipeService,
-                                chef_type : str = "general", recipe: Union[Recipe, str] = None):
-        """ Get a response from the chatbot. """
+                                 chef_type: str = "general", recipe: Union[Recipe, str] = None):
+        """ Get a response from the chatbot regarding a recipe-related question. """
         # Set your API key
         openai.api_key = get_openai_api_key()
         openai.organization = get_openai_org()
@@ -252,38 +250,34 @@ class ChatService:
                 return None
 
 
-    # Define a function to get a response from the chatbot
     def get_chef_response(self, question: str, chef_type: str = "general"):
         """ Get a response from the chatbot. """
-        # Set your API key
+        # Set API key
         openai.api_key = get_openai_api_key()
         openai.organization = get_openai_org()
-
-        # Generate the messages to send to the model
+        
+        # Initialize chat messages
         messages = [
             {
-            "role" : "system", "content" : f"You are a master chef answering\
-            a user's question {question}.  You are a {chef_type} type of chef.\
-            Your chat history so far is {self.chat_history}.  Please respond\
-            to the user's question as their personal sous chef of type {chef_type}."
+                "role": "system",
+                "content": f"You are a master chef answering a user's question {question}.\
+                            You are a {chef_type} type of chef. Your chat history so far\
+                            is {self.chat_history}. Please respond to the user's question\
+                            as their personal sous chef of type {chef_type}."
             },
             {
-            "role" : "user", "content" : f"Please answer my question {question}\
-            as my personal sous chef of type {chef_type}."
+                "role": "user",
+                "content": f"Please answer my question {question} as my\
+                personal sous chef of type {chef_type}."
             }
         ]
-
-        # Format the message and add it to the chat history
-        user_message = ChatMessage(question, "user").format_message()
-
-        # Append the user message to the chat history
-        self.chat_history.append(user_message)
         
-        # List of models to use
-        models = ["gpt-3.5-turbo-16k-0613", "gpt-3.5-turbo-16k", "gpt-3.5-turbo-0613",
-        "gpt-3.5-turbo"]
-
-        # Iterate through the models until you get a successful response
+        # Format user message and append to chat history
+        self.add_message(question, "user")
+        
+        
+        # Iterate through models until a successful response is received
+        models = ["gpt-3.5-turbo-16k-0613", "gpt-3.5-turbo-16k", "gpt-3.5-turbo-0613", "gpt-3.5-turbo"]
         for model in models:
             try:
                 response = requests.post(
@@ -302,37 +296,32 @@ class ChatService:
                     timeout=15,
                 )
                 response.raise_for_status()
-                break  # If the response is successful, exit the loop
-
+                break  # Exit loop on success
             except (requests.exceptions.RequestException, requests.exceptions.HTTPError) as err:
                 logging.error(f"Request failed for model {model} due to: {err}")
-                if model == models[-1]:  # If this is the last model in the list
-                    raise  # Propagate the error up
+                if model == models[-1]:  # If last model in the list
+                    raise  # Propagate error up
                 else:
-                    continue  # Try the next model
-
+                    continue  # Try next model
+        
+        # Parse response and append to chat history
         response_json = response.json()
         chef_response = response_json["choices"][0]["message"]["content"]
-            
-        # Convert the chef_response to a message and append it to the chat history
-        chef_response = ChatMessage(chef_response, "system").format_message()
-        self.chat_history.append(chef_response)
+        self.add_message(chef_response, "system")
 
-        # Save the chat history to redis
-        self.save_chat_history()
-
-        # Return the session_id, the chat_history, and the chef_response as a json object
+        # Return session details as JSON object
         return {"session_id": self.session_id, "chat_history": self.chat_history,
-        "chef_response": chef_response}
+                "chef_response": chef_response}
 
     def clear_chat_history(self):
         """ Clear the chat history. """
         self.chat_history = []
         self.save_chat_history()
-        # Return the session_id, the chat_history, and "Chat history cleared" as a json object
         return {"session_id": self.session_id, "chat_history": self.chat_history,
         "message": "Chat history cleared"}
-    
+
     def check_status(self):
         """ Return the session id and any user data from Redis. """
         return {"session_id": self.session_id, "chat_history": self.chat_history}
+
+# ...
