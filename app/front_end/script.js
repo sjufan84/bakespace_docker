@@ -11,7 +11,7 @@ function closeChat() {
 $(document).ready(function () {
     // Show chat bubble initially
     $('#chat-bubble').show();
-    var sessionId = 'test-session-id';
+    var sessionId = 'test-session-id'; // Change this to your own session ID
 
     $('#send-btn').click(function () {
         // Existing AJAX code
@@ -20,7 +20,7 @@ $(document).ready(function () {
 
         // Fetch response from FastAPI
         $.ajax({
-            url: `http://localhost:8000/get_chef_response?question=${question}&session_id=${sessionId}`,
+            url: `http://localhost:8000/get_chef_response?question=${question}&session_id=${sessionId}`, // Change this to your own server endpoint
             method: 'POST',
             success: function (response) {
                 // Clear previous chat messages

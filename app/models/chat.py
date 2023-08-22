@@ -3,6 +3,7 @@ Basic chat models
 """
 from enum import Enum
 from pydantic import BaseModel, Field
+from ..models.recipe import Recipe
 
 # Create a model for the role class which is an Enum with the values "ai" or "user"
 class Role(str, Enum):
@@ -25,8 +26,9 @@ class InitialMessage(BaseModel):
 class ChefResponse(BaseModel):
     """ Define the ChefResponse model. """
     session_id : str = Field(description="The session id.")
-    chat_history : dict = Field(description="The chat history.")
-    chef_response: Message = Field(description="The chef response.")
+    chef_response: str = Field(description="The chef response.")
+    recipe : Recipe = Field(description="The recipe the user is asking about.  Will be changed if\
+                            the user is requesting an updated recipe.")
 
 class ChatHistory(BaseModel):
     """ Define the ChatHistory model. """

@@ -22,7 +22,7 @@ from langchain.prompts import (
         HumanMessagePromptTemplate
 )
 from ..dependencies import get_openai_api_key, get_openai_org, get_google_vision_credentials
-from ..models.recipe import FormattedRecipe
+from ..models.recipe import Recipe
 from ..middleware.session_middleware import RedisStore
 
 
@@ -69,14 +69,14 @@ class ExtractionService:
 
         return corrected_text
     
-    def format_recipe_text(self, recipe_text: str) -> FormattedRecipe:
+    def format_recipe_text(self, recipe_text: str) -> Recipe:
         """ Format the recipe text into a recipe object. """
         # Set your API key
         openai.api_key = get_openai_api_key()
         openai.organization = get_openai_org()
 
         # Create the output parser -- this takes in the output from the model and parses it into a Pydantic object that mirrors the schema
-        output_parser = PydanticOutputParser(pydantic_object=FormattedRecipe)
+        output_parser = PydanticOutputParser(pydantic_object=Recipe)
 
         
         # Create the prompt template from langchain to query the model and parse the output

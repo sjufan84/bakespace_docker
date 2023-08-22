@@ -1,5 +1,4 @@
 """ This module contains the recipe service class. """
-import json
 import logging
 import openai
 import requests
@@ -28,6 +27,7 @@ class RecipeService:
 
     # Create a function to be able to load a recipe from the store by the recipe_name
     def load_recipe(self):
+        """ Load the session recipe from the store"""
         try:
             # Load the recipe hash from redis with all of the keys
             recipe_json = self.store.redis.hgetall(f'{self.session_id}_recipe')
@@ -41,12 +41,14 @@ class RecipeService:
         
     # Create a function to save a recipe to the store by the recipe_name
     def save_recipe(self, recipe):
+        """ Save a recipe to the store by session_id """
         try:
             # Save the recipe to redis
             self.store.redis.hmset(f'{self.session_id}_recipe', mapping = recipe)
         except Exception as e:
             print(f"Failed to save recipe to Redis: {e}")
         return recipe
+    
     
     # Create a function to delete a recipe from the store by the recipe_name
     def delete_recipe(self):
@@ -76,17 +78,22 @@ class RecipeService:
             # we are expecting and in what format it needs to be in.
             logging.debug("Creating system message prompt.")
             prompt = PromptTemplate(
-                template = "You are a master chef creating a based on a user's specifications {specifications}.\
-                            The recipe should be returned in this format{format_instructions}.",
+                template = "You are a master chef creating a based on a\
+                user's specifications {specifications}. The recipe should be\
+                returned in this format{format_instructions}.",
                 input_variables = ["specifications"],
-                partial_variables = {"format_instructions": output_parser.get_format_instructions()}
+                partial_variables = {"format_instructions": 
+                output_parser.get_format_instructions()}
             )
             system_message_prompt = SystemMessagePromptTemplate(prompt=prompt)
             
             # Define the user message.
             logging.debug("Creating user message prompt.")
-            human_template = "Create a delicious recipe based on the specifications {specifications} provided.  Please ensure the returned prep time, cook time, and total time are integers in minutes.  If any of the times are n/a\
-                        as in a raw dish, return 0 for that time.  Round the times to the nearest 5 minutes to provide a cushion and make for a more readable recipe."
+            human_template = "Create a delicious recipe based on the specifications\
+            {specifications} provided.  Please ensure the returned prep time,\
+            cook time, and total time are integers in minutes.  If any of the times are n/a\
+            as in a raw dish, return 0 for that time.  Round the times to the nearest\
+            5 minutes to provide a cushion and make for a more readable recipe."
             human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)    
             
             # Create the chat prompt template
@@ -119,7 +126,7 @@ class RecipeService:
                     # Save the recipe history to redis
                     self.save_recipe(redis_dict)
 
-                    return {"Recipe": parsed_recipe, "session_id": self.session_id}
+                    return {"recipe": parsed_recipe, "session_id": self.session_id}
 
                 except (requests.exceptions.RequestException, requests.exceptions.ConnectTimeout, openai.error.APIError) as e:
                     logging.error(f"Error with model: {model}. Error: {str(e)}")

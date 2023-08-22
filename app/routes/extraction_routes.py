@@ -5,8 +5,8 @@ from pathlib import Path
 from fastapi import APIRouter, UploadFile, Depends, Header, HTTPException, File, Body
 from ..services.extraction_service import ExtractionService
 from ..middleware.session_middleware import RedisStore, get_redis_store
-from ..models.recipe import FormattedRecipe
 from ..models.extraction import ExtractedTextResponse
+from ..models.recipe import Recipe
 
 UPLOAD_DIR = Path(__file__).parent.parent.parent / "uploads"
 
@@ -100,7 +100,7 @@ async def create_upload_files(
     description="Takes the raw recipe text that should have been returned from the\
     extraction methods, and formats it.",
     tags=["Recipe Text Extraction Endpoints"],
-    responses = {200: {"model": FormattedRecipe, "description": "OK", "examples": {
+    responses = {200: {"model": Recipe, "description": "OK", "examples": {
         "application/json": {
             "name": "Chicken Noodle Soup",
             "ingredients": [
@@ -125,7 +125,7 @@ async def create_upload_files(
 async def format_text_endpoint(
     recipe_text: str = Body(..., description="The raw recipe text to format."),
     extraction_service: ExtractionService = Depends(get_extraction_service)
-) -> FormattedRecipe:
+) -> Recipe:
     """ Define the function to format text.  Takes in the raw
     recipe text that should have been returned from the extraction methods. """
     recipe = extraction_service.format_recipe_text(recipe_text)

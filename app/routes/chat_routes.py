@@ -1,11 +1,13 @@
 """ Define the chat routes.  This is where the API endpoints are defined.
 The user will receive a session_id when they first connect to the API.
 This session_id will be passed in the headers of all subsequent requests. """
-from typing import Union, Annotated
 from fastapi import APIRouter, Depends, Query
 from ..services.chat_service import ChatService
+from ..services.recipe_service import RecipeService
+from ..services.extraction_service import ExtractionService
 from ..middleware.session_middleware import RedisStore, get_redis_store
-from ..models.chat import InitialMessage, ChefResponse, ChatHistory
+from ..models.chat import ChefResponse, ChatHistory
+
 
 # Define a router object
 router = APIRouter()
@@ -20,6 +22,16 @@ def get_chat_service(store: RedisStore = Depends(get_redis_store)):
     """ Define a function to get the chat service.  Takes in session_id and store."""
     return ChatService(store=store)
 
+# A new dependency function to get the recipe service
+def get_recipe_service(store: RedisStore = Depends(get_redis_store)):
+    """ Define a function to get the recipe service. """
+    return RecipeService(store=store)
+
+# A new dependecy to get the recipe service
+def get_extraction_service(store: RedisStore = Depends(get_redis_store)):
+    """ Define a function to get the recipe service. """
+    return ExtractionService(store=store)
+
 # Add an endpoint that is a "status call" to make sure the API is working.
 # It should return the session_id and the chat history, if any.
 @router.get("/status_call")
@@ -28,83 +40,37 @@ async def status_call(chat_service: ChatService = Depends(get_chat_service)) -> 
     and the chat_history to the user """
     return chat_service.check_status()
 
-# Create a route to add a user message to the chat history
-@router.post("/add_user_message", include_in_schema=False)
-async def add_user_message(message: str, chat_service: ChatService = Depends(get_chat_service)):
-    """ Define the function to add a user message.  Takes in message and chat_service. """
-    new_user_message = chat_service.add_user_message(message)
-    chat_service.save_chat_history()
-    # Return the chat history
-    return new_user_message
+@router.post("/get_new_recipe", response_description="A new recipe based on a user's\
+              requested changes as a dict.")
+async def get_new_recipe(user_question: str, chef_type: str = "general",
+                        chat_service: ChatService = Depends(get_chat_service),
+                        recipe_service: RecipeService = Depends(get_recipe_service)):
+    """ Define the function to get a new recipe based on a user's requested changes. """
+    # Set the original recipe to the recipe in the Redis store
+    original_recipe = recipe_service.load_recipe()
+    new_recipe = chat_service.get_new_recipe(user_question, original_recipe,
+    chef_type=chef_type, recipe_service)
+    return new_recipe
 
-# Create a route to initialize the chat
-@router.post("/initialize_general_chat", response_description="The initial message\
-    and the chat history.",
-    summary="Initialize a general chat session.",
-    description="Initialize a general chat session by passing in context as a string.",
-    tags=["Chat Endpoints"],
-    responses={200: {"model": InitialMessage, "description": "OK", "examples": {
-    "application/json": {
-        "initial_message": "You are  a master chef answering a user's questions about cooking.\
-        The context, if any, is: ",
-        "session_id": "1",
-        "chat_history": [
-            {
-                "role": "ai",
-                "content": "Hello, I'm the recipe chatbot.  How can I help you today?"
-            }
-        ]
-    }
-}}})
-
-async def initialize_general_chat(context: Annotated[Union[str, None],
-    Query(examples = ["The user is gluten free and has questions about baking.\
-    "])] = None, chat_service: ChatService = Depends(get_chat_service)) -> dict:
-    """ Define the function to initialize a general chat session.
-    Takes in context as a string and returns a json object that includes
-    the initial_message, the session_id, and the chat_history. """
-    response = chat_service.initialize_general_chat(context=context)
-    return {"Initial message succesfully generated for general chat:" : response}
-
-# Create a route to initialize the chat
-@router.post("/initialize_recipe_chat",  response_description="The initial message\
-    and the chat history.",
-    summary="Initialize a recipe chat session.",
-    description="Initialize a general chat session by passing in recipe_text as a string.",
-    tags=["Chat Endpoints"],
-    responses={200: {"model": InitialMessage, "description": "OK", "examples": {
-        "application/json": {
-            "initial_message": "You are a master chef who has generated a recipe\
-                for chicken noodle soup that the user would like to ask questions about.\
-                    Your chat history so far is: ",
-                    "session_id": "1",
-                    "chat_history": [
-                        {
-                            "role": "ai",
-                            "content": "Hello, I'm the recipe chatbot.  How can I help you today?"
-                        }
-                    ]
-                }
-            }
-        }
-    })
-
-async def initialize_recipe_chat(recipe_text: Annotated[str, Query(examples=
-    ["The text of the recipe that the user has questions about"])],
-    chat_service: ChatService = Depends(get_chat_service)):
-    """ Define the function to initialize a recipe chat session.
-    Takes in recipe_text as a string and returns a json object that includes
-    the initial_message, the session_id, and the chat_history. """
-    initial_message = chat_service.initialize_recipe_chat(recipe_text=recipe_text)
-    return initial_message
-
-
-@router.post("/add_chef_message", include_in_schema=False)
-async def add_chef_message(message: str, chat_service: ChatService = Depends(get_chat_service)):
-    """ Define the function to add a chef message.  Takes in message and chat_service. """
-    new_chef_message = chat_service.add_chef_message(message)
-    return new_chef_message
-
+@router.post("/get_recipe_chef_response",  response_description="The response\
+             is the chat history as a list of messages, the session recipe as a recipe object,\
+             and the session_id as a string.",
+             summary="Get a response from the chef to the user's question about a recipe",
+             description="Get a response from the chef to the user's question about a recipe\
+                 by passing in the user's question as a string.",
+                 tags=["Chat Endpoints"],
+                 responses={200: {"model": ChefResponse, "description": "OK"}}
+            )
+async def get_recipe_chef_response(question: str, recipe: str = None, chef_type: str = "general", 
+    chat_service: ChatService = Depends(get_chat_service), recipe_service:
+    RecipeService = Depends(get_recipe_service)):
+    """ Define the function to get a response from the chef to the user's question about a recipe.
+    Takes in message as a string and returns a json object that includes the chef_response,
+    the session_id, and the chat_history. """
+    chef_response = chat_service.get_recipe_chef_response(question=question,
+                                                          recipe_service=recipe_service,
+                                                          recipe=recipe, chef_type=chef_type)
+    return chef_response
 
 @router.post("/get_chef_response",  response_description="The response\
     from the chef as a message object and the chat_history as a list of messages.",
