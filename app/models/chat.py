@@ -1,6 +1,7 @@
 """
 Basic chat models
 """
+from typing import Optional
 from enum import Enum
 from pydantic import BaseModel, Field
 from ..models.recipe import Recipe
@@ -34,4 +35,11 @@ class ChatHistory(BaseModel):
     """ Define the ChatHistory model. """
     session_id : str = Field(description="The session id.")
     chat_history : dict = Field(description="The chat history.")
- 
+
+class Chef(BaseModel):
+    """ Define a chef model."""
+    session_id : Optional[str] = Field(description="The session id.") 
+    chef_baseline : Optional[str] = Field(description="The relevant baseline attributes of the chef.")
+    chef_model : str = Field(description="The relevant GPT-3.5 model for the chef.")
+    prompt : str = Field(description="The prompt for the chef, relevant to their\
+                        characteristics.")

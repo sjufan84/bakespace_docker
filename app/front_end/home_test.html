@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="script.js"></script>
     <link rel="stylesheet" href="style.css"> <!-- Link to your CSS file -->
     <title>My Sous Chef</title>
 </head>
@@ -52,20 +54,28 @@
         <button class="buttons upload-photo">UPLOAD RECIPE PHOTO</button>
     </div>
     <div id="chat-bubble" onclick="openChat()">
+        <img src="https://www.onlinewebfonts.com/icon/413518" alt="Chat with Sous Chef">
         Chat with Sous Chef
     </div>
-    <div id="chat-box">
+
+    <div id="chat-box"> <!-- Start of the chat box -->
         <div id="chat-header">
-            Questions about the recipe?  Want to create a new recipe?
-            Let me know how I can help!
+            <h4 style="text-align: left;">Ask My Sous Chef</h4>
+            <i>Cook up your own adventure!  Where would you like to begin?</i>
             <button id="close-btn" onclick="closeChat()">X</button>
+        </div>
+        <div id="chat-options">
+            <button onclick="askQuestion()">Ask a Question</button>
+            <button onclick="modifyRecipe()">Modify Recipe</button>
+            <button onclick="getPairings()">Get Pairings</button>
+            <button onclick="surpriseMe()" class="surprise-btn">Surprise Me</button> <!-- Added class here -->
+        </div>
+        <div id="chat-content">
+            <!-- The chat content will change based on the selected option -->
         </div>
         <div id="chat-messages"></div>
         <input id="user-input" type="text" placeholder="Ask a question...">
         <button id="send-btn">Send</button>
-    </div>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="script.js"></script>
+    </div> <!-- End of the chat box -->
 </body>
 </html>
-

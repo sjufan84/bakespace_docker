@@ -2,8 +2,10 @@
 
 # Initial Imports
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.responses import JSONResponse
 from fastapi import Request, Response
 import redis
+import uuid
 
 
 class SessionMiddleware(BaseHTTPMiddleware):
@@ -11,13 +13,13 @@ class SessionMiddleware(BaseHTTPMiddleware):
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
+        session_id = None
         # Extract the session_id from the headers
-        session_id = request.query_params.get("session_id")
-
-        if session_id is None:
-            # Handle the case when there is no session_id provided.
-            # You can return an error response or assign a default session_id
-            return Response("No session_id provided", status_code=400)
+        if request.url.path not in ["/openapi.json", "/docs"]:
+            session_id = request.query_params.get("session_id")
+            if session_id is None:
+                session_id = str(uuid.uuid4())
+                #return JSONResponse(content={"detail": "session_id missing"}, status_code=400)
 
         # You might not need to store the session_id in Redis at this point
         # since you said that user data is retrieved during each API call
@@ -26,7 +28,8 @@ class SessionMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
 
         # Set the session_id in the response headers for client to use in further interactions
-        response.headers["session_id"] = session_id
+        if session_id is not None:
+            response.headers["session_id"] = session_id
 
         return response
 

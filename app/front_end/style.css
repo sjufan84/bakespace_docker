@@ -2,13 +2,29 @@
     position: fixed;
     bottom: 20px;
     right: 20px;
-    background-color: #76beaa;
-    padding: 10px;
-    border-radius: 50%;
     cursor: pointer;
-    text-align: center;
+    background-color: #f0f0f0;
+    padding: 10px;
+    border-radius: 20px;
+}
+
+#chat-bubble img {
+    width: 20px;
+    height: 20px;
+    margin-right: 5px;
+}
+
+#chat-options button {
+    background-color: #76beaa; /* Green color for all buttons except "Surprise Me" */
     color: white;
-    display: none; /* Initially hidden */
+    padding: 10px;
+    border: none;
+    margin: 5px;
+    cursor: pointer;
+}
+
+#chat-options button.surprise-btn {
+    background-color: #d9534f; /* Red color for the "Surprise Me" button */
 }
 
 #chat-box {
@@ -23,10 +39,10 @@
 }
 
 #chat-header {
-    background-color: #76beaa;
-    color: white;
+    color: black;
     padding: 10px;
     text-align: center;
+    size: 20px;
 }
 
 #chat-messages {

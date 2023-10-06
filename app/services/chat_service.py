@@ -1,8 +1,10 @@
 """ This module defines the chat service and it's
 related functions. """
 import logging
-from typing import Union
+from typing import Union, Optional
 import json
+import os
+from dotenv import load_dotenv
 import requests
 import openai
 from langchain.chat_models import ChatOpenAI
@@ -14,10 +16,44 @@ from langchain.prompts import (
     HumanMessagePromptTemplate
 )
 from ..middleware.session_middleware import RedisStore
-from ..dependencies import get_openai_api_key, get_openai_org
 from ..services.recipe_service import RecipeService
 from ..models.recipe import Recipe
 
+load_dotenv()
+
+# Create a dictionary to house the chef data to populate the chef model
+chef_data = {
+    "gr" : {
+        "chef_model" : "ft:gpt-3.5-turbo-0613:david-thomas:gr-sous-chef:86TgiHTW",
+        "prompt" : "You are a chef in the style of Gordon Ramsay, professional,\
+        intense, and demanding helping a user with their cooking questions.\
+        Please answer their questions as if you were their personal sous chef."
+    },
+    "rr" : {
+        "chef_model" : "ft:gpt-3.5-turbo-0613:david-thomas:rr-sous-chef:86U8O9Fp",
+        "prompt" : "You are a chef in the style of Rachael Ray, friendly, bubbly,\
+        and energetic helping a user with their cooking questions. Please answer\
+        their questions as if you were their personal sous chef."
+    },
+    "ab" : {
+        "chef_model" : "ft:gpt-3.5-turbo-0613:david-thomas:ab-sous-chef:86VMDut4",
+        "prompt" : "You are a chef in the style of Anthony Bourdain, worldly,\
+        adventurous, and curious helping a user with their cooking questions.\
+        Please answer their questions as if you were their personal sous chef."
+    }, 
+    "general" : {
+        "chef_model" : "ft:gpt-3.5-turbo-0613:david-thomas:sous-chef-core:84he6ouC",
+        "prompt" : "You are a chef helping a user with their cooking questions.\
+        Please answer their questions as if you were their personal sous chef."
+    }
+}
+
+# Establish the core models that will be used by the chat service
+core_models = ["gpt-3.5-turbo-16k-0613", "gpt-3.5-turbo-16k", "gpt-3.5-turbo-0613", "gpt-3.5-turbo"]
+
+# Establish openai api key and organization
+openai.api_key = os.getenv("OPENAI_KEY2")
+openai.organization = os.getenv("OPENAI_ORG2")
 
 class ChatMessage:
     """ A class to represent a chat message. """
@@ -30,10 +66,9 @@ class ChatMessage:
         # Return a dictionary with the format {"role": role, "content": content}
         return {"role": self.role, "content": self.content}
 
-
 class ChatService:
     """ A class to represent the chat service. """
-    def __init__(self, store: RedisStore = None):
+    def __init__(self, store: RedisStore = None, chef_choice: str = None):
         """ Initialize the chat service. """
         self.store = store
         self.session_id = self.store.session_id
@@ -42,6 +77,11 @@ class ChatService:
             self.chat_history = json.loads(chat_history)  # No need to decode
         else:
             self.chat_history = []
+        chef_choice = self.store.redis.get(f'{self.session_id}:chef_type')
+        if chef_choice:
+            self.chef_type = chef_choice
+        else:
+            self.chef_type = "general"
 
     def load_chat_history(self):
         """ Load the chat history from Redis and return as a dict. """
@@ -76,13 +116,16 @@ class ChatService:
         return self.add_message(message, "ai")
 
     def get_new_recipe(self, user_question: str, original_recipe: dict,
-                       recipe_service: RecipeService, recipe: Union[Recipe, str] = None,
-                       chef_type: str = "general"):
+                    recipe_service: RecipeService, recipe: Union[Recipe, str] = None,
+                    chef_type: str = None):
         """ Get a new recipe from the chatbot. """
-        # Set the api key and organization
-        openai.api_key = get_openai_api_key()
-        openai.organization = get_openai_org()
-
+        # If the chef type is None, get the chef type from Redis
+        if chef_type is None:
+            chef_type = self.chef_type
+        # If the chef type is different from the current chef type, update the chef type
+        if chef_type != self.chef_type:
+            self.set_chef_type(chef_type)
+            
         # If the recipe is None, load the current recipe from Redis
         if recipe is None:
             original_recipe = recipe_service.load_recipe()
@@ -93,6 +136,10 @@ class ChatService:
         chat_history = self.load_chat_history()
         chat_history = json.dumps(chat_history) if\
         isinstance(chat_history, dict) else chat_history
+
+        # Load the chef model and prompt based on the chef choice
+        sc_model = chef_data[chef_type]["chef_model"]
+        chef_prompt = chef_data[chef_type]["prompt"]
 
         # Create the output parser -- this takes in the output from the model
         # and parses it into a Pydantic object that mirrors the schema
@@ -106,10 +153,10 @@ class ChatService:
         # format the messages to feed to the model
         messages = [
             {
-                "role" : "system", "content" : f"You are a\
-                master chef of type {chef_type} helping a user change a recipe {original_recipe}\
-                based on their question {user_question}.\
-                Please return the new recipe in the same format as the original recipe."
+                "role" : "system", "content" : f"{chef_prompt}.  You are helping\
+                a user change a recipe change a recipe {original_recipe}\
+                based on their question {user_question}.Please return the new recipe\
+                in the same format as the original recipe."
             },
             {
                 "role" : "user", "content" : f"Please help me change the recipe\
@@ -123,8 +170,7 @@ class ChatService:
         chat_history.append(user_question)
 
         # List of models to use
-        models = ["gpt-3.5-turbo-16k-0613", "gpt-3.5-turbo-16k", "gpt-3.5-turbo-0613",
-        "gpt-3.5-turbo"]
+        models = [sc_model] + core_models
 
          # Loop through the models and try to generate the recipe
         for model in models:
@@ -139,7 +185,6 @@ class ChatService:
                     frequency_penalty=0.0,
                     presence_penalty=0.0,
                 )
-
                 chef_response = response.choices[0].message.content
                 try:
                     parsed_recipe = output_parser.parse(chef_response)
@@ -165,34 +210,45 @@ class ChatService:
                 logging.debug(f"Model {model} failed with error: {e}")
                 continue
 
-    def get_recipe_chef_response(self, question: str, recipe_service: RecipeService,
-                                 chef_type: str = "general", recipe: Union[Recipe, str] = None):
-        """ Get a response from the chatbot regarding a recipe-related question. """
-        # Set your API key
-        openai.api_key = get_openai_api_key()
-        openai.organization = get_openai_org()
+    def get_chef_attributes(self):
+        """ Get the chef attributes depending on the chef choice. """
+        chef_attributes = chef_data[self.chef_type]
+        return {"chef_type": self.chef_type, "chef_attributes": chef_attributes}
 
+    
+    def get_recipe_chef_response(self, question: str, recipe_service: RecipeService,
+                                recipe: Union[Recipe, str] = None, chef_type: str = None):
+        """ Get a response from the chatbot regarding a recipe-related question. """
+        # If the chef type is None, get the chef type from Redis
+        if chef_type is None:
+            chef_type = self.chef_type
+        # If the chef type is different from the current chef type, update the chef type
+        if chef_type != self.chef_type:
+            self.set_chef_type(chef_type)
         # If the recipe is None, try to load the recipe from Redis
         # If that fails, throw an error
         if recipe is None:
             try:
                 recipe = recipe_service.load_recipe()
-            except Exception as e:
+            except ValueError as e:
                 logging.error(f"Failed to load recipe from Redis: {e}")
                 return None
         
         # Load the chat history from Redis
         self.chat_history = self.load_chat_history()
 
+        # Get the chef model and prompt based on the chef choice
+        chef_type = self.chef_type
+        sc_model = chef_data[chef_type]["chef_model"]
+        chef_prompt = chef_data[chef_type]["prompt"]
         # Define the first system message.  This let's the model know what type of output\
         # we are expecting and in what format it needs to be in.
         logging.debug("Creating system message prompt.")
         prompt = PromptTemplate(
-            template = "You are a master chef helping a user answer a question\
+            template = "{chef_prompt}. You are helping a user answer a question\
             {question} about a recipe {recipe} that you generated for them.\
-            Your chef style is {chef_type} Your chat history so far is {chat_history}.\
-            Please answer them as if you were their personal sous chef!",
-        input_variables = ["question", "recipe", "chat_history", "chef_type"],
+            Your chat history so far is {chat_history}.",
+        input_variables = ["question", "recipe", "chat_history", "chef_prompt"],
         )
         system_message_prompt = SystemMessagePromptTemplate(prompt=prompt)
         
@@ -210,7 +266,7 @@ class ChatService:
         # format the messages to feed to the model
         messages = chat_prompt.format_prompt(question=question, recipe=recipe,
                                             chat_history=self.chat_history,
-                                            chef_type=chef_type).to_messages()
+                                            chef_prompt=chef_prompt).to_messages()
 
         # Format the message and add it to the chat history
         user_message = ChatMessage(question, "user").format_message()
@@ -219,9 +275,7 @@ class ChatService:
         self.chat_history.append(user_message)
         
         # List of models to use
-        models = ["gpt-3.5-turbo-16k-0613", "gpt-3.5-turbo-16k", "gpt-3.5-turbo-0613",
-        "gpt-3.5-turbo"]
-
+        models = [sc_model] + core_models
          # Loop through the models and try to generate the recipe
         for model in models:
             try:
@@ -232,8 +286,6 @@ class ChatService:
 
                 # Generate the chef response
                 chef_response = chat(messages).content                
-
-                # Parse the response
 
                 # Format the chef response and add it to the chat history
                 chef_response = ChatMessage(chef_response, "system").format_message()
@@ -250,25 +302,28 @@ class ChatService:
                 return None
 
 
-    def get_chef_response(self, question: str, chef_type: str = "general"):
+    def get_chef_response(self, question: str, chef_type: Optional[str] = None):
         """ Get a response from the chatbot. """
-        # Set API key
-        openai.api_key = get_openai_api_key()
-        openai.organization = get_openai_org()
+        # If the chef choice is None, get the chef choice from Redis
+        if chef_type is None:
+            chef_type = self.chef_type
+        # If the chef choice is different from the current chef choice, update the chef choice
+
+        # Get the chef model and prompt based on the chef choice
+        chef_type = self.chef_type
+        sc_model = chef_data[chef_type]["chef_model"]
+        chef_prompt = chef_data[chef_type]["prompt"]
         
         # Initialize chat messages
         messages = [
             {
                 "role": "system",
-                "content": f"You are a master chef answering a user's question {question}.\
-                            You are a {chef_type} type of chef. Your chat history so far\
-                            is {self.chat_history}. Please respond to the user's question\
-                            as their personal sous chef of type {chef_type}."
+                "content": f"{chef_prompt}. Your chat history so far\
+                            is {self.chat_history}."
             },
             {
                 "role": "user",
-                "content": f"Please answer my question {question} as my\
-                personal sous chef of type {chef_type}."
+                "content": f"Please answer my question {question} about cooking."
             }
         ]
         
@@ -277,7 +332,7 @@ class ChatService:
         
         
         # Iterate through models until a successful response is received
-        models = ["gpt-3.5-turbo-16k-0613", "gpt-3.5-turbo-16k", "gpt-3.5-turbo-0613", "gpt-3.5-turbo"]
+        models = [sc_model] + core_models
         for model in models:
             try:
                 response = requests.post(
@@ -323,5 +378,47 @@ class ChatService:
     def check_status(self):
         """ Return the session id and any user data from Redis. """
         return {"session_id": self.session_id, "chat_history": self.chat_history}
+    
+    def set_chef_type(self, chef_type: str):
+        """ Set the chef type. """
+        self.chef_type = chef_type
+        # Save the chef type to Redis
+        self.store.redis.set(f'{self.session_id}:chef_type', chef_type)
+        return self.chef_type
+    
+    def get_personalized_recipe_response(self, recipe, question):
+        """ Getting a more personalized response from the chef. """
+        # Load the chef model and prompt based on the chef choice
+        chef_type = self.chef_type
+        sc_model = chef_data[chef_type]["chef_model"]
+        chef_prompt = chef_data[chef_type]["prompt"]
+        # Define the first system message.  This let's the model know what type of output\
+        # we are expecting and in what format it needs to be in.
+        messages = [
+            {
+            "role":"system", "content": f"{chef_prompt}.  You have created a recipe\
+            {recipe} for the user.  Please provide a personalized response to the user based\
+            on their original question {question} and the recipe you provided them.  Make sure\
+            you include the recipe text in your response."
+            },
+        ]
+        models = [sc_model] + core_models
 
-# ...
+        # Loop through the models and try to generate the response
+        for model in models:
+            try:
+                response = openai.ChatCompletion.create(
+                    model=model,
+                    messages=messages,
+                    temperature=0.9,
+                    max_tokens=1500,
+                    top_p=1,
+                    frequency_penalty=0.5,
+                    presence_penalty=0.5,
+                )
+                chef_response = response.choices[0].message.content
+                return chef_response
+            except Exception as e:
+                logging.debug(f"Model {model} failed with error: {e}")
+                continue
+

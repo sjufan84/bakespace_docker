@@ -5,10 +5,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def get_openai_api_key():
-    return os.getenv("OPENAI_API_KEY")
+    return os.getenv("OPENAI_KEY2")
 
 def get_openai_org():
-    return os.getenv("OPENAI_ORG")
+    return os.getenv("OPENAI_ORG2")
 
 def get_google_vision_credentials():
     config = toml.load("secrets.toml")

@@ -1,5 +1,5 @@
 """ This module contains the routes for the recipe service """
-from typing import Annotated
+from typing import Annotated, Optional
 from fastapi import APIRouter, Depends, Header
 from ..middleware.session_middleware import RedisStore, get_redis_store
 from ..services.recipe_service import RecipeService
@@ -44,14 +44,14 @@ router = APIRouter()
         }
     }}})
 async def generate_recipe(specifications: Annotated[str, "I would love a good\
-    recipe for chicken noodle soup"], recipe_service: RecipeService =
+    recipe for chicken noodle soup"], chef_type: Optional[str]=None, recipe_service: RecipeService =
     Depends(get_recipe_service)):
     """ 
     Primary route for the recipe service. 
     Client needs to extract session_id from the response and include it in the headers
     of subsequent requests.
     """
-    response = recipe_service.execute_generate_recipe(specifications=specifications)
+    response = recipe_service.execute_generate_recipe(specifications=specifications, chef_type=chef_type)
     return response
 
 # The route for the recipe service to get the recipe by name and session_id

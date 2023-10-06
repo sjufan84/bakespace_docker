@@ -1,11 +1,13 @@
 """ This module defines the chat routes for the API. """
 import logging
+from typing import Optional
 from fastapi import APIRouter, Depends, Query
 from app.services.chat_service import ChatService
 from app.services.recipe_service import RecipeService
 from app.services.extraction_service import ExtractionService
 from app.middleware.session_middleware import RedisStore, get_redis_store
 from app.models.chat import ChefResponse, ChatHistory
+from app.models.recipe import Recipe
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -32,14 +34,15 @@ def get_extraction_service(store: RedisStore = Depends(get_redis_store)):
     return ExtractionService(store=store)
 
 @router.get("/status_call")
-async def status_call(chat_service: ChatService = Depends(get_chat_service)) -> dict:
+async def status_call(chat_service: ChatService = Depends(get_chat_service)):
     """ Endpoint to check the API status, including session_id and chat history. """
     logging.info("Received status call.")
     return chat_service.check_status()
 
 @router.post("/get_new_recipe", response_description="A new recipe\
-              based on a user's requested changes as a dict.")
-async def get_new_recipe(user_question: str, chef_type: str = "general",
+              based on a user's requested changes as a dict.",\
+            tags = ["Chat Endpoints"], responses={200: {"model": Recipe, "description": "OK"}})
+async def get_new_recipe(user_question: str, chef_type: Optional[str] = None,
                         chat_service: ChatService = Depends(get_chat_service),
                         recipe_service: RecipeService = Depends(get_recipe_service)):
     """ Endpoint to get a new recipe based on user's requested changes. """
@@ -48,13 +51,14 @@ async def get_new_recipe(user_question: str, chef_type: str = "general",
     new_recipe = chat_service.get_new_recipe(user_question, original_recipe,
     chef_type=chef_type, recipe_service=recipe_service)
     return new_recipe
+
 @router.post("/get_recipe_chef_response",
             response_description="The response is the chat history as a list\
             of messages, the session recipe as a recipe object, and the session_id as a string.",
             summary="Get a response from the chef to the user's question about a recipe",
             tags=["Chat Endpoints"],
             responses={200: {"model": ChefResponse, "description": "OK"}})
-async def get_recipe_chef_response(question: str, recipe: str = None, chef_type: str = "general",
+async def get_recipe_chef_response(question: str, recipe: str = None, chef_type: Optional[str] = None,
                                     chat_service: ChatService = Depends(get_chat_service),
                                     recipe_service: RecipeService = Depends(get_recipe_service)):
     """ Endpoint to get a response from the chef to the user's question about a recipe. """
@@ -69,17 +73,17 @@ async def get_recipe_chef_response(question: str, recipe: str = None, chef_type:
             object and the chat_history as a list of messages.",
             summary="Get a response from the chef to the user's question.",
             tags=["Chat Endpoints"],
-            responses={200: {"model": ChefResponse, "description": "OK"}})
+            responses={200: {"description": "OK"}})
 async def get_chef_response(question: str, chat_service:
-    ChatService = Depends(get_chat_service)) -> dict:
+    ChatService = Depends(get_chat_service), chef_type: Optional[str] = None):
     """ Endpoint to get a response from the chatbot to a user's question. """
     logging.info(f"Getting chef response to question: {question}.")
-    response = chat_service.get_chef_response(question=question)
+    response = chat_service.get_chef_response(question=question, chef_type=chef_type)
     return response
 
 @router.get("/view_chat_history", response_description="The chat\
             history returned as a dictionary.",
-            tags=["Chat Endpoints"], response_model=ChatHistory)
+            tags=["Chat Endpoints"], response_model=ChatHistory, include_in_schema=False)
 async def view_chat_history(chat_service:
     ChatService = Depends(get_chat_service)) -> dict:
     """ Endpoint to view the chat history. """
@@ -94,3 +98,11 @@ async def clear_chat_history(chat_service: ChatService = Depends(get_chat_servic
     logging.info("Clearing chat history.")
     chat_service.clear_chat_history()
     return {"detail": "Chat history cleared."}
+
+@router.post("/chef_choice", response_description="The user's choice\
+            of chef style as a string.")
+async def chef_choice(chef_type: str, chat_service: ChatService = Depends(get_chat_service)):
+    """ Endpoint to set the chef type. """
+    logging.info(f"Setting chef type to {chef_type}.")
+    chat_service.set_chef_type(chef_type)
+    return {"detail": f"Chef type set to {chef_type}."}

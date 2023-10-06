@@ -22,7 +22,7 @@ def get_pairing_service(store: RedisStore = Depends(get_redis_store)) -> Pairing
                     }
                 }}})
 
-async def generate_pairing(recipe_text: str, pairing_type: str, pairing_service:
+async def generate_pairing(pairing_type: str, pairing_service:
     PairingService = Depends(get_pairing_service)):
     """ Primary route for the pairing service. User must pass session_id in the headers. """
     return pairing_service.get_pairing(recipe=recipe_text, pairing_type=pairing_type)
