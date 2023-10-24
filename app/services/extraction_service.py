@@ -8,9 +8,9 @@ from typing import List
 import os
 from dotenv import load_dotenv
 from fastapi import HTTPException
-from google.cloud import vision
-from spellchecker import SpellChecker
-import pdfplumber
+#from google.cloud import vision
+#from spellchecker import SpellChecker
+#import pdfplumber
 import openai
 import requests
 from langchain.output_parsers import PydanticOutputParser
@@ -21,13 +21,14 @@ from langchain.prompts import (
         SystemMessagePromptTemplate,
         HumanMessagePromptTemplate
 )
-from ..dependencies import get_openai_api_key, get_openai_org, get_google_vision_credentials
-from ..models.recipe import Recipe
-from ..middleware.session_middleware import RedisStore
-
-
+from app.models.recipe import Recipe
+from app.middleware.session_middleware import RedisStore
 
 load_dotenv()
+
+# Load the environment variables
+openai.api_key = os.getenv("OPENAI_KEY2")
+openai.organization = os.getenv("OPENAI_ORG2")
 
 class ExtractionService:
     def __init__(self, store: RedisStore = None):

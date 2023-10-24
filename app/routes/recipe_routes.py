@@ -1,19 +1,9 @@
 """ This module contains the routes for the recipe service """
 from typing import Annotated, Optional
 from fastapi import APIRouter, Depends, Header
-from ..middleware.session_middleware import RedisStore, get_redis_store
+from app.dependencies import get_recipe_service, get_session_id
 from ..services.recipe_service import RecipeService
 from ..models.recipe import Recipe
-
-# A new dependency function:
-def get_recipe_service(store: RedisStore = Depends(get_redis_store)) -> RecipeService:
-    """ Dependency function to get the recipe service """
-    return RecipeService(store=store)
-
-
-def get_session_id(session_id: str = Header(...)):
-    """ Dependency function to get the session id from the header """
-    return session_id
 
 router = APIRouter()
 
@@ -21,37 +11,16 @@ router = APIRouter()
 @router.post("/generate_recipe", response_description="A recipe object returned as json.",
     summary="Generate a recipe based on the user's specifications.",
     description="Generate a recipe based on the user's specifications. The user must\
-        pass session_id in the headers.",
-    tags=["Recipe Endpoints"], responses={200: {"model": Recipe, "description": "OK", "examples": {
-        "application/json": {
-            "name": "Chicken Noodle Soup",
-            "ingredients": [
-                "1 tablespoon butter",
-                "1/2 cup chopped onion",
-                "1/2 cup chopped celery",
-                "4 (14.5 ounce) cans chicken broth",
-            ],
-            "instructions": [
-                "In a large pot over medium heat, melt butter. Cook onion and celery in butter until just tender, 5 minutes.",
-                "Pour in chicken and vegetable broths and stir in chicken, noodles, carrots, basil, oregano, salt and pepper.",
-                "Bring to a boil, then reduce heat and simmer 20 minutes before serving."
-            ],
-            "prep_time": "10 minutes",
-            "cook_time": "30 minutes",
-            "total_time": "40 minutes",
-            "servings": 6,
-            "calories": 250
-        }
-    }}})
-async def generate_recipe(specifications: Annotated[str, "I would love a good\
-    recipe for chicken noodle soup"], chef_type: Optional[str]=None, recipe_service: RecipeService =
-    Depends(get_recipe_service)):
+        pass session_id in the query.")
+async def generate_recipe(specifications: str,
+                        chef_type: Optional[str]="general", recipe_service: RecipeService =
+                        Depends(get_recipe_service)):
     """ 
     Primary route for the recipe service. 
     Client needs to extract session_id from the response and include it in the headers
     of subsequent requests.
     """
-    response = recipe_service.execute_generate_recipe(specifications=specifications, chef_type=chef_type)
+    response = recipe_service.generate_recipe(specifications=specifications, chef_type=chef_type)
     return response
 
 # The route for the recipe service to get the recipe by name and session_id

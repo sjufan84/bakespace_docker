@@ -1,26 +1,223 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat with Sous Chef</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-    <div id="chat-bubble" onclick="openChat()">
-        Chat with Sous Chef
-    </div>
-    <div id="chat-box">
-        <div id="chat-header">
-            Sous Chef
-            <button id="close-btn" onclick="closeChat()">X</button>
-        </div>
-        <div id="chat-messages"></div>
-        <input id="user-input" type="text" placeholder="Ask a question...">
-        <button id="send-btn">Send</button>
-    </div>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="script.js"></script>
-</body>
-</html>
+    <title>My Sous Chef</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f5f5f5;
+            padding: 2em 0;
+        }
 
+        .container {
+            background-color: #fff;
+            padding: 2em;
+            border-radius: 8px;
+            margin: 0 auto;
+            width: 80%;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            display: block;
+        }
+
+        h1, h2 {
+            color: black;
+            text-align: center;
+            text-justify: auto;
+        }
+
+        .btn {
+            padding: 0.8em 1.5em;
+            border: none;
+            border-radius: 5px;
+            margin: 0.5em;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .btn:hover {
+            background-color: #888;
+            color: #fff;
+        }
+
+        .btn-primary {
+            background-color: #76beaa;
+            color: #fff;
+            border-radius: 10px;
+        }
+
+        .btn-secondary {
+            background-color: #a05359;
+            color: #fff;
+            border-radius: 10px;
+        }
+
+        input[type="text"] {
+            padding: 0.8em;
+            border-radius: 10px;
+            border: 1px solid #aaa;
+            width: 60%;
+        }
+
+        .btn-group {
+            display: inline-flexbox;
+            margin: 1em 0;
+        }
+        /* Styles for custom radio buttons */
+        .btn-group label {
+            display: inline-block;
+            padding: 8px 16px;
+            margin: 0;
+            cursor: pointer;
+            border: 1px solid #aaa;
+            border-radius: 4px;
+            background-color: #f4f4f4;
+            transition: background-color 0.3s ease;
+        }
+
+        .btn-group label:hover {
+            background-color: #ddd;
+        }
+
+        .btn-group input[type="radio"] {
+            display: none; /* Hide the actual radio button */
+        }
+
+        .btn-group input[type="radio"]:checked + label {
+            background-color: #a05359; /* Color when selected */
+            color: white; /* Text color when selected */
+        }
+        
+        .rainbow-text {
+            background-image: linear-gradient(to left, #394134,#4c624b, #a05359, #76beaa, #c1a097);
+            color: transparent;
+            -webkit-background-clip: text;
+            background-clip: text;
+            font-weight: bold; /* Making the text bold can help improve readability with this effect */
+            font-size: 1.5em;
+        }
+
+        .custom-textarea {
+            height: 100px; /* Adjust this value to your preference */
+            width: 50%; /* This will make the textarea take the full width of its container. Adjust as necessary. */
+            resize: vertical; /* Allows users to resize the textarea vertically */
+            justify-items: left;
+            text-align: left;
+            padding: 0.8em;
+            font-size: 1.2em;
+        }
+
+        .chef-section {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .chef-section .left-column {
+            flex: 1;
+            margin-left: 1.5em;
+        }
+
+        .chef-section .right-column {
+            flex: 0.25;
+            align-items: center;
+            margin-right: 6em;
+        }
+
+        .right-column img {
+            width: 80%; /* adjust as needed */
+            margin-bottom: 1em;
+        }
+        /* Media Query for Mobile Devices */
+        @media (max-width: 768px) {
+            .container {
+                width: 95%; /* Increase the width on smaller screens */
+            }
+
+            .chef-section {
+                flex-direction: column; /* Stack elements vertically */
+                align-items: center; /* Center align */
+            }
+
+            .chef-section .left-column, .chef-section .right-column {
+                margin: 1em 0; /* Add some margin top and bottom */
+                text-align: center; /* Center align text */
+            }
+
+            .right-column img {
+                width: 100%; /* Make image take full width */
+            }
+
+            input[type="text"], .custom-textarea {
+                width: 95%; /* Increase the width */
+            }
+        }
+
+        /* Make sure the container takes full height */
+        html, body, .container {
+            height: 100%;
+            margin: 0;
+            display: block;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Introducing "My Sous Chef" – your ultimate kitchen companion!</h1>
+        <p class="rainbow-text">Our fun and intelligent AI kitchen assistant is here to make cooking a breeze...</p>
+        <h2>Start from Scratch / Ask a Question</h2>
+        <div>
+            <p class="rainbow-text" style="font-size: 1.2em;">
+                <textarea class="custom-textarea" placeholder=
+                "How can I help you today?  Ready to make a new recipe, have a question about one you already have, can't get your bread to rise?  Just ask!"></textarea>
+            </p>
+        <p style="font-size: 1.25em;">Select customized options below if you prefer, and when you are ready to get cooking, click on "Ask My Sous Chef"</p>
+        <div class="chef-section">
+            <div class="left-column">
+                <label for="chefMode" style="display: inline-block; margin-right: 1em;"><h3>CHEF MODE:</h3></label>
+                <span class="btn-group">
+                    <input type="radio" name="chefMode" id="homeCook" value="Home Cook"><label for="homeCook" style="margin-right: 1em;">Home Cook</label>
+                    <input type="radio" name="chefMode" id="explorer" value="Explorer"><label for="explorer" style="margin-right: 1em;">Explorer</label>
+                    <input type="radio" name="chefMode" id="expertChef" value="Expert Chef"><label for="expertChef" style="margin-right: 1em;">Expert Chef</label>
+                    <input type="radio" name="chefMode" id="funChef" value="Fun Chef"><label for="funChef">Fun Chef</label>
+                </span>
+                <br>
+                <label for="servingSize" style="display: inline-block; margin-right: 1em;"><h3>SERVING SIZE:</h3></label>
+                <span class="btn-group">
+                    <input type="radio" name="servingSize" id="me" value="Me"><label for="me" style="margin-right: 1em;">Me</label>
+                    <input type="radio" name="servingSize" id="forTwo" value="For Two"><label for="forTwo" style="margin-right: 1em;">For Two</label>
+                    <input type="radio" name="servingSize" id="family" value="Family"><label for="family" style="margin-right: 1em;">Family</label>
+                    <input type="radio" name="servingSize" id="party" value="Party"><label for="party" style="margin-right: 1em;">Party</label>
+                    <input type="radio" name="servingSize" id="children" value="Children"><label for="children">Children</label>
+                </span>
+                <br>
+                <label for="preferredFormat" style="display: inline-block; margin-right: 1em;"><h3>PREFERRED FORMAT:</h3></label>
+                <span class="btn-group">
+                    <input type="radio" name="preferredFormat" id="justRecipe" value="Just the Recipe"><label for="justRecipe" style="margin-right: 1em;">Just the Recipe</label>
+                    <input type="radio" name="preferredFormat" id="addCalories" value="Add Calories"><label for="addCalories" style="margin-right: 1em;">Add Calories</label>
+                    <input type="radio" name="preferredFormat" id="addContext" value="Add Context/Some Fun"><label for="addContext">Add Context/Some Fun</label>
+                </span>
+            </div>
+            <div class="right-column">
+                <!-- Replace with your logo -->
+                <img src="path_to_your_logo.jpg" alt="Your Logo Here">
+                
+                <button class="btn btn-primary">ASK MY SOUS CHEF</button>
+            </div>
+        </div>
+        <p style="font-size: 1.25em;">Have questions about a recipe you already have?  Upload a Recipe (can even be a picture of a hand-written recipe!) or paste text below.</p>
+        <!-- Create another text area like the one above -->
+        <textarea class="custom-textarea" placeholder="Paste recipe text here!"></textarea>
+        <div class="btn-group">
+            <button class="btn btn-secondary">UPLOAD RECIPE TEXT</button>
+            <button class="btn btn-secondary">UPLOAD RECIPE PHOTO</button>
+        </div>
+    </div>
+</body>
+
+</html>
