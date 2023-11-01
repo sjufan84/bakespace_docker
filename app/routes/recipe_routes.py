@@ -1,9 +1,9 @@
 """ This module contains the routes for the recipe service """
 from typing import Annotated
 from fastapi import APIRouter, Depends, Header
-from ..middleware.session_middleware import RedisStore, get_redis_store
-from ..services.recipe_service import RecipeService
-from ..models.recipe import Recipe
+from app.middleware.session_middleware import RedisStore, get_redis_store
+from app.services.recipe_service import RecipeService
+from app.models.recipe import Recipe
 
 # A new dependency function:
 def get_recipe_service(store: RedisStore = Depends(get_redis_store)) -> RecipeService:
@@ -32,9 +32,11 @@ router = APIRouter()
                 "4 (14.5 ounce) cans chicken broth",
             ],
             "instructions": [
-                "In a large pot over medium heat, melt butter. Cook onion and celery in butter until just tender, 5 minutes.",
-                "Pour in chicken and vegetable broths and stir in chicken, noodles, carrots, basil, oregano, salt and pepper.",
-                "Bring to a boil, then reduce heat and simmer 20 minutes before serving."
+                """In a large pot over medium heat, melt butter. Cook onion
+                and celery in butter until just tender, 5 minutes.",
+                "Pour in chicken and vegetable broths and stir in chicken,
+                noodles, carrots, basil, oregano, salt and pepper.",
+                "Bring to a boil, then reduce heat and simmer 20 minutes before serving."""
             ],
             "prep_time": "10 minutes",
             "cook_time": "30 minutes",
@@ -45,13 +47,14 @@ router = APIRouter()
     }}})
 async def generate_recipe(specifications: Annotated[str, "I would love a good\
     recipe for chicken noodle soup"], recipe_service: RecipeService =
-    Depends(get_recipe_service)):
+    Depends(get_recipe_service), chef_type:str=None):
     """ 
     Primary route for the recipe service. 
     Client needs to extract session_id from the response and include it in the headers
     of subsequent requests.
     """
-    response = recipe_service.execute_generate_recipe(specifications=specifications)
+    response = recipe_service.execute_generate_recipe(specifications=specifications,
+    chef_type=chef_type)
     return response
 
 # The route for the recipe service to get the recipe by name and session_id
@@ -70,9 +73,12 @@ async def generate_recipe(specifications: Annotated[str, "I would love a good\
                             "4 (14.5 ounce) cans chicken broth",
                         ],
                         "instructions": [
-                            "In a large pot over medium heat, melt butter. Cook onion and celery in butter until just tender, 5 minutes.",
-                            "Pour in chicken and vegetable broths and stir in chicken, noodles, carrots, basil, oregano, salt and pepper.",
-                            "Bring to a boil, then reduce heat and simmer 20 minutes before serving."
+                            """In a large pot over medium heat, melt butter.
+                            Cook onion and celery in butter until just tender, 5 minutes.",
+                            "Pour in chicken and vegetable broths and stir
+                            in chicken, noodles, carrots, basil, oregano, salt and pepper.",
+                            "Bring to a boil, then reduce heat and
+                            simmer 20 minutes before serving."""
                         ],
                         "prep_time": "10 minutes",
                         "cook_time": "30 minutes",

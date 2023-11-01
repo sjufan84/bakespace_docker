@@ -1,19 +1,23 @@
+""" Dependencies for the FastAPI app """
 import os
-from google.oauth2 import service_account
 import toml
+from google.oauth2 import service_account
 from dotenv import load_dotenv
 load_dotenv()
 
 def get_openai_api_key():
+    """ Get the OpenAI API key from the environment. """
     return os.getenv("OPENAI_API_KEY")
 
 def get_openai_org():
+    """ Get the OpenAI organization from the environment. """
     return os.getenv("OPENAI_ORG")
 
 def get_google_vision_credentials():
+    """ Get the Google Vision credentials from the environment. """
     config = toml.load("secrets.toml")
     return service_account.Credentials.from_service_account_info(config['gcp_service_account'])
 
 def get_stability_api_key():
+    """ Get the stability API key from the environment. """
     return os.getenv("STABLE_DIFFUSION_API_KEY")
-

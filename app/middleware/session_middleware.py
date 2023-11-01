@@ -1,49 +1,40 @@
-"""Initiating the middleware"""
-
-# Initial Imports
+""" This module contains the SessionMiddleware class and RedisStore class """
+import uuid
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
-from fastapi import Request, Response
+from fastapi import FastAPI, Request, Response
 import redis
 
-
 class SessionMiddleware(BaseHTTPMiddleware):
-    """ Define a class to represent the session middleware. """
+    """ SessionMiddleware is a class that represents a middleware for sessions """
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
-        # Extract the session_id from the headers
-        session_id = request.query_params.get("session_id")
+        session_id = None  # Initialize session_id to None
+
+        if request.url.path not in ["/openapi.json", "/docs", "/redoc"]:
+            session_id = request.query_params.get("session_id")
 
         if session_id is None:
-            # Handle the case when there is no session_id provided.
-            # You can return an error response or assign a default session_id
             return Response("No session_id provided", status_code=400)
 
-        # You might not need to store the session_id in Redis at this point
-        # since you said that user data is retrieved during each API call
-
-        # Proceed to the next middleware or route handler
         response = await call_next(request)
 
-        # Set the session_id in the response headers for client to use in further interactions
-        response.headers["session_id"] = session_id
+        if session_id:  # Only set the session_id header if it's not None
+            response.headers["session_id"] = session_id
 
         return response
 
-
-
-# Create a RedisStore class to store the session_id
 class RedisStore:
-    """ Define a class to store the session_id. """
+    """ RedisStore is a class that represents a Redis store for a session """
     def __init__(self, session_id: str):
         self.redis = redis.Redis(decode_responses=True)
-        self.session_id = session_id 
-
+        self.session_id = session_id
 
 def get_redis_store(request: Request) -> RedisStore:
-    """ Create a function to get the RedisStore. """
+    """ get_redis_store is a function that returns a RedisStore object """
     session_id = request.query_params.get("session_id")
-    # You can include any configuration logic here if needed
     return RedisStore(session_id)
 
-
+# Initialize FastAPI app and add middleware
+app = FastAPI()
+app.add_middleware(SessionMiddleware)

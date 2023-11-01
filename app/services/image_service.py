@@ -1,6 +1,7 @@
 """ This module defines the image service."""
 import requests
 from dotenv import load_dotenv
+from redis import RedisError
 from ..middleware.session_middleware import RedisStore
 from ..dependencies import get_stability_api_key
 
@@ -10,7 +11,7 @@ load_dotenv()
 class ImageService:
     """ A class to represent the image service. """
     def __init__(self, store: RedisStore = None):
-        self.store = store or RedisStore()
+        self.store = store
         self.session_id = self.store.session_id
         self.image = self.load_image_url()
         if not self.image:
@@ -18,7 +19,7 @@ class ImageService:
 
     def generate_image_url(self, image_prompt):
         """ Generate an image for a recipe """
-        
+
         # Load the stable diffusion api key
         api_key = get_stability_api_key()
         r = requests.post(
@@ -45,7 +46,7 @@ class ImageService:
                 return image
             else:
                 return None
-        except Exception as e:
+        except RedisError as e:
             print(f"Failed to load image from Redis: {e}")
             return None
 
@@ -54,15 +55,15 @@ class ImageService:
         try:
             # Save the recipe to redis
             self.store.redis.set(f'{self.session_id}_image', image)
-        except Exception as e:
+        except RedisError as e:
             print(f"Failed to save image to Redis: {e}")
         return image
-    
+
     def delete_image_url(self):
         """ Delete an image from the store by the image_name """
         try:
             # Delete the recipe from redis
             self.store.redis.delete(f'{self.session_id}_image')
-        except Exception as e:
+        except RedisError as e:
             print(f"Failed to delete image from Redis: {e}")
         return {"message": "Image deleted."}
