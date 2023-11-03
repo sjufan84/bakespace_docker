@@ -30,20 +30,13 @@ async def status_call(chat_service: ChatService = Depends(get_chat_service)) -> 
     and the chat_history to the user """
     return chat_service.check_status()
 
-# Create a route to add a user message to the chat history
-@router.post("/add_user_message", include_in_schema=False)
-async def add_user_message(message: str, chat_service: ChatService = Depends(get_chat_service)):
-    """ Define the function to add a user message.  Takes in message and chat_service. """
-    new_user_message = chat_service.add_user_message(message)
-    chat_service.save_chat_history()
-    # Return the chat history
-    return new_user_message
-
-# Create a route to initialize the chat
+# Create a route to initialize a general chat session
 @router.post("/initialize_general_chat", response_description="The initial message\
     and the chat history.",
     summary="Initialize a general chat session.",
-    description="Initialize a general chat session by passing in context as a string.",
+    description="Initialize a general chat session by passing in context as a string.\
+    Optionally, pass in the type of chef as a string. If not passed, the current session\
+    chef type will be used. Must be one of ['home_cook', 'pro_chef', 'adventurous_chef', None]",
     tags=["Chat Endpoints"],
     responses={200: {"model": InitialMessage, "description": "OK", "examples": {
     "application/json": {
@@ -69,42 +62,78 @@ async def initialize_general_chat(context: str = None, chat_service:
     response = chat_service.initialize_general_chat(context=context, chef_type=chef_type)
     return {"Initial message succesfully generated for general chat:" : response}
 
-# Create a route to initialize the chat
-@router.post("/initialize_recipe_chat", response_description="The initial message\
-    and the chat history.")
-async def initialize_recipe_chat(recipe_text: str, chat_service: ChatService =
-    Depends(get_chat_service), chef_type:str = None):
-    """ Define the function to initialize a recipe chat session.
-    Takes in recipe_text as a string and returns a json object that includes
-    the initial_message, the session_id, and the chat_history. """
+# This endpoint initializes a chat session for a recipe.
+# It accepts a POST request with the recipe text and the type of chef as parameters.
+@router.post(
+    "/initialize_recipe_chat", 
+    response_description="The initial message and the chat history.",
+    tags=["Chat Endpoints"]
+)
+async def initialize_recipe_chat(
+    recipe_text: str,
+    chat_service: ChatService = Depends(get_chat_service),
+    chef_type: str = None
+):
+    """
+    Initializes a recipe chat session.
+
+    Args:
+        recipe_text (str): The text of the recipe to discuss in the chat.
+        chat_service (ChatService, optional): The service handling the chat.
+        Defaults to the result of get_chat_service().
+        chef_type (str, optional): The type of chef involved in the chat.\
+        Must be one of the allowed chef types. Defaults to None.
+
+    Raises:
+        ValueError: If the provided chef_type is not one of the allowed chef types.
+
+    Returns:
+        dict: A dictionary containing the initial message, the session ID, and the chat history.
+    """
     if chef_type not in allowed_chef_types:
         raise ValueError(f"chef_type must be one of {allowed_chef_types}")
     initial_message = chat_service.initialize_recipe_chat(recipe_text=recipe_text,
                                                         chef_type=chef_type)
     return initial_message
 
-@router.post("/add_chef_message", include_in_schema=False)
-async def add_chef_message(message: str, chat_service: ChatService = Depends(get_chat_service)):
-    """ Define the function to add a chef message.  Takes in message and chat_service. """
-    new_chef_message = chat_service.add_chef_message(message)
-    return new_chef_message
-
-@router.post("/get_chef_response",  response_description="The response\
-    from the chef as a message object and the chat_history as a list of messages.",
+# This endpoint gets a response from the chef to the user's question.
+# It accepts a POST request with the user's question and the type of chef as parameters.
+@router.post(
+    "/get_chef_response",  
+    response_description="The response from the chef as a message object\
+    and the chat history as a list of messages.",
     summary="Get a response from the chef to the user's question.",
-    description="Get a response from the chef to the user's question by passing in\
-        the user's question as a string.",
-    tags=["Chat Endpoints"])
+    description="""Get a response from the chef to the user's
+    question by passing in the user's question as a string.
+    Optionally, pass in the type of chef as a string. If not passed,
+    the current session chef type will be used. Must be one of
+    ['home_cook', 'pro_chef', 'adventurous_chef', None]""",
+    tags=["Chat Endpoints"]
+)
+async def get_chef_response(
+    question: str,
+    chat_service: ChatService = Depends(get_chat_service),
+    chef_type: str = None
+) -> dict:
+    """
+    Gets a response from the chatbot to the user's question.
 
-async def get_chef_response(question: str, chat_service: ChatService
-    = Depends(get_chat_service), chef_type:str=None) -> dict:
-    """ Define the function to get a response from the chatbot.
-    Takes in a user question and returns a 
-    json object that includes the chef_response, the session_id, and the chat_history. """
+    Args:
+        question (str): The user's question.
+        chat_service (ChatService, optional): The service
+        handling the chat. Defaults to the result of get_chat_service().
+        chef_type (str, optional): The type of chef involved in the chat.
+        Must be one of the allowed chef types. Defaults to None.
+
+    Raises:
+        ValueError: If the provided chef_type is not one of the allowed chef types.
+
+    Returns:
+        dict: A dictionary containing the chef's response, the session ID, and the chat history.
+    """
     if chef_type not in allowed_chef_types:
         raise ValueError(f"chef_type must be one of {allowed_chef_types}")
     response = chat_service.get_chef_response(question=question, chef_type=chef_type)
-    # The response will be a json object that is the chat history
     return response
 
 @router.get("/view_chat_history", response_description=

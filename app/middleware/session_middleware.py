@@ -11,11 +11,12 @@ class SessionMiddleware(BaseHTTPMiddleware):
     ) -> Response:
         session_id = None  # Initialize session_id to None
 
-        if request.url.path not in ["/openapi.json", "/docs", "/redoc"]:
-            session_id = request.query_params.get("session_id")
+        #if request.url.path not in ["/openapi.json", "/docs", "/redoc"]:
+        #    session_id = request.query_params.get("session_id")
 
         if session_id is None:
-            return Response("No session_id provided", status_code=400)
+            #return Response("No session_id provided", status_code=400)
+            session_id = str(uuid.uuid4())
 
         response = await call_next(request)
 

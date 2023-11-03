@@ -5,8 +5,11 @@ import logging
 import requests
 import openai
 from redis.exceptions import RedisError
-from ..middleware.session_middleware import RedisStore
-from ..dependencies import get_openai_api_key, get_openai_org
+from app.middleware.session_middleware import RedisStore
+from app.dependencies import get_openai_api_key, get_openai_org
+from app.models.recipe import Recipe
+from app.utils.recipe_utils import parse_recipe
+from app.services.recipe_service import RecipeService
 
 # Create a dictionary to house the chef data to populate the chef model
 openai_chat_models = {
@@ -22,16 +25,10 @@ openai_chat_models = {
         "model_name" : "ft:gpt-3.5-turbo-0613:david-thomas:gr-sous-chef:86TgiHTW",
         "style": "professional chef in the style of Gordon Ramsey"
     },
-    "general": {
-        "model_name": "gpt-turbo-0613",
-        "style": "master sous chef in the style of the best chefs in the world"
-    }
 }
 
 # Establish the core models that will be used by the chat service
 core_models = ["gpt-3.5-turbo-16k-0613", "gpt-3.5-turbo-16k", "gpt-3.5-turbo-0613", "gpt-3.5-turbo"]
-
-
 
 class ChatMessage:
     """ A class to represent a chat message. """
@@ -248,3 +245,49 @@ class ChatService:
         """ Return the session id and any user data from Redis. """
         return {"session_id": self.session_id,
         "chat_history": self.chat_history, "chef_type": self.chef_type}
+
+    async def get_adjusted_recipe(self, adjustments:str, recipe: Union[str, dict, Recipe],
+                            chef_type:str="home_cook"):
+        """ Chat a new recipe that needs to be generated based on\
+        a previous recipe. """
+        # Set the recipe service
+        recipe_service = RecipeService(self.store)
+        # Determine the model and style based on the chef type
+        model = openai_chat_models[chef_type]["model_name"]
+        style = openai_chat_models[chef_type]["style"]
+        messages = [
+            {
+                "role": "system", "content": f"""You are a master chef of\
+                type {style}.  You are helping a user adjust a recipe {recipe}\
+                that you generated for them earlier.\
+                The adjustments are {adjustments}.  Please answer the question\
+                as if you were their personal sous chef, helpful and in the style of chef\
+                they have chosen.  Within your personalized response, generate the new recipe\
+                in the form of {Recipe}.  Please do not break character."""
+            },
+            {
+                "role": "user", "content": "Hi chef, thanks for the recipe you generated\
+                for me earlier. Can you help me adjust it?"
+            }
+        ]
+        # Add the user message to the chat history
+        self.add_user_message(adjustments)
+        models = [model, "gpt-3.5-turbo-16k-0613", "gpt-3.5-turbo-16k"]
+        for model in models:
+            try:
+                response = openai.ChatCompletion.create(
+                model=model,
+                messages=messages,
+                temperature=1,
+                top_p=1,
+                max_tokens=500
+            )
+                new_recipe = parse_recipe(response.choices[0].message.content)
+                # Save the recipe to Redis
+                recipe_service.save_recipe(new_recipe)
+                # Add the chef response to the chat history
+                self.add_chef_message(response.choices[0].message.content)
+                return {"response": response.choices[0].message.content, "new_recipe": new_recipe}
+            except TimeoutError as a:
+                print(f"Timeout error: {str(a)}")
+                continue

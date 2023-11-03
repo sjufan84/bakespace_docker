@@ -2,8 +2,8 @@
 import requests
 from dotenv import load_dotenv
 from redis import RedisError
-from ..middleware.session_middleware import RedisStore
-from ..dependencies import get_stability_api_key
+from app.middleware.session_middleware import RedisStore
+from app.dependencies import get_stability_api_key
 
 load_dotenv()
 

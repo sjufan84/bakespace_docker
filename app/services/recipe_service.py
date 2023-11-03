@@ -14,7 +14,7 @@ from redis import RedisError
 from app.models.recipe import Recipe
 from app.dependencies import get_openai_api_key, get_openai_org
 from app.middleware.session_middleware import RedisStore
-from app.services.chat_service import ChatService
+from app.utils.recipe_utils import parse_recipe
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -48,19 +48,9 @@ class RecipeService:
         self.store = store
         self.session_id = self.store.session_id
         self.recipe = self.load_recipe()
-        self.chat_service = ChatService(store=store)
         if not self.recipe:
             self.recipe = None
         self.chef_type = self.store.redis.get(f'{self.session_id}:chef_type')
-        chat_history = self.store.redis.get(f'{self.session_id}:chat_history')
-        if chat_history:
-            self.chat_history = chat_history
-        else:
-            self.chat_history = []
-        if self.chef_type:
-            self.chef_type = self.chef_type
-        else:
-            self.chef_type = "home_cook"
 
     # Create a function to be able to load a recipe from the store by the recipe_name
     def load_recipe(self):
@@ -96,7 +86,7 @@ class RecipeService:
             print(f"Failed to delete recipe from Redis: {e}")
         return {"message": "Recipe deleted."}
 
-    def execute_generate_recipe(self, specifications: str, chef_type:str=None):
+    def create_new_recipe(self, specifications: str, chef_type:str=None):
         """ Generate a recipe based on the specifications provided """
         try:
             # Set your API key
@@ -107,7 +97,7 @@ class RecipeService:
             # If there is a chef_type, set the model_name and style
             if chef_type:
                 self.chef_type = chef_type
-                self.chat_service.save_chef_type()
+                self.save_chef_type()
             model_name = openai_chat_models[self.chef_type]["model_name"]
             style = openai_chat_models[self.chef_type]["style"]
             # Create the output parser -- this takes
@@ -163,7 +153,11 @@ class RecipeService:
                     recipe = chat(messages).content
 
                     # Parse the recipe
-                    parsed_recipe = output_parser.parse(recipe)
+                    try:
+                        parsed_recipe = output_parser.parse(recipe)
+                    except ValueError as e:
+                        logging.error("Error parsing recipe: %s", e)
+                        parsed_recipe = parse_recipe(recipe)
 
                     # Convert the recipe to a dictionary for saving to redis
                     redis_dict = {str(key): str(value) for key, value
@@ -181,3 +175,11 @@ class RecipeService:
         except ConnectionError as e:
             logging.error("Error generating recipe: %s", e)
             return {"message": "Error generating recipe."}
+
+    def save_chef_type(self):
+        """ Save the chef type to Redis. """
+        try:
+            self.store.redis.set(f'{self.session_id}:chef_type', self.chef_type)
+        except RedisError as e:
+            print(f"Failed to save chef type to Redis: {e}")
+        return self.chef_type

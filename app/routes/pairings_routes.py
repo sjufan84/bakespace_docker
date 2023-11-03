@@ -13,7 +13,8 @@ def get_pairing_service(store: RedisStore = Depends(get_redis_store)) -> Pairing
 
 @router.post("/generate_pairing", response_description = "A json object containing the pairing.",
              summary = "Generate a pairing based on the user's specifications.",
-             tags = ["Pairing Endpoints"], responses = {200: {"model": Pairing, "description": "OK", "examples": {
+             tags = ["Pairing Endpoints"], responses = {200: {"model":
+                    Pairing, "description": "OK", "examples": {
                     "application/json": {
                         "pairing_text": "For a pairing with a recipe for chicken noodle soup\
                         , I would recommend a nice chardonnay.",
