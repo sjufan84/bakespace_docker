@@ -163,7 +163,7 @@ class ChatService:
         return {"session_id": self.session_id, "chat_history": self.chat_history,
         "initial_message": initial_message, "chef_type": self.chef_type}
 
-    def initialize_cookbook_chat(self, user_question: str, recipes_list: list = None,
+    def initialize_cookbook_chat(self, recipes_list: list = None,
                                 chef_type:str=None) -> dict:
         """ Initialize the chatbot with a recipe. """
         if chef_type:
@@ -174,7 +174,7 @@ class ChatService:
             "role": "system", 
             "content": f"""
             The user has created a cookbook that they would like to ask a question
-            about.  The question is {user_question}.  The names of the recipes in the 
+            about.  The names of the recipes in the 
             cookbook are {recipes_list}.  Your chat history so far is {self.chat_history}. 
             You should answer as a chef of type {self.chef_type} in the style of
             {openai_chat_models[self.chef_type]["style"]} acting as the user's personal sous chef.
@@ -274,7 +274,7 @@ class ChatService:
         return {"session_id": self.session_id,
         "chat_history": self.chat_history, "chef_type": self.chef_type}
 
-    async def adjust_recipe(self, adjustments:str, recipe: Union[str, dict, Recipe],
+    def adjust_recipe(self, adjustments:str, recipe: str,
                             chef_type:str="home_cook"):
         """ Chat a new recipe that needs to be generated based on\
         a previous recipe. """
@@ -298,8 +298,10 @@ class ChatService:
                 for me earlier. Can you help me adjust it?"
             }
         ]
-        # Add the user message to the chat history
-        self.add_user_message(adjustments)
+        # Convert the question to a message and append it to the chat history
+        chat_history = self.load_chat_history()
+        chat_history = chat_history + [messages[1]]
+
         models = [model, "gpt-3.5-turbo-16k-0613", "gpt-3.5-turbo-16k"]
         for model in models:
             try:
@@ -310,12 +312,22 @@ class ChatService:
                 top_p=1,
                 max_tokens=500
             )
-                new_recipe = parse_recipe(response.choices[0].message.content)
-                # Save the recipe to Redis
-                recipe_service.save_recipe(new_recipe)
-                # Add the chef response to the chat history
-                self.add_chef_message(response.choices[0].message.content)
-                return {"response": response.choices[0].message.content, "new_recipe": new_recipe}
+                try:
+                    new_recipe = parse_recipe(response.choices[0].message.content)
+                    # Save the recipe to Redis
+                    try:
+                        recipe_service.save_recipe(new_recipe)
+                    except TypeError as e:
+                        logging.error("Error saving recipe to Redis: %s", e)
+                except ValueError as e:
+                    logging.error("Error parsing recipe: %s", e)
+                    new_recipe = response.choices[0].message.content
+                # Convert the response to a message and append it to the chat history
+                ai_response = ChatMessage(response.choices[0].message.content, "system").format_message()
+                chat_history = chat_history + [ai_response]
+                # Save the chat history to Redis
+                self.save_chat_history()
+                return {"new_recipe": new_recipe}
             except TimeoutError as a:
                 print(f"Timeout error: {str(a)}")
                 continue
@@ -395,11 +407,15 @@ class ChatService:
                         parsed_recipe = parse_recipe(recipe)
 
                     # Convert the recipe to a dictionary for saving to redis
-                    redis_dict = {str(key): str(value) for key, value
-                    in dict(parsed_recipe).items()}
+                    try:
+                        redis_dict = {str(key): str(value) for key, value
+                        in dict(parsed_recipe).items()}
 
-                    # Save the recipe history to redis
-                    recipe_service.save_recipe(redis_dict)
+                        # Save the recipe history to redis
+                        recipe_service.save_recipe(redis_dict)
+                    except TypeError as e:
+                        logging.error("Error saving recipe to Redis: %s", e)
+                        redis_dict = None
 
                     return {"Recipe": parsed_recipe, "session_id": self.session_id}
 

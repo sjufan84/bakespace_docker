@@ -141,15 +141,14 @@ async def get_chef_response(
 # Endpoint for initiating a cookbook chat session
 @router.post("/initialize_cookbook_chat", response_description=
 "Initialize the chatbot with a cookbook.", tags=["Chat Endpoints"])
-async def initialize_cookbook_chat(user_question: str, recipes_list:
+async def initialize_cookbook_chat(recipes_list:
     List[str] = None, chat_service: ChatService = Depends(get_chat_service),
     chef_type: str = None) -> dict:
     """
     Initializes a chat session with a cookbook.
 
     Args:
-        user_question (str): The user's question about the cookbook.
-        recipes_list (List[str], optional): The list of recipes in the cookbook. Defaults to None.
+        recipes_list (List[str]): The list of recipes in the cookbook. Defaults to None.
         chat_service (ChatService, optional): The service handling the chat.
         Defaults to the result of get_chat_service().
         chef_type (str, optional): The type of chef involved in the chat. Defaults to None.
@@ -157,13 +156,14 @@ async def initialize_cookbook_chat(user_question: str, recipes_list:
     Returns:
         dict: A dictionary containing the initial message, the session ID, and the chat history.
     """
-    return chat_service.initialize_cookbook_chat(user_question=user_question,
+    return chat_service.initialize_cookbook_chat(
     recipes_list=recipes_list, chef_type=chef_type)
 
-@router.post("/adjust_recipe", response_description="Chat a new recipe\
-that needs to be generated based on a previous recipe.", tags=["Recipe Endpoints"])
-async def adjust_recipe(adjustments: str, recipe: Union[str, dict,
-Recipe], chat_service: ChatService = Depends(get_chat_service), chef_type: str = "home_cook"):
+@router.post("/adjust_recipe", response_description="Create a new recipe\
+that needs to be generated based on a previous recipe with adjustments.",
+tags=["Recipe Endpoints"])
+async def adjust_recipe(adjustments: str, recipe_text: str,
+chat_service: ChatService = Depends(get_chat_service), chef_type: str = "home_cook"):
     """
     Adjusts a recipe based on user input.
 
@@ -178,8 +178,8 @@ Recipe], chat_service: ChatService = Depends(get_chat_service), chef_type: str =
         dict: A dictionary containing the chef's response and the new recipe in the format of 
         {"response" : str = "The chef's response", "recipe" : dict = the new recipe}
     """
-    return await chat_service.adjust_recipe(adjustments=adjustments,
-    recipe=recipe, chef_type=chef_type)
+    return chat_service.adjust_recipe(adjustments=adjustments,
+    recipe=recipe_text, chef_type=chef_type)
 
 @router.post("/create_new_recipe", response_description=
 "Generate a recipe based on the specifications provided.", tags=["Recipe Endpoints"])
@@ -200,33 +200,11 @@ async def create_new_recipe(specifications: str, chat_service:
     return chat_service.create_new_recipe(specifications=specifications, chef_type=chef_type)
 
 @router.get("/view_chat_history", response_description=
-        "The chat history returned as a dictionary.", tags=["Chat Endpoints"],
-        response_model=ChatHistory,
-        responses={200: {"model": ChatHistory, "description": "OK", "examples": {
-            "application/json": {
-                "chat_history": [
-                    {
-                        "role": "ai",
-                        "content": "Hello, I'm the recipe chatbot.  How can I help you today?"
-                        },
-                        {
-                            "role": "user",
-                            "content": "The user's question."
-                        },
-                        {
-                            "role": "ai",
-                            "content": "The chef's response to the user's question."
-                        }
-                    ]
-                }
-            }
-        }
-    })
-
-async def view_chat_history(chat_service: ChatService = Depends(get_chat_service)) -> dict:
+"View the chat history.", tags=["Chat Endpoints"])
+async def view_chat_history(chat_service: ChatService = Depends(get_chat_service)):
     """ Define the function to view the chat history.  Takes in the session_id
     in the headers and returns the chat_history. """
-    return {"chat_history": chat_service.save_chat_history()}
+    return {"chat_history": chat_service.load_chat_history()}
 
 # Create a route to clear the chat history
 @router.delete("/clear_chat_history", response_description="A message confirming\

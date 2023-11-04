@@ -44,7 +44,7 @@ router = APIRouter()
             "servings": 6,
             "calories": 250
         }
-    }}})
+    }}}, include_in_schema=False)
 async def generate_recipe(specifications: Annotated[str, "I would love a good\
     recipe for chicken noodle soup"], recipe_service: RecipeService =
     Depends(get_recipe_service), chef_type:str=None):

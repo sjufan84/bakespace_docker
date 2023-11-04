@@ -13,7 +13,7 @@ openai.api_key = get_openai_api_key()
 openai.organization = get_openai_org()
 
 # Parser tool
-def parse_recipe(recipe:Union[Recipe, str, dict]) -> Union[Recipe, dict]:
+def parse_recipe(recipe:Union[Recipe, str, dict]) -> Recipe:
     """ Parse the recipe from the model response. """
     # Format a claude prompt to parse the recipe
     messages = [

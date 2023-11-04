@@ -57,8 +57,11 @@ class RecipeService:
     def save_recipe(self, recipe):
         """ Save a recipe to the store by the recipe_name """
         try:
-            # Save the recipe to redis
-            self.store.redis.hmset(f'{self.session_id}_recipe', mapping = recipe)
+            if isinstance(recipe, dict):
+                # Save the recipe to redis
+                self.store.redis.hmset(f'{self.session_id}_recipe', mapping = recipe)
+            else:
+                return {"message": "Recipe must be a dictionary."}
         except RedisError as e:
             print(f"Failed to save recipe to Redis: {e}")
         return recipe
