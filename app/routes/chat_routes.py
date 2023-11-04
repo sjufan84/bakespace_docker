@@ -1,10 +1,12 @@
 """ Define the chat routes.  This is where the API endpoints are defined.
 The user will receive a session_id when they first connect to the API.
 This session_id will be passed in the headers of all subsequent requests. """
+from typing import List, Union, Optional
 from fastapi import APIRouter, Depends, Query
-from ..services.chat_service import ChatService
-from ..middleware.session_middleware import RedisStore, get_redis_store
-from ..models.chat import InitialMessage, ChatHistory
+from app.services.chat_service import ChatService
+from app.middleware.session_middleware import RedisStore, get_redis_store
+from app.models.chat import InitialMessage, ChatHistory
+from app.models.recipe import Recipe
 
 # Define a router object
 router = APIRouter()
@@ -135,6 +137,67 @@ async def get_chef_response(
         raise ValueError(f"chef_type must be one of {allowed_chef_types}")
     response = chat_service.get_chef_response(question=question, chef_type=chef_type)
     return response
+
+# Endpoint for initiating a cookbook chat session
+@router.post("/initialize_cookbook_chat", response_description=
+"Initialize the chatbot with a cookbook.", tags=["Chat Endpoints"])
+async def initialize_cookbook_chat(user_question: str, recipes_list:
+    List[str] = None, chat_service: ChatService = Depends(get_chat_service),
+    chef_type: str = None) -> dict:
+    """
+    Initializes a chat session with a cookbook.
+
+    Args:
+        user_question (str): The user's question about the cookbook.
+        recipes_list (List[str], optional): The list of recipes in the cookbook. Defaults to None.
+        chat_service (ChatService, optional): The service handling the chat.
+        Defaults to the result of get_chat_service().
+        chef_type (str, optional): The type of chef involved in the chat. Defaults to None.
+
+    Returns:
+        dict: A dictionary containing the initial message, the session ID, and the chat history.
+    """
+    return chat_service.initialize_cookbook_chat(user_question=user_question,
+    recipes_list=recipes_list, chef_type=chef_type)
+
+@router.post("/adjust_recipe", response_description="Chat a new recipe\
+that needs to be generated based on a previous recipe.", tags=["Recipe Endpoints"])
+async def adjust_recipe(adjustments: str, recipe: Union[str, dict,
+Recipe], chat_service: ChatService = Depends(get_chat_service), chef_type: str = "home_cook"):
+    """
+    Adjusts a recipe based on user input.
+
+    Args:
+        adjustments (str): The adjustments to be made to the recipe.
+        recipe (Union[str, dict, Recipe]): The original recipe.
+        chat_service (ChatService, optional): The service
+        handling the chat. Defaults to the result of get_chat_service().
+        chef_type (str, optional): The type of chef involved in the chat. Defaults to "home_cook".
+
+    Returns:
+        dict: A dictionary containing the chef's response and the new recipe in the format of 
+        {"response" : str = "The chef's response", "recipe" : dict = the new recipe}
+    """
+    return await chat_service.adjust_recipe(adjustments=adjustments,
+    recipe=recipe, chef_type=chef_type)
+
+@router.post("/create_new_recipe", response_description=
+"Generate a recipe based on the specifications provided.", tags=["Recipe Endpoints"])
+async def create_new_recipe(specifications: str, chat_service:
+    ChatService = Depends(get_chat_service), chef_type: Optional[str] = None):
+    """
+    Generates a new recipe based on the specifications provided.
+
+    Args:
+        specifications (str): The specifications for the new recipe.
+        chat_service (ChatService, optional): The service handling the chat.
+        Defaults to the result of get_chat_service().
+        chef_type (str, optional): The type of chef involved in the chat. Defaults to None.
+
+    Returns:
+        dict: A dictionary containing the new recipe and the session ID.
+    """
+    return chat_service.create_new_recipe(specifications=specifications, chef_type=chef_type)
 
 @router.get("/view_chat_history", response_description=
         "The chat history returned as a dictionary.", tags=["Chat Endpoints"],
