@@ -268,7 +268,7 @@ class ChatService:
         # Iterate through the models until you get a successful response
         for model in models:
             try:
-                response = openai.chat.completions.create(
+                response = openai.ChatCompletion.create(
                     model=model,
                     messages=messages,
                     temperature=0.75,
@@ -415,12 +415,14 @@ class ChatService:
             logging.debug("Creating system message prompt.")
             messages = [
                 {"role": "system", "content": f"""You are a master chef of type {chef_type} with style {style}
-                            creating a based on a user's specifications {specifications} and the
-                            serving size {serving_size}.  Within your response, do your best to
-                            format the recipe with the same fields as a {Recipe} object. 
+                            creating a recipe based on a user's specifications {specifications} and the
+                            serving size {serving_size}.  Even if the specifications are just a dish name or type,
+                            go ahead and create a recipe.  Within your response, do your best to
+                            format the recipe you create with the same fields as a {Recipe} object. 
                             Encourage the user to ask follow-up questions,
                             if needed, and ensure that you are taking on the persona of the
-                            {chef_type}.""",
+                            {chef_type}.  Return your response so that it can be parsed as markdown.
+                            Remember you always need to return a personal message and a recipe.""",
                 },
                 {"role": "user", "content": "Hi chef, I'd like to create a recipe based on the following specifications:"}
             ]
@@ -435,7 +437,7 @@ class ChatService:
             for model in models:
                 try:
                     logging.debug("Trying model: %s.", model)
-                    response = openai.chat.completions.create(
+                    response = openai.ChatCompletioncompletions.create(
                         model=model,
                         messages=messages,
                         temperature=0.75,
