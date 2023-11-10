@@ -36,30 +36,33 @@ openai_chat_models = {
 }
 
 # Establish the core models that will be used by the chat service
-core_models = ["gpt-3.5-turbo-16k-0613", "gpt-3.5-turbo-16k", "gpt-3.5-turbo-0613", "gpt-3.5-turbo"]
-
+#core_models = ["gpt-3.5-turbo-16k-0613", "gpt-3.5-turbo-16k", "gpt-3.5-turbo-0613", "gpt-3.5-turbo"]
+core_models = ["gpt-4-1106-preview", "gpt-3.5-turbo-1106", "gpt-4-1106-preview", 
+"gpt-3.5-turbo-16k", "gpt-3.5-turbo-0613", "gpt-3.5-turbo"]
 # Parser tool
-def parse_recipe(recipe:Union[Recipe, str, dict]) -> Recipe:
+def parse_recipe(response:Union[Recipe, str, dict]):
     """ Parse the recipe from the model response. """
     # Format a claude prompt to parse the recipe
     messages = [
         {
             "role": "system", "content": f""" Please
-            parse this recipe text {recipe} into a dictionary with the same values as a\
+            parse recipe from this response {response} into a JSON object with the same values as a\
             Recipe object {Recipe}.  Make sure to include all of of the required fields.\
             If there are any missing fields, please fill them in with the appropriate\
-            values as best you can.  Return only the Recipe object."""
+            values as best you can.  Return only the Recipe json object."""
         }
     ]
-    models = ["gpt-4-0613", "gpt-4-0613", "gpt-4", "gpt-3.5-turbo-0613"]
+    #models = ["gpt-4-0613", "gpt-4-0613", "gpt-4", "gpt-3.5-turbo-0613"]
+    models = core_models
     # Iterate through the models until you get a successful response
     for model in models:
         try:
-            response = openai.ChatCompletion.create(
+            response = openai.chat.completions.create(
                 model = model,
                 messages = messages,
                 temperature = 0,
-                max_tokens = 150
+                max_tokens = 1000,
+                response_format = {"type" : "json_object"}
             )
             new_recipe = response.choices[0].message.content
             return new_recipe

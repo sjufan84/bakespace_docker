@@ -1,9 +1,177 @@
-<!-- Test HTML for endpoints -->
 <!DOCTYPE html>
 <html>
 <head>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@3.9.4/dist/full.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
     <title>Test</title>
-    
+    <style>
+        /* Add custom style to ensure the chat box does not cover the content */
+        body, html {
+            min-height: 100%;
+        }
 
+        .main-content {
+            padding-bottom: 100px; /* Adjust this value based on the chat box size */
+        }
+
+        /* Optional: Add custom styles for mobile responsiveness */
+        @media (max-width: 768px) {
+            .main-content {
+                padding-bottom: 200px; /* Increase padding for smaller screens if needed */
+            }
+        }
+    </style>
 </head>
+<body>
+    <div class="container mx-auto p-6 font-gotham main-content">
+        <div class="mb-4">
+      <!-- Heading -->        
+    <div id="header" class="mb-4">
+    <div id="subheader">
+      <h1 class="text-2xl font-bold mb-4">Introducing "BakeBot" -- your ultimate kitchen companion!</h1>
+     
+        <p class="text-md mb-8">Our fun and intelligent
+        AI kitchen assistant is here to make cooking a breeze. Create new recipes,
+        customize existing ones, and even upload your own recipes or recipe cards!
+        You can ask questions with just one click. With "BakeBot,"
+        you’ll never wonder “what’s for dinner” again! 
+    </p>
+    </div>
+    <div id="sponsor" class="items-center float-right ml-8">
+        <h1 class="text-md font-bold mb-4">Sponsored By:</h1>
+        <h1 class="text-md font-bold mb-4 text-red-700">KitchenAid</h1>
+    </div>
+    </div>
+      <!-- End Heading -->
+
+      
+      <!-- Start from Scratch / Ask a Question -->
+      <div class="mb-4 items-start">
+        <h1 class="text-xl font-bold mb-4">Create a recipe:</h1>
+        <div class="flex flex-wrap gap-4 mt-4 items-center">
+        <textarea class="textarea textarea-bordered w-full text-left" placeholder="What kind of recipe do you want to create? Get as specific as you want.  Or, if you’re browsing a recipe, we can help you modify it,
+        swap out an ingredient, tell you the calorie count or inspire you with tell you more about the recipe. Get cooking help 24/7!"></textarea>
+        </div>
+      </div>
+      <!-- End Start from Scratch / Ask a Question -->
+  
+      <!-- Customization Options -->
+      <div class="mb-4">
+        <div class="flex flex-wrap gap-4 items-center">
+            <p class="text-md mr-4">Chef Style:</p>
+          <button class="btn">Home Cook</button>
+          <button class="btn">Explorer</button>
+          <button class="btn">Expert Chef</button>
+          <button class="btn">Fun Chef</button>
+        </div>
+        <div class="flex flex-wrap gap-4 mt-4 items-center">
+            <!-- Daisy UI Form with text on the left and button group on the right.
+            Only one button should be able to be pushed at once -->
+            <p class="text-md mr-4">Serving Size:</p>
+            <button class="btn">Me</button>
+          <button class="btn">For Two</button>
+          <button class="btn">Family-Size</button>
+          <button class="btn">Potluck-Size</button>
+        </div>
+        <div class="flex flex-wrap gap-4 mt-4 items-center">
+        <p class="text-md mr-4">Preferred Format:</p>
+          <button class="btn">Just the Recipe</button>
+          <button class="btn">Add Calories</button>
+          <button class="btn">Add Context/Some Fun</button>
+        </div>
+        <button class="btn bg-[#b05e5d] mt-4 mb-6 text-white">ASK BAKEBOT</button>
+    </div>
+      <!-- End Customization Options -->
+  
+      <h1 class="text-xl font-bold mb-4">Upload a Recipe / Scan a Photo</h1>
+
+    <!-- Upload a Recipe / Scan a Photo -->
+      <div class="mb-6">
+        <textarea class="textarea textarea-bordered w-full" placeholder="Paste recipe text here! Once your recipe loads, you’ll still be able to customize it, add context or ask My Sous Chef questions. 
+        OR click on the “Upload Recipe Photo” button below to upload a photo, PDF, Word Doc of your recipe card. 
+        "></textarea>
+        <div class="flex gap-4 mt-4 mb-12">
+          <button class="btn bg-[#b05e5d] text-white">UPLOAD RECIPE TEXT</button>
+          <button class="btn bg-[#76beaa] text-white">UPLOAD RECIPE PHOTO</button>
+        </div>
+      </div>
+      <!-- End Upload a Recipe / Scan a Photo -->
+  
+      <!-- Recent Chats -->
+      <div class="grid grid-cols-4 mt-4">
+        <h1 class="text-xl font-bold">Your Recent Chats:</h1>
+        <a class="link link-neutral">Holiday Cider</a>
+        <a class="link link-neutral">Vegan Tacos for Two</a>
+        <a class="link link-neutral">Gluten Free Pad Thai for a Family</a>
+    </div>
+      <!-- End Recent Chats -->
+    </div>
+    <div class="chat-container fixed bottom-4 right-4 flex flex-col items-end z-50">
+        <div tabindex="0" class="collapse border border-[#012b49] bg-base-200"> 
+          <div id="chatbox" class="collapse collapse-arrow bg-white rounded-box">
+            <input type="checkbox" /> 
+            <div class="collapse-title text-xl font-medium flex items-center text-[#b05e5d]">
+              <!-- Here's the icon to the left of th\
+                33e text -->
+              <img class="min-h-16 w-16 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" src="../../resources/bakebot_chat_icon.png"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.55 4.55m0 0l-4.55 4.55m4.55-4.55H3"></path></b>
+              Chat with BakeBot!
+            </div>
+            <div class="collapse-content">
+                <!-- Chat content goes here -->
+                <div class="p-4">
+                    <!-- Add your chat messages here -->
+                    <!--<div class="chat-image avatar">
+                        <div class="w-10 rounded-full">
+                          <img src="../../resources/bakebot_chat_icon.png" />
+                        </div>
+                      </div>-->
+                      <div class="chat-header">
+                        BakeBot
+                      </div>
+                      <div class="chat-bubble bg-transparent text-black">How can I help you today?</div>
+                    </div>
+                    <div class="chat chat-end">
+                      <!--<div class="chat-image avatar">
+                        <div class="w-10 rounded-full">
+                          <img src="/images/stock/photo-1534528741775-53994a69daeb.jpg" />
+                        </div>
+                      </div>-->
+                      <div class="chat-bubble bg-[#7CBCA6] text-white">I hate you!</div>
+                    </div>
+                    <div class="p-4">
+                        <textarea class="textarea textarea-bordered w-full" placeholder="Type your message..."></textarea>
+                        <div class="grid grid-cols-2 gap-4 items-center">
+                            <select class="select select-bordered w-full max-w-xs mt-2 bg-[#7CBCA6] text-white">
+                                <option selected>Classic Pro Chef</option>
+                                <option>Snarky Fun Chef</option>
+                                <option>Sweet Home Chef</option>
+                              </select>
+                        <button class="btn bg-[#b05e5d] mt-2 text-white">Send</button>
+                    </div>
+                    </div>
+                </div>
+                </div>
+        </div>
+    </div>
+    
+</div>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+  var checkbox = document.querySelector('#chatbox input[type="checkbox"]');
+  var mainContainer = document.querySelector('.container');
+
+  checkbox.addEventListener('change', function() {
+    if (checkbox.checked) {
+      // Add padding to the main container equal to the chatbox height plus some extra space
+      mainContainer.style.paddingBottom = '400px'; // Adjust 400px to the actual height of your chatbox
+    } else {
+      // Remove padding from the main container
+      mainContainer.style.paddingBottom = '0px';
+    }
+  });
+});
+
+</script>
+</body>
 </html>
+```

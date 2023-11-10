@@ -1,11 +1,12 @@
 """ Define the chat routes.  This is where the API endpoints are defined.
 The user will receive a session_id when they first connect to the API.
 This session_id will be passed in the headers of all subsequent requests. """
-from typing import List, Optional
+from typing import List, Optional, Union
 from fastapi import APIRouter, Depends, Query
 from app.services.chat_service import ChatService
 from app.middleware.session_middleware import RedisStore, get_redis_store
 from app.models.chat import InitialMessage
+from app.models.recipe import Recipe
 
 # Define a router object
 router = APIRouter()
@@ -161,7 +162,7 @@ async def initialize_cookbook_chat(recipes_list:
 @router.post("/adjust_recipe", response_description="Create a new recipe\
 that needs to be generated based on a previous recipe with adjustments.",
 tags=["Recipe Endpoints"])
-async def adjust_recipe(adjustments: str, recipe_text: str,
+async def adjust_recipe(adjustments: str, recipe_text: Union[str, dict, Recipe],
 chat_service: ChatService = Depends(get_chat_service), chef_type: str = "home_cook"):
     """
     Adjusts a recipe based on user input.

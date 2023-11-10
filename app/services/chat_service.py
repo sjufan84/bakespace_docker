@@ -4,14 +4,6 @@ from typing import Union
 import logging
 import requests
 import openai
-from langchain.chat_models import ChatOpenAI
-from langchain.output_parsers import PydanticOutputParser
-from langchain.prompts import (
-    PromptTemplate,
-    ChatPromptTemplate,
-    SystemMessagePromptTemplate,
-    HumanMessagePromptTemplate
-)
 from redis.exceptions import RedisError
 from app.middleware.session_middleware import RedisStore
 from app.dependencies import get_openai_api_key, get_openai_org
@@ -60,7 +52,8 @@ openai_chat_models = {
 }
 
 # Establish the core models that will be used by the chat service
-core_models = ["gpt-3.5-turbo-16k-0613", "gpt-3.5-turbo-16k", "gpt-3.5-turbo-0613", "gpt-3.5-turbo"]
+core_models = ["gpt-4-1106-preview","gpt-4-1106-preview", "gpt-3.5-turbo-1106",
+"gpt-3.5-turbo-16k", "gpt-3.5-turbo-0613", "gpt-3.5-turbo"]
 
 class ChatMessage:
     """ A class to represent a chat message. """
@@ -249,32 +242,52 @@ class ChatService:
         if chef_type:
             self.chef_type = chef_type
             self.save_chef_type()
-
         # Format the message and add it to the chat history
-        question = question + f"Please answer as a chef of type {self.chef_type} in the style of\
+        system_question = question + f"Please answer as a chef of type {self.chef_type} in the style of\
         {openai_chat_models[self.chef_type]['style']}.  This may be different than\
-        the initial chef type."
+        the initial chef type.  Do not break character."
+        # Convert the system question to a system message
+        system_question = ChatMessage(system_question, "system").format_message()
         user_message = ChatMessage(question, "user").format_message()
+        system_message = [
+            {"role" : "system", "content": f"If the user requests a recipe in any way,\
+            do your best to return the recipe with the same fields as a {Recipe} object within the message\
+            to be parsed from the response later"
+            },
+        ]
         # Append the user message to the chat history
+        messages = self.chat_history + [system_question] + system_message
         self.chat_history = self.chat_history + [user_message]
-        messages = self.chat_history + [user_message]
 
         # Get the appropriate model for the chef type
-        model = openai_chat_models[self.chef_type]["model_name"]
+        #model = openai_chat_models[self.chef_type]["model_name"]
         # List of models to use
-        models = [model, model, model] + core_models
+        #models = [model, model, model] + core_models
+        models = core_models
 
         # Iterate through the models until you get a successful response
         for model in models:
             try:
-                response = openai.ChatCompletion.create(
+                response = openai.chat.completions.create(
                     model=model,
                     messages=messages,
-                    temperature=1,
+                    temperature=0.75,
                     top_p=1,
-                    max_tokens=500,
+                    max_tokens=1250,
                 )
                 chef_response = response.choices[0].message.content
+                recipe = None
+                # Check for a recipe in the response
+                if "Recipe" in chef_response:
+                    recipe = parse_recipe(chef_response)
+                    # Save the recipe to Redis
+                    try:
+                        # Convert the recipe JSON to a dictionary
+                        recipe_dict = {str(key): str(value) for key, value in dict(recipe).items()}
+                        recipe_service = RecipeService(self.store)
+                        recipe_service.save_recipe(recipe_dict)
+                    except TypeError as e:
+                        logging.error("Error saving recipe to Redis: %s", e)
 
                 # Convert the chef_response to a message and append it to the chat history
                 chef_response = ChatMessage(chef_response, "system").format_message()
@@ -284,7 +297,7 @@ class ChatService:
 
                 # Return the session_id, the chat_history, and the chef_response as a json object
                 return {"session_id": self.session_id, "chat_history": self.chat_history,
-                 "chef_response": chef_response, "chef_type": self.chef_type}
+                 "chef_response": chef_response, "chef_type": self.chef_type, "recipe": recipe}
 
             except (requests.exceptions.RequestException, requests.exceptions.HTTPError) as err:
                 logging.error("Request failed for model %s due to: %s", model, err)
@@ -303,7 +316,7 @@ class ChatService:
         return {"session_id": self.session_id,
         "chat_history": self.chat_history, "chef_type": self.chef_type}
 
-    def adjust_recipe(self, adjustments:str, recipe: str,
+    def adjust_recipe(self, adjustments:str, recipe: Union[str, dict, Recipe],
                             chef_type:str="home_cook"):
         """ Chat a new recipe that needs to be generated based on\
         a previous recipe. """
@@ -336,15 +349,16 @@ class ChatService:
         chat_history = self.load_chat_history()
         chat_history = chat_history + [messages[1]]
 
-        models = [model, "gpt-3.5-turbo-16k-0613", "gpt-3.5-turbo-16k"]
+        #models = [model, "gpt-3.5-turbo-16k-0613", "gpt-3.5-turbo-16k"]
+        models = core_models
         for model in models:
             try:
                 response = openai.ChatCompletion.create(
                 model=model,
                 messages=messages,
-                temperature=1,
+                temperature=0.75,
                 top_p=1,
-                max_tokens=500
+                max_tokens=1000,
             )
                 try:
                     new_recipe = parse_recipe(response.choices[0].message.content)
@@ -388,73 +402,52 @@ class ChatService:
             if chef_type:
                 self.chef_type = chef_type
                 self.save_chef_type()
-            model_name = openai_chat_models[self.chef_type]["model_name"]
+            #model_name = openai_chat_models[self.chef_type]["model_name"]
             style = openai_chat_models[self.chef_type]["style"]
             # Create the output parser -- this takes
             # in the output from the model and parses it into
             # a Pydantic object that mirrors the schema
             logging.debug("Creating output parser.")
-            output_parser = PydanticOutputParser(pydantic_object=Recipe)
+            #output_parser = PydanticOutputParser(pydantic_object=Recipe)
 
             # Define the first system message.  This let's the model know what type of output\
             # we are expecting and in what format it needs to be in.
             logging.debug("Creating system message prompt.")
-            prompt = PromptTemplate(
-                template = "You are a master chef of type {chef_type} with style {style}\
-                            creating a based on a user's specifications {specifications} and the\
-                            serving size {serving_size}.\
-                            The recipe should be returned in this format{format_instructions}.\
-                            Only return the recipe object.",
-                input_variables = ["specifications"],
-                partial_variables = {"format_instructions": output_parser.get_format_instructions()}
-            )
-            system_message_prompt = SystemMessagePromptTemplate(prompt=prompt)
-
-            # Define the user message.
-            logging.debug("Creating user message prompt.")
-            human_template = """Create a delicious recipe based
-            on the specifications {specifications} provided.
-            Please ensure the returned prep time, cook time, and total time are integers in minutes.\
-            If any of the times are n/a\
-            as in a raw dish, return 0 for that time.  Round the times to the nearest 5 minutes
-            to provide a cushion and make for a more readable recipe.
-            Only return the recipe object."""
-            human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
-
+            messages = [
+                {"role": "system", "content": f"""You are a master chef of type {chef_type} with style {style}
+                            creating a based on a user's specifications {specifications} and the
+                            serving size {serving_size}.  Within your response, do your best to
+                            format the recipe with the same fields as a {Recipe} object. 
+                            Encourage the user to ask follow-up questions,
+                            if needed, and ensure that you are taking on the persona of the
+                            {chef_type}.""",
+                },
+                {"role": "user", "content": "Hi chef, I'd like to create a recipe based on the following specifications:"}
+            ]
             # Convert the human message prompt to a ChatMessage object
-            user_message = ChatMessage(role="user", content = human_message_prompt.format_prompt()).format_message()
+            user_message = ChatMessage(role="user", content = messages[1]["content"]).format_message()
             # Append the user message to the chat history
             self.chat_history = self.chat_history + [user_message]
-            # Create the chat prompt template
-            logging.debug("Creating chat prompt.")
-            chat_prompt = ChatPromptTemplate.from_messages([system_message_prompt,
-                                                            human_message_prompt])
-
-            # format the messages to feed to the model
-            messages = chat_prompt.format_prompt(specifications=specifications,
-            chef_type=chef_type, style=style, serving_size = serving_size).to_messages()
-
             # Create a list of models to loop through in case one fails
-            models = [model_name, model_name, model_name] + ["gpt-3.5-turbo-0613",
-                    "gpt-3.5-turbo-16k-0613", "gpt-3.5-turbo", "gpt-3.5-turbo-16k"]
+            models = core_models
 
             # Loop through the models and try to generate the recipe
             for model in models:
                 try:
                     logging.debug("Trying model: %s.", model)
-
-                    # Create the chat object
-                    chat = ChatOpenAI(model_name=model, temperature=1, max_retries=3, timeout=15)
-
-                    # Generate the recipe
-                    recipe = chat(messages).content
-
-                    # Parse the recipe
-                    try:
-                        parsed_recipe = output_parser.parse(recipe)
-                    except ValueError as e:
-                        logging.error("Error parsing recipe: %s", e)
-                        parsed_recipe = parse_recipe(recipe)
+                    response = openai.chat.completions.create(
+                        model=model,
+                        messages=messages,
+                        temperature=0.75,
+                        top_p=1,
+                        max_tokens=1000,
+                    )
+                    # Get the chef response
+                    chef_response = response.choices[0].message.content
+                    # Convert the chef response to a message and append it to the chat history
+                    chef_response = ChatMessage(chef_response, "ai").format_message()
+                    # Parse the recipe from the chef response
+                    parsed_recipe = parse_recipe(chef_response)
 
                     # Convert the recipe to a dictionary for saving to redis
                     #try:
@@ -467,13 +460,13 @@ class ChatService:
                     #    logging.error("Error saving recipe to Redis: %s", e)
                     #    redis_dict = None
                     #    continue
-                    chef_response = create_message_from_recipe(parsed_recipe, chef_type)
+                    #chef_response = create_message_from_recipe(parsed_recipe, chef_type)
                     # append the chef response to the chat history
                     self.chat_history = self.chat_history + [chef_response]
                     # Save the chat history to redis
                     self.save_chat_history()
 
-                    return {"Recipe": parsed_recipe, "chef_response":
+                    return {"Recipe" : parsed_recipe, "chef_response":
                     chef_response, "session_id": self.session_id}
 
                 except (requests.exceptions.RequestException,
