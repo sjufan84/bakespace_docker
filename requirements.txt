@@ -1,6 +1,6 @@
 fastapi
 langchain
-openai
+openai==1.2.3
 pydantic
 python-dotenv
 Requests
