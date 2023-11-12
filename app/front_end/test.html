@@ -3,6 +3,7 @@
 <head>
     <link href="https://cdn.jsdelivr.net/npm/daisyui@3.9.4/dist/full.css" rel="stylesheet" type="text/css" />
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/2.1.0/showdown.min.js"></script>
     <title>Test</title>
     <style>
         /* Add custom style to ensure the chat box does not cover the content */
@@ -20,6 +21,13 @@
                 padding-bottom: 200px; /* Increase padding for smaller screens if needed */
             }
         }
+        /* Custom green color for selected buttons */
+        .btn-custom-green {
+        background-color: #76beaa; /* Replace with your desired hex color code */
+        border-color: #76beaa; /* Replace with your desired hex color code */
+        color: white; /* This makes the text color white */
+        }
+
     </style>
 </head>
 <body>
@@ -49,39 +57,34 @@
       <div class="mb-4 items-start">
         <h1 class="text-xl font-bold mb-4">Create a recipe:</h1>
         <div class="flex flex-wrap gap-4 mt-4 items-center">
-        <textarea class="textarea textarea-bordered w-full text-left" placeholder="What kind of recipe do you want to create? Get as specific as you want.  Or, if you’re browsing a recipe, we can help you modify it,
+        <textarea class="textarea textarea-bordered w-full text-left" id="specifications" placeholder="What kind of recipe do you want to create? Get as specific as you want.  Or, if you’re browsing a recipe, we can help you modify it,
         swap out an ingredient, tell you the calorie count or inspire you with tell you more about the recipe. Get cooking help 24/7!"></textarea>
         </div>
       </div>
       <!-- End Start from Scratch / Ask a Question -->
   
       <!-- Customization Options -->
-      <div class="mb-4">
-        <div class="flex flex-wrap gap-4 items-center">
-            <p class="text-md mr-4">Chef Style:</p>
-          <button class="btn">Home Cook</button>
-          <button class="btn">Explorer</button>
-          <button class="btn">Expert Chef</button>
-          <button class="btn">Fun Chef</button>
-        </div>
-        <div class="flex flex-wrap gap-4 mt-4 items-center">
-            <!-- Daisy UI Form with text on the left and button group on the right.
-            Only one button should be able to be pushed at once -->
-            <p class="text-md mr-4">Serving Size:</p>
-            <button class="btn">Me</button>
-          <button class="btn">For Two</button>
-          <button class="btn">Family-Size</button>
-          <button class="btn">Potluck-Size</button>
-        </div>
-        <div class="flex flex-wrap gap-4 mt-4 items-center">
-        <p class="text-md mr-4">Preferred Format:</p>
-          <button class="btn">Just the Recipe</button>
-          <button class="btn">Add Calories</button>
-          <button class="btn">Add Context/Some Fun</button>
-        </div>
-        <button class="btn bg-[#b05e5d] mt-4 mb-6 text-white">ASK BAKEBOT</button>
+    <div id="customizationOptions" class="mb-4">
+    <!-- Chef Style buttons -- only one should be able to be selected -->
+    <div id="chefStyle" class="flex flex-wrap gap-4 items-center">
+      <p class="text-md mr-4">Chef Style:</p>
+      <button class="btn" data-value="Home Cook">Home Cook</button>
+      <button class="btn" data-value="Pro Chef">Pro Chef</button>
+      <button class="btn" data-value="Snarky Fun Chef">Snarky Fun Chef</button>
     </div>
-      <!-- End Customization Options -->
+    <div id="servingSize" class="flex flex-wrap gap-4 mt-4 items-center">
+      <!-- Serving Size buttons -- only one should be able to be selected -->
+      <p class="text-md mr-4">Serving Size:</p>
+      <button class="btn" data-value="Just Me">Just Me</button>
+      <button class="btn" data-value="For Two">For Two</button>
+      <button class="btn" data-value="Family-Size">Family-Size</button>
+      <button class="btn" data-value="Potluck-Size">Potluck-Size</button>
+    </div>
+    <!-- ASK BAKEBOT button -->
+    <button id="askBakeBot" class="btn bg-[#b05e5d] mt-4 mb-6 text-white">ASK BAKEBOT</button>
+  </div>
+  <!-- Modal for displaying recipe results -->
+  <!-- End Customization Options -->
   
       <h1 class="text-xl font-bold mb-4">Upload a Recipe / Scan a Photo</h1>
 
@@ -105,57 +108,199 @@
         <a class="link link-neutral">Gluten Free Pad Thai for a Family</a>
     </div>
       <!-- End Recent Chats -->
-    </div>
-    <div class="chat-container fixed bottom-4 right-4 flex flex-col items-end z-50">
+      <div class="chat-container fixed bottom-4 right-4 flex flex-col items-end z-50">
         <div tabindex="0" class="collapse border border-[#012b49] bg-base-200"> 
-          <div id="chatbox" class="collapse collapse-arrow bg-white rounded-box">
-            <input type="checkbox" /> 
-            <div class="collapse-title text-xl font-medium flex items-center text-[#b05e5d]">
-              <!-- Here's the icon to the left of th\
-                33e text -->
-              <img class="min-h-16 w-16 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" src="../../resources/bakebot_chat_icon.png"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.55 4.55m0 0l-4.55 4.55m4.55-4.55H3"></path></b>
-              Chat with BakeBot!
-            </div>
+            <div id="chatbox" class="collapse collapse-arrow bg-white rounded-box">
+              <input type="checkbox" /> 
+              <div class="collapse-title text-xl font-medium flex items-center text-black">
+                <!-- Here's the icon to the left of th\
+                  33e text -->
+                <img class="min-h-16 w-16 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                src="../../resources/green_chat_icon.png"><path stroke-linecap="round" stroke-linejoin="round"
+                stroke-width="2" d="M15 10l4.55 4.55m0 0l-4.55 4.55m4.55-4.55H3"></path></b>
+                Chat with BakeBot!
+              </div>
             <div class="collapse-content">
-                <!-- Chat content goes here -->
-                <div class="p-4">
-                    <!-- Add your chat messages here -->
-                    <!--<div class="chat-image avatar">
-                        <div class="w-10 rounded-full">
-                          <img src="../../resources/bakebot_chat_icon.png" />
+                <div id="chat-content" class="p-4 flex flex-col space-y-4">
+                    <!-- Chat content goes here -->
+                    <!-- BakeBot's response -->
+                    <div class="chat-message bakebot">
+                        <div class="chat chat-start">
+                            <!-- Add your chat messages here -->
+                            <div class="chat-image avatar">
+                                <div class="w-10 rounded-full">
+                                  <img src="../../resources/bakebot_icon.png" />
+                                </div>
+                              </div>
+                              <!--<div class="chat-header">
+                                BakeBot
+                              </div>-->
+                            <div class="chat-bubble bg-transparent text-black">How can I help you today?</div>
                         </div>
-                      </div>-->
-                      <div class="chat-header">
-                        BakeBot
-                      </div>
-                      <div class="chat-bubble bg-transparent text-black">How can I help you today?</div>
                     </div>
-                    <div class="chat chat-end">
-                      <!--<div class="chat-image avatar">
-                        <div class="w-10 rounded-full">
-                          <img src="/images/stock/photo-1534528741775-53994a69daeb.jpg" />
+                    <!-- User's message -->
+                    <div class="chat-message user">
+                        <div class="chat chat-end">
+                            <div class="chat-image avatar">
+                              <div class="w-10 rounded-full">
+                                <img src="../../resources/user_image.png" />
+                              </div>
+                            </div>
+                            <div class="chat chat-bubble bg-[#76beaa] text-white">I hate you!</div>
+                    </div>
+                    </div>
+                    <!-- Input area -->
+                    <div id="input-area">
+                        <textarea id="text-input" class="textarea textarea-bordered w-full" placeholder="Type your message..."></textarea>
+                        <button id="recordButton" class="btn btn-accent btn-xs sm:but-sm md:btn-md lg:btn-lg border-r-accent-content" onclick="startRecording()">
+                            <i class="fas fa-microphone"></i> Record
+                        </button>
+
+                        <button id="sendButton" class="btn bg-[#b05e5d] btn-xs sm:but-sm md:btn-md lg:btn-lg text-white">Send</button>
+                        <div id="recordingIndicator" class="hidden">
+                            <div class="flex items-center">
+                                <div class="animate-pulse h-2 w-2 bg-red-500 rounded-full mr-2"></div>
+                                Recording...
+                            </div>
                         </div>
-                      </div>-->
-                      <div class="chat-bubble bg-[#7CBCA6] text-white">I hate you!</div>
+                        <div id="processingIndicator" class="hidden">
+                            <div class="flex items-center">
+                                <div class="spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full mr-2"></div>
+                                BakeBot is processing...
+                            </div>
+                        </div>
                     </div>
-                    <div class="p-4">
-                        <textarea class="textarea textarea-bordered w-full" placeholder="Type your message..."></textarea>
-                        <div class="grid grid-cols-2 gap-4 items-center">
-                            <select class="select select-bordered w-full max-w-xs mt-2 bg-[#7CBCA6] text-white">
-                                <option selected>Classic Pro Chef</option>
-                                <option>Snarky Fun Chef</option>
-                                <option>Sweet Home Chef</option>
-                              </select>
-                        <button class="btn bg-[#b05e5d] mt-2 text-white">Send</button>
-                    </div>
+                    <!-- Voice style selector -->
+                    <div class="voice-style-selector">
+                        <select class="select select-bordered w-full max-w-xs">
+                            <option selected>Classic Pro Chef</option>
+                            <option>Snarky Fun Chef</option>
+                            <option>Sweet Home Chef</option>
+                        </select>
                     </div>
                 </div>
-                </div>
+            </div>
+          </div>
         </div>
     </div>
+
     
 </div>
 <script>
+    function startRecording() {
+    // Toggle the display of recording and processing indicators
+    var recordingIndicator = document.getElementById('recordingIndicator');
+    var processingIndicator = document.getElementById('processingIndicator');
+    var recordButton = document.getElementById('recordButton');
+    var sendButton = document.getElementById('sendButton');
+    var textInput = document.getElementById('text-input');
+
+    // If already recording, then stop and process
+    if (recordButton.innerText.includes("Stop")) {
+        // Stop recording logic
+        recordButton.innerHTML = '<i class="fas fa-microphone"></i> Record';
+        recordingIndicator.classList.add('hidden');
+        processingIndicator.classList.remove('hidden');
+        // Process the recording here
+    } else {
+        // Start recording logic
+        recordButton.innerHTML = '<i class="fas fa-stop"></i> Stop Recording';
+        recordingIndicator.classList.remove('hidden');
+        processingIndicator.classList.add('hidden');
+        // Record the audio here
+    }
+}
+
+function sendMessage() {
+    // Logic to send a text message
+    // Hide recording and show processing indicator
+    var recordingIndicator = document.getElementById('recordingIndicator');
+    var processingIndicator = document.getElementById('processingIndicator');
+    recordingIndicator.classList.add('hidden');
+    processingIndicator.classList.remove('hidden');
+
+    // Send message to the server and get response
+    // Update chat content with user message and BakeBot response
+}
+
+    
+   // This function updates the selected state for buttons in a group
+  function updateButtonGroup(group) {
+    const buttons = document.querySelectorAll(`#${group} .btn`);
+    buttons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        // Remove active state and reset color for all buttons in the group
+        buttons.forEach(b => {
+          b.classList.remove('btn-active', 'btn-custom-green');
+        });
+        // Add active state and green color to the clicked button
+        btn.classList.add('btn-active', 'btn-custom-green');
+      });
+    });
+  }
+
+  // Initialize button groups
+  updateButtonGroup('chefStyle');
+  updateButtonGroup('servingSize');
+
+  document.getElementById('askBakeBot').addEventListener('click', () => {
+    // If there is no value in the "specifications" textarea, show an alert and return
+  const chefStyle = document.querySelector('#chefStyle .btn-active')?.getAttribute('data-value');
+  const servingSize = document.querySelector('#servingSize .btn-active')?.getAttribute('data-value');
+  // Get the specifications from the "specifications" textarea
+    const specifications = document.querySelector('#specifications').value;
+
+  // Prepare the data for the POST request as a JSON object
+  const postData = {
+    specifications: specifications,
+    serving_size: servingSize || 'Family-Size', // Default value if nothing is selected
+    chef_type: chefStyle // Assuming chef_style is intended to be chef_type
+  };
+
+  // Convert the chef_type to the appropriate values.  If the selection is "Home Cook",
+  // "home_cook" should be passed, if the value is "Snarky Fun Chef", "adventurous_chef" should be passed,
+  // and if "Pro Chef" is selected, "pro_chef" should be passed.
+    if (chefStyle === 'Home Cook') {
+        postData.chef_type = 'home_cook';
+    } else if (chefStyle === 'Snarky Fun Chef') {
+        postData.chef_type = 'adventurous_chef';
+    } else if (chefStyle === 'Pro Chef') {
+        postData.chef_type = 'pro_chef';
+    }
+
+  // After fetching the recipe, replace the textarea with the recipe content:
+  fetch('http://localhost:8000/create_new_recipe', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(postData)
+  })
+  .then(response => response.json())
+  .then(data => {
+    // Assuming 'data' contains a 'recipe' field with HTML content
+    // Convert the HTML content to Markdown
+    const converter = new showdown.Converter();
+    const recipeMarkdown = converter.makeHtml(data.chef_response.content);
+    // Replace the textarea with the recipe content
+    replaceQuestionSectionWithRecipe(recipeMarkdown);
+  })
+  .catch((error) => {
+    console.error('Error:', error);
+    // Handle errors here, possibly revert back to the original state
+  });
+});
+
+function replaceQuestionSectionWithRecipe(recipeHtml) {
+  const questionSection = document.querySelector('#customizationOptions').previousElementSibling;
+  questionSection.innerHTML = `
+    <h1 class="text-xl font-bold mb-4">Generated Recipe:</h1>
+    <div class="flex flex-wrap gap-4 mt-4 items-center">
+      <div class="prose">${recipeHtml}</div> <!-- Assuming recipeHtml is safe to use as innerHTML -->
+    </div>
+  `;
+}
+
     document.addEventListener("DOMContentLoaded", function() {
   var checkbox = document.querySelector('#chatbox input[type="checkbox"]');
   var mainContainer = document.querySelector('.container');

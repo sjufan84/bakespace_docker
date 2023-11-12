@@ -3,6 +3,7 @@ The user will receive a session_id when they first connect to the API.
 This session_id will be passed in the headers of all subsequent requests. """
 from typing import List, Optional, Union
 from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel
 from app.services.chat_service import ChatService
 from app.middleware.session_middleware import RedisStore, get_redis_store
 from app.models.chat import InitialMessage
@@ -10,6 +11,11 @@ from app.models.recipe import Recipe
 
 # Define a router object
 router = APIRouter()
+
+class RecipeSpec(BaseModel):
+    specifications: str
+    serving_size: Optional[str] = "Family-Size"
+    chef_type: Optional[str] = None
 
 # Set the allowed chef types
 allowed_chef_types = ["home_cook", "pro_chef", "adventurous_chef", None]
@@ -181,26 +187,18 @@ chat_service: ChatService = Depends(get_chat_service), chef_type: str = "home_co
     return chat_service.adjust_recipe(adjustments=adjustments,
     recipe=recipe_text, chef_type=chef_type)
 
-@router.post("/create_new_recipe", response_description=
-"Generate a recipe based on the specifications provided.", tags=["Recipe Endpoints"])
-async def create_new_recipe(specifications: str, serving_size: str = "Family-Size", chat_service:
-    ChatService = Depends(get_chat_service), chef_type: Optional[str] = None):
+@router.post("/create_new_recipe", response_description="Generate a recipe\
+based on the specifications provided.", tags=["Recipe Endpoints"])
+async def create_new_recipe(recipe_spec: RecipeSpec, chat_service: ChatService = Depends(get_chat_service)):
     """
     Generates a new recipe based on the specifications provided.
-
-    Args:
-        specifications (str): The specifications for the new recipe.
-        chat_service (ChatService, optional): The service handling the chat.
-        Defaults to the result of get_chat_service().
-        chef_type (str, optional): The type of chef involved in the chat. Defaults to None.
-        serving_size (str, optional): The serving size of the recipe. Defaults to "Family-Size"\
-        Should be one of ["Family-Size", "Just Me", "For Two", "Potluck-Size"].
-
-    Returns:
-        dict: A dictionary containing the chef's response, the session ID, and the formatted recipe.
+    Returns a json object that includes the parsed recipe, the chef response,
+    and the session id.
+    {"Recipe" : parsed_recipe, "chef_response":
+    chef_response, "session_id": self.session_id}
     """
-    return chat_service.create_new_recipe(specifications=specifications,
-    chef_type=chef_type, serving_size=serving_size)
+    return chat_service.create_new_recipe(specifications=recipe_spec.specifications,
+    chef_type=recipe_spec.chef_type, serving_size=recipe_spec.serving_size)
 
 @router.get("/view_chat_history", response_description=
 "View the chat history.", tags=["Chat Endpoints"])

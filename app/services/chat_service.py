@@ -437,7 +437,7 @@ class ChatService:
             for model in models:
                 try:
                     logging.debug("Trying model: %s.", model)
-                    response = openai.ChatCompletioncompletions.create(
+                    response = openai.chat.completions.create(
                         model=model,
                         messages=messages,
                         temperature=0.75,
@@ -472,7 +472,7 @@ class ChatService:
                     chef_response, "session_id": self.session_id}
 
                 except (requests.exceptions.RequestException,
-                    requests.exceptions.ConnectTimeout, openai.error.APIError) as e:
+                    requests.exceptions.ConnectTimeout) as e:
                     logging.error("Error with model: %s. Error: %s", model, e)
                     continue
         except ConnectionError as e:
