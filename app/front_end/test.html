@@ -110,107 +110,53 @@
       <!-- End Recent Chats -->
       <div class="chat-container fixed bottom-4 right-4 flex flex-col items-end z-50">
         <div tabindex="0" class="collapse border border-[#012b49] bg-base-200"> 
-            <div id="chatbox" class="collapse collapse-arrow bg-white rounded-box">
-              <input type="checkbox" /> 
-              <div class="collapse-title text-xl font-medium flex items-center text-black">
-                <!-- Here's the icon to the left of th\
-                  33e text -->
-                <img class="min-h-16 w-16 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                src="../../resources/green_chat_icon.png"><path stroke-linecap="round" stroke-linejoin="round"
-                stroke-width="2" d="M15 10l4.55 4.55m0 0l-4.55 4.55m4.55-4.55H3"></path></b>
-                Chat with BakeBot!
-              </div>
+          <div id="chatbox" class="collapse collapse-arrow bg-white rounded-box">
+            <input type="checkbox" /> 
+            <div class="collapse-title text-xl font-medium flex items-center text-[#b05e5d]">
+              <!-- Here's the icon to the left of th\
+                33e text -->
+              <img class="min-h-16 w-16 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" src="../../resources/green_chat_icon.png"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.55 4.55m0 0l-4.55 4.55m4.55-4.55H3"></path></b>
+              Chat with BakeBot!
+            </div>
             <div class="collapse-content">
-                <div id="chat-content" class="p-4 flex flex-col space-y-4">
-                    <!-- Chat content goes here -->
-                    <!-- BakeBot's response -->
-                    <div class="chat-message bakebot">
-                        <div class="chat chat-start">
-                            <!-- Add your chat messages here -->
-                            <div class="chat-image avatar">
-                                <div class="w-10 rounded-full">
-                                  <img src="../../resources/bakebot_icon.png" />
-                                </div>
-                              </div>
-                              <!--<div class="chat-header">
-                                BakeBot
-                              </div>-->
-                            <div class="chat-bubble bg-transparent text-black">How can I help you today?</div>
+                <!-- Chat content goes here -->
+                 <div class="p-4">
+                    <!-- Add your chat messages here -->
+                    <div class="chat-image avatar">
+                        <div class="w-10 rounded-full">
+                          <img src="../../resources/bakebot_icon.png" />
                         </div>
+                      </div>
+                      <div class="chat-bubble bg-transparent text-black">How can I help you today?</div>
                     </div>
-                    <!-- User's message -->
-                    <div class="chat-message user">
-                        <div class="chat chat-end">
-                            <div class="chat-image avatar">
-                              <div class="w-10 rounded-full">
-                                <img src="../../resources/user_image.png" />
-                              </div>
-                            </div>
-                            <div class="chat chat-bubble bg-[#76beaa] text-white">I hate you!</div>
-                    </div>
-                    </div>
-                    <!-- Input area -->
-                    <div id="input-area">
-                        <textarea id="text-input" class="textarea textarea-bordered w-full" placeholder="Type your message..."></textarea>
-                        <button id="recordButton" class="btn btn-accent btn-xs sm:but-sm md:btn-md lg:btn-lg border-r-accent-content" onclick="startRecording()">
-                            <i class="fas fa-microphone"></i> Record
-                        </button>
-
-                        <button id="sendButton" class="btn bg-[#b05e5d] btn-xs sm:but-sm md:btn-md lg:btn-lg text-white">Send</button>
-                        <div id="recordingIndicator" class="hidden">
-                            <div class="flex items-center">
-                                <div class="animate-pulse h-2 w-2 bg-red-500 rounded-full mr-2"></div>
-                                Recording...
-                            </div>
+                    <div class="chat chat-end">
+                      <div class="chat-image avatar">
+                        <div class="w-10 rounded-full">
+                          <img src="../../resources/user_image.png" />
                         </div>
-                        <div id="processingIndicator" class="hidden">
-                            <div class="flex items-center">
-                                <div class="spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full mr-2"></div>
-                                BakeBot is processing...
-                            </div>
-                        </div>
+                      </div>
+                      <div class="chat-bubble bg-[#7CBCA6] text-white">I hate you!</div>
                     </div>
-                    <!-- Voice style selector -->
-                    <div class="voice-style-selector">
-                        <select class="select select-bordered w-full max-w-xs">
-                            <option selected>Classic Pro Chef</option>
-                            <option>Snarky Fun Chef</option>
-                            <option>Sweet Home Chef</option>
-                        </select>
+                    <div class="p-4">
+                        <textarea class="textarea textarea-bordered w-full" placeholder="Type your message..."></textarea>
+                        <div class="grid grid-cols-2 gap-4 items-center">
+                            <select class="select select-bordered w-full max-w-xs mt-2 bg-[#7CBCA6] text-white">
+                                <option selected>Classic Pro Chef</option>
+                                <option>Snarky Fun Chef</option>
+                                <option>Sweet Home Chef</option>
+                              </select>
+                        <button class="btn bg-[#b05e5d] mt-2 text-white">Send</button>
+                    </div>
                     </div>
                 </div>
-            </div>
-          </div>
+                </div>
         </div>
     </div>
-
     
 </div>
+</div>
 <script>
-    function startRecording() {
-    // Toggle the display of recording and processing indicators
-    var recordingIndicator = document.getElementById('recordingIndicator');
-    var processingIndicator = document.getElementById('processingIndicator');
-    var recordButton = document.getElementById('recordButton');
-    var sendButton = document.getElementById('sendButton');
-    var textInput = document.getElementById('text-input');
-
-    // If already recording, then stop and process
-    if (recordButton.innerText.includes("Stop")) {
-        // Stop recording logic
-        recordButton.innerHTML = '<i class="fas fa-microphone"></i> Record';
-        recordingIndicator.classList.add('hidden');
-        processingIndicator.classList.remove('hidden');
-        // Process the recording here
-    } else {
-        // Start recording logic
-        recordButton.innerHTML = '<i class="fas fa-stop"></i> Stop Recording';
-        recordingIndicator.classList.remove('hidden');
-        processingIndicator.classList.add('hidden');
-        // Record the audio here
-    }
-}
-
+   
 function sendMessage() {
     // Logic to send a text message
     // Hide recording and show processing indicator
