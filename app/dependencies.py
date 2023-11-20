@@ -3,6 +3,8 @@ import os
 import toml
 from google.oauth2 import service_account
 from dotenv import load_dotenv
+from openai import OpenAI
+
 load_dotenv()
 
 def get_openai_api_key():
@@ -21,3 +23,7 @@ def get_google_vision_credentials():
 def get_stability_api_key():
     """ Get the stability API key from the environment. """
     return os.getenv("STABLE_DIFFUSION_API_KEY")
+
+def get_openai_client():
+    """ Get the OpenAI client. """
+    return OpenAI(api_key=get_openai_api_key(), organization=get_openai_org(), max_retries=3, timeout=10)

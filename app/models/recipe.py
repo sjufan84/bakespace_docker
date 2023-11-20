@@ -1,5 +1,5 @@
 """ Define the Recipe model.  The schema mirrors the Bakespace data model."""
-from typing import List, Optional
+from typing import List, Optional, Union
 from pydantic import BaseModel, Field
 
 # The core model for the recipe.  This will also be
@@ -12,7 +12,7 @@ class Recipe(BaseModel):
     preptime: int = Field(description = "The time it takes to prepare the recipe.")
     cooktime: int = Field(description = "The time it takes to cook the recipe.")
     totaltime: int = Field(description = "The total time it takes to prepare and cook the recipe.")
-    servings: int = Field(description = "The number of servings the recipe makes.")
+    servings: int = Field(description = "The number of servings or serving size of the recipe.")
     directions: List[str] = Field(description = "The directions for preparing the recipe.")
     ingredients: List[str] = Field(description = "The ingredients for the recipe.")
     calories: Optional[int] = Field(description = "The number of calories in the recipe.")
@@ -25,7 +25,7 @@ class Recipe(BaseModel):
 
     class Config:
         """ Configure the Recipe model.  Returns a Recipe object as a dictionary. """
-        schema_extra = {
+        json_schema_extra = {
             "examples": [
                 {
                     "name": "Chocolate Chip Cookies",
@@ -76,7 +76,7 @@ class FormattedRecipe(BaseModel):
 
     class Config:
         """ Configure the Recipe model.  Returns a Recipe object as a dictionary. """
-        schema_extra = {
+        json_schema_extra = {
             "examples": [
                 {
                     "name": "Chocolate Chip Cookies",

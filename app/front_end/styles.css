@@ -1,0 +1,38 @@
+/* You can add custom styles here if needed to match the exact colors/fonts etc. */
+ .btn-custom-green {
+    background-color: #7CBCA6 !important; /* Custom green color */
+    border-color: #7CBCA6 !important;
+    color: white !important;
+}
+.btn-custom-red {
+    background-color: #b05e5d; /* Custom red color */
+    border-color: #b05e5d;
+    color: white;
+}
+
+.btn-secondary {
+    background-color: #b05e5d !important; /* Custom red color */
+    border-color: #b05e5d !important;
+    color: white !important;
+}
+
+/* Custom red color for active buttons */
+.btn-secondary .btn.active {
+    background-color: #b05e5d;
+    color: white;
+    border-color: #b05e5d;
+}
+
+/* Ensure the background color stays the same when the button is focused or hovered */
+.btn-toggle-group .btn:focus, .btn-toggle-group .btn:hover {
+    background-color: #b05e5d;
+    color: white;
+    border-color: #b05e5d;
+}
+
+/* Ensures the content has the same max-width as the original Tailwind design */
+.container {
+    max-width: 640px;
+}
+
+

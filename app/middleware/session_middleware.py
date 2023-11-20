@@ -1,5 +1,5 @@
 """ This module contains the SessionMiddleware class and RedisStore class """
-import uuid
+#import uuid
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from fastapi import FastAPI, Request, Response
 import redis
@@ -9,14 +9,10 @@ class SessionMiddleware(BaseHTTPMiddleware):
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
-        session_id = None  # Initialize session_id to None
+        session_id = None
 
-        #if request.url.path not in ["/openapi.json", "/docs", "/redoc"]:
-        #    session_id = request.query_params.get("session_id")
-
-        if session_id is None:
-            #return Response("No session_id provided", status_code=400)
-            session_id = str(uuid.uuid4())
+        if request.url.path not in ["/openapi.json", "/docs", "/redoc"]:
+           session_id = request.query_params.get("session_id")
 
         response = await call_next(request)
 
