@@ -8,9 +8,15 @@ from typing import List
 import os
 from dotenv import load_dotenv
 from fastapi import HTTPException
+<<<<<<< HEAD
 #from google.cloud import vision
 #from spellchecker import SpellChecker
 #import pdfplumber
+=======
+import google.cloud.vision as vision # pylint: disable=no-member
+from spellchecker import SpellChecker
+import pdfplumber
+>>>>>>> 8527395785d28333fd5240a8229180810d928d69
 import openai
 import requests
 from langchain.output_parsers import PydanticOutputParser
@@ -31,11 +37,11 @@ openai.api_key = os.getenv("OPENAI_KEY2")
 openai.organization = os.getenv("OPENAI_ORG2")
 
 class ExtractionService:
+    """ A class to represent the extraction service. """
     def __init__(self, store: RedisStore = None):
         self.store = store
         self.session_id = self.store.session_id
-    
-        
+
     def spellcheck_text(self, text: str) -> str:
         """ Spellcheck the text. """
         # Load the custom domain-specific list
@@ -43,7 +49,7 @@ class ExtractionService:
         if not os.path.isfile(file_path):
             raise HTTPException(status_code=404, detail=f"File {file_path} not found.")
 
-        with open(file_path, "r") as file:
+        with open(file_path, "r", encoding="utf-8") as file:
             cooking_terms = [line.strip() for line in file]
 
         # Initialize the spell-checker
@@ -69,28 +75,44 @@ class ExtractionService:
         corrected_text = ' '.join(corrected_tokens)
 
         return corrected_text
+<<<<<<< HEAD
     
     def format_recipe_text(self, recipe_text: str) -> Recipe:
+=======
+
+    def format_recipe_text(self, recipe_text: str) -> FormattedRecipe:
+>>>>>>> 8527395785d28333fd5240a8229180810d928d69
         """ Format the recipe text into a recipe object. """
         # Set your API key
         openai.api_key = get_openai_api_key()
         openai.organization = get_openai_org()
 
+<<<<<<< HEAD
         # Create the output parser -- this takes in the output from the model and parses it into a Pydantic object that mirrors the schema
         output_parser = PydanticOutputParser(pydantic_object=Recipe)
+=======
+        # Create the output parser -- this takes
+        # in the output from the model and parses it into a Pydantic object that mirrors the schema
+        output_parser = PydanticOutputParser(pydantic_object=FormattedRecipe)
+>>>>>>> 8527395785d28333fd5240a8229180810d928d69
 
-        
+
         # Create the prompt template from langchain to query the model and parse the output
-        # We will format system, user, and AI messages separately and then pass the formatted messages to the model to
+        # We will format system, user, and AI messages separately
+        # and then pass the formatted messages to the model to
         # generate the recipe in a specific format using the output parser
 
         # Define the first system message.  This let's the model know what type of output\
         # we are expecting and in what format it needs to be in.
         prompt = PromptTemplate(
-            template = "You are a master chef helping a user reformat a recipe from recipe text {recipe_text} that\
-                    has been extracted from an uploaded recipe that may contain errors and / or be in a different format.\
-                    The formatted recipe should be returned in as close to the following format as possible: {format_instructions}.  If any of\
-                    the fields are not specificied in the recipe text {recipe_text}, do your best to estimate the values.",
+            template = "You are a master chef helping a user\
+            reformat a recipe from recipe text {recipe_text} that\
+            has been extracted from an uploaded recipe that may\
+            contain errors and / or be in a different format.\
+            The formatted recipe should be returned in as close to\
+            the following format as possible: {format_instructions}.  If any of\
+            the fields are not specificied in the recipe text {recipe_text},\
+            do your best to estimate the values.",
             input_variables = ["recipe_text"],
             partial_variables = {"format_instructions": output_parser.get_format_instructions()}
         )
@@ -98,19 +120,26 @@ class ExtractionService:
             # Generate the system message prompt
         system_message_prompt = SystemMessagePromptTemplate(prompt=prompt)
 
-        # Define the user message.  This is the message that will be passed to the model to generate the recipe.
-        human_template = "Help me format the recipe text {recipe_text} I have uploaded.  Please ensure the returned prep time, cook time, and total time are integers in minutes.  If any of the times are n/a\
-                    as in a raw dish, return 0 for that time.  Round the times to the nearest 5 minutes to provide a cushion and make for a more readable recipe.  Estimate the number of calories per serving if not provided."
-        human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)    
-        
+        # Define the user message.  This is the message
+        # that will be passed to the model to generate the recipe.
+        human_template = "Help me format the recipe text {recipe_text}\
+        I have uploaded.  Please ensure the returned prep time, cook time,\
+        and total time are integers in minutes.  If any of the times are n/a\
+        as in a raw dish, return 0 for that time.  Round the times to the nearest\
+        5 minutes to provide a cushion and make for a more readable recipe.\
+        Estimate the number of calories per serving if not provided."
+        human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
+
         # Create the chat prompt template
-        chat_prompt = ChatPromptTemplate.from_messages([system_message_prompt, human_message_prompt])
+        chat_prompt = ChatPromptTemplate.from_messages(
+        [system_message_prompt, human_message_prompt])
 
         # format the messages to feed to the model
         messages = chat_prompt.format_prompt(recipe_text=recipe_text).to_messages()
 
         # Create a list of models to loop through in case one fails
-        models = ["gpt-3.5-turbo-0613", "gpt-3.5-turbo", "gpt-3.5-turbo-16k", "gpt-3.5-turbo-16k-0613"]
+        models = ["gpt-3.5-turbo-0613", "gpt-3.5-turbo",
+                "gpt-3.5-turbo-16k", "gpt-3.5-turbo-16k-0613"]
 
         # Loop through the models and try to generate the recipe
         for model in models:
@@ -123,10 +152,9 @@ class ExtractionService:
 
             except (requests.exceptions.RequestException, openai.error.APIError):
                 continue
-        
+
         return parsed_recipe
 
-        
     def extract_text_file_contents(self, files) -> str:
         """ Extract the text from the text file."""
         total_file_contents = ''
@@ -137,6 +165,7 @@ class ExtractionService:
         return file_contents
 
     def extract_pdf_file_contents(self, files) -> str:
+        """ Extract the text from the pdf file. """
         file_contents = ''
         for file in files:
             pdf = pdfplumber.open(file)
@@ -146,6 +175,7 @@ class ExtractionService:
         return file_contents
 
     def extract_image_text(self, files: List[bytes]) -> str:
+        """ Extract the text from the image file. """
         credentials = get_google_vision_credentials() # pylint: disable=no-member
         client = vision.ImageAnnotatorClient(credentials=credentials) # pylint: disable=no-member
         total_response_text = ''

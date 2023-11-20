@@ -1,4 +1,8 @@
 """ This module contains the SessionMiddleware class and RedisStore class """
+<<<<<<< HEAD
+=======
+#import uuid
+>>>>>>> 8527395785d28333fd5240a8229180810d928d69
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from fastapi import FastAPI, Request, Response
 import redis
@@ -8,6 +12,7 @@ class SessionMiddleware(BaseHTTPMiddleware):
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
+<<<<<<< HEAD
         session_id = None  # Initialize session_id to None
 
         if request.url.path not in ["/openapi.json", "/docs", "/redoc"]:
@@ -16,6 +21,13 @@ class SessionMiddleware(BaseHTTPMiddleware):
             if session_id is None:
                 return Response("No session_id provided", status_code=400)
 
+=======
+        session_id = None
+
+        if request.url.path not in ["/openapi.json", "/docs", "/redoc"]:
+           session_id = request.query_params.get("session_id")
+
+>>>>>>> 8527395785d28333fd5240a8229180810d928d69
         response = await call_next(request)
 
         if session_id:  # Only set the session_id header if it's not None
@@ -28,7 +40,10 @@ class RedisStore:
     def __init__(self, session_id: str):
         self.redis = redis.Redis(decode_responses=True)
         self.session_id = session_id
+<<<<<<< HEAD
         self.chef_type = "Home Cook"
+=======
+>>>>>>> 8527395785d28333fd5240a8229180810d928d69
 
 def get_redis_store(request: Request) -> RedisStore:
     """ get_redis_store is a function that returns a RedisStore object """

@@ -1,5 +1,6 @@
 """ This module contains the recipe service class. """
 import logging
+<<<<<<< HEAD
 import os
 from dotenv import load_dotenv
 import openai
@@ -11,6 +12,10 @@ from app.utils.chat_utils import format_claude_prompt
 from app.utils.recipe_utils import parse_recipe
 
 load_dotenv() # Load the .env file
+=======
+from redis import RedisError
+from app.middleware.session_middleware import RedisStore
+>>>>>>> 8527395785d28333fd5240a8229180810d928d69
 
 logging.basicConfig(level=logging.DEBUG)
 # Create a dictionary to house the chef data to populate the chef model
@@ -43,6 +48,30 @@ anthropic = Anthropic(
     api_key=os.getenv("ANTHROPIC_API_KEY"),
 )
 
+# Create a dictionary to house the chef data to populate the chef model
+openai_chat_models = {
+  "adventurous_chef": {
+    "model_name": "ft:gpt-3.5-turbo-0613:david-thomas:ab-sous-chef:86VMDut4",
+    "style": "adventurous chef in the style of Anthony Bourdain"
+  },
+    "home_cook": {
+        "model_name": "ft:gpt-3.5-turbo-0613:david-thomas:rr-sous-chef:86U8O9Fp",
+        "style": "home cook in the style of Rachel Ray"
+    },
+    "pro_chef": {
+        "model_name" : "ft:gpt-3.5-turbo-0613:david-thomas:gr-sous-chef:86TgiHTW",
+        "style": "professional chef in the style of Gordon Ramsey"
+    },
+    "general": {
+        "model_name": "gpt-turbo-0613",
+        "style": "master sous chef in the style of the best chefs in the world"
+    }
+}
+
+# Establish the core models that will be used by the chat service
+core_models = ["gpt-3.5-turbo-16k-0613", "gpt-3.5-turbo-16k", "gpt-3.5-turbo-0613", "gpt-3.5-turbo"]
+
+# Create a class for the recipe service
 class RecipeService:
     """ A class to represent the recipe service. """
     def __init__(self, store: RedisStore = None, chef_choice: str = None):
@@ -51,6 +80,7 @@ class RecipeService:
         self.recipe = self.load_recipe()
         if not self.recipe:
             self.recipe = None
+<<<<<<< HEAD
         self.chef_choice = chef_choice
         if not self.chef_choice:
             self.chef_choice = "general"
@@ -58,18 +88,31 @@ class RecipeService:
     # Create a function to be able to load a recipe from the store by the recipe_name
     def load_recipe(self):
         """ Load the session recipe from the store"""
+=======
+        self.chef_type = self.store.redis.get(f'{self.session_id}:chef_type')
+
+    # Create a function to be able to load a recipe from the store by the recipe_name
+    def load_recipe(self):
+        """ Load a recipe from the store by the recipe_name """
+>>>>>>> 8527395785d28333fd5240a8229180810d928d69
         try:
             # Load the recipe hash from redis with all of the keys
             recipe_json = self.store.redis.hgetall(f'{self.session_id}_recipe')
             if recipe_json:
                 return recipe_json
+<<<<<<< HEAD
             return None
+=======
+            else:
+                return None
+>>>>>>> 8527395785d28333fd5240a8229180810d928d69
         except RedisError as e:
             print(f"Failed to load recipe from Redis: {e}")
             return None
 
     # Create a function to save a recipe to the store by the recipe_name
     def save_recipe(self, recipe):
+<<<<<<< HEAD
         """ Save a recipe to the store by session_id """
         try:
             # Save the recipe to redis as a dictionary
@@ -78,6 +121,17 @@ class RecipeService:
             # Save the recipe as a string
             self.store.redis.set(f'{self.session_id}_recipe', recipe)
             print(f"Failed to save recipe dict to Redis: {e}.  Saving as string.")
+=======
+        """ Save a recipe to the store by the recipe_name """
+        try:
+            if isinstance(recipe, dict):
+                # Save the recipe to redis
+                self.store.redis.hmset(f'{self.session_id}_recipe', mapping = recipe)
+            else:
+                return {"message": "Recipe must be a dictionary."}
+        except RedisError as e:
+            print(f"Failed to save recipe to Redis: {e}")
+>>>>>>> 8527395785d28333fd5240a8229180810d928d69
         return recipe
 
     # Create a function to delete a recipe from the store by the recipe_name
@@ -89,6 +143,7 @@ class RecipeService:
         except RedisError as e:
             print(f"Failed to delete recipe from Redis: {e}")
         return {"message": "Recipe deleted."}
+<<<<<<< HEAD
 
     def generate_recipe(self, specifications: str, chef_type: str = "general"):
         """ Generate a recipe based on the user's specifications. """
@@ -155,3 +210,5 @@ class RecipeService:
             except APIConnectionError as error:
                 print(f"A connection error {error} occurred")
                 continue
+=======
+>>>>>>> 8527395785d28333fd5240a8229180810d928d69
