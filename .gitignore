@@ -152,3 +152,6 @@ toml/
 TOML/
 toml.bak/
 TOML.bak/
+
+# Node modules
+app/front_end/node_modules/
