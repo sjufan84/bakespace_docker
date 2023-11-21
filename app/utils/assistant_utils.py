@@ -1,5 +1,6 @@
 """ Utilities to support the run endpoints """
 import os
+import logging
 import sys
 import time
 import json
@@ -15,7 +16,6 @@ adjust_recipe, format_recipe, initial_pass # noqa E402
 from services.pairing_service import generate_pairings # noqa E402
 from services.image_service import generate_image # noqa E402
 from app.services.run_service import RunService # noqa E402
-from app.middleware.session_middleware import RedisStore, get_redis_store # noqa E402
 from app.dependencies import get_openai_client # noqa E402
 
 # Load environment variables
@@ -51,9 +51,8 @@ def get_session_id(session_id: str = Query(...)):
     """ Dependency function to get the session id from the header """
     return session_id
 
-def get_run_service(store: RedisStore = Depends(get_redis_store)):
-    """ Define a function to get the chat service.  Takes in session_id and store."""
-    return RunService(store=store)
+def get_run_service(session_id:str = Depends(get_session_id)):
+   return RunService(session_id)  
 
 def call_named_function(function_name: str, **kwargs):
     try:
@@ -84,10 +83,12 @@ def create_run(thread_id: str, assistant_id: str):
 '''
 
 def poll_run_status(run_id: str, thread_id: str):
+    logging.debug(f"Polling run status for run_id: {run_id}, thread_id: {thread_id}")
     run_status = client.beta.threads.runs.retrieve(thread_id=thread_id, run_id=run_id)
     tool_return_values = []
 
     while run_status.status not in ["completed", "failed", "expired", "cancelling", "cancelled"]:
+        logging.debug(f"Current run status: {run_status.status}")
         if run_status.status == "requires_action":
             # Handle the action required by the assistant
             tool_outputs = []
@@ -99,6 +100,8 @@ def poll_run_status(run_id: str, thread_id: str):
                 function_name = tool_call.function.name
                 tool_call_id = tool_call.id
                 parameters = json.loads(tool_call.function.arguments)
+
+                logging.debug(f"Calling function: {function_name} with parameters: {parameters}")
 
                 # Call the function
                 function_output = call_named_function(function_name=function_name, **parameters)
@@ -123,6 +126,8 @@ def poll_run_status(run_id: str, thread_id: str):
 
     # Gather the final messages after completion
     final_messages = client.beta.threads.messages.list(thread_id=thread_id, limit=1)
+
+    logging.debug(f"Final messages: {final_messages.data[0].content[0].text.value}")
 
     return {
         "thread_id": thread_id, 

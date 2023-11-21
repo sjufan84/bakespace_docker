@@ -4,8 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 # Import routers
 from app.routes.chat_routes import router as chat_routes
-from app.routes.recipe_routes import router as recipe_routes
-from app.routes.pairings_routes import router as pairings
+from app.routes.pairings_routes import router as pairings_routes
 from app.routes.image_routes import router as image_routes
 from app.routes.extraction_routes import router as extraction_routes
 
@@ -106,9 +105,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.add_middleware(SessionMiddleware)
 
 # Include routers
-routers = [chat_routes, recipe_routes, pairings, image_routes, extraction_routes]
+routers = [chat_routes, pairings_routes, image_routes, extraction_routes]
 for router in routers:
     app.include_router(router)

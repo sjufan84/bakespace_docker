@@ -34,11 +34,14 @@ core_models = ["gpt-3.5-turbo-1106", "gpt-3.5-turbo-1106",
 # Create Recipe Functions
 def create_recipe(specifications: str, serving_size: str):
     """ Generate a recipe based on the specifications provided """
+    if serving_size in serving_size_dict.keys():
+        serving_size = serving_size_dict[serving_size]
+
     messages = [
         {
             "role": "system", "content": f"""You are a master chef helping a user
                 create a recipe based on their specifications {specifications} and the
-                serving size {serving_size_dict[serving_size]}.  Even if the specifications are just a dish name or type,
+                serving size {serving_size}.  Even if the specifications are just a dish name or type,
                 go ahead and create a recipe.  Make sure the recipe name is fun and unique. 
                 Return the recipe as a JSON object with the same
                 schema as the Recipe {recipe_dict} model.  Return only the recipe object.""",

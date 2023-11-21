@@ -15,7 +15,8 @@ class Recipe(BaseModel):
     servings: int = Field(description = "The number of servings or serving size of the recipe.")
     directions: List[str] = Field(description = "The directions for preparing the recipe.")
     ingredients: List[str] = Field(description = "The ingredients for the recipe.")
-    calories: Optional[int] = Field(description = "The number of calories in the recipe.")
+    calories: int = Field(description = "The estimated calories for one serving of the recipe.  Does not\
+    have to be exact.")
 
     @property
     def recipe_text(self):

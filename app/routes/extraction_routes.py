@@ -2,21 +2,17 @@
 import base64
 from typing import List
 from pathlib import Path
-from fastapi import APIRouter, UploadFile, Depends, Header, HTTPException, File, Body
-from ..services.extraction_service import ExtractionService
-from ..middleware.session_middleware import RedisStore, get_redis_store
-from ..models.extraction import ExtractedTextResponse
-from ..models.recipe import Recipe
+from fastapi import APIRouter, UploadFile, Depends, Query, HTTPException, File, Body
+from app.models.extraction import ExtractedTextResponse
+from app.models.recipe import Recipe
+from app.services.extraction_service import (
+  extract_image_text, extract_pdf_file_contents,
+  extract_text_file_contents
+)
 
 UPLOAD_DIR = Path(__file__).parent.parent.parent / "uploads"
 
-# A new dependency function:
-def get_extraction_service(store: RedisStore = Depends(get_redis_store)) -> ExtractionService:
-    """ Dependency function to get the recipe service """
-    return ExtractionService(store=store)
-
-
-def get_session_id(session_id: str = Header(...)):
+def get_session_id(session_id: str = Query(...)):
     """ Dependency function to get the session id from the header """
     return session_id
 
@@ -35,7 +31,7 @@ a success message.  The uploaded files can then be passed to the appropriate end
 for text extraction and recipe formatting.
 """
 
-# Define a function for each file type
+'''# Define a function for each file type
 file_handlers = {
     "jpg": ("image/jpeg", lambda contents, extraction_service: extraction_service.extract_image_text(contents)),  # "image/jpeg
     "jpeg": ("image/jpeg", lambda contents, extraction_service: extraction_service.extract_image_text(contents)),
@@ -131,3 +127,4 @@ async def format_text_endpoint(
     recipe = extraction_service.format_recipe_text(recipe_text)
     # Return the formatted recipe
     return recipe
+'''
