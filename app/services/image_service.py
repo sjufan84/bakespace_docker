@@ -1,69 +1,34 @@
-""" This module defines the image service."""
-import requests
+""" Service Utilities for Image Generation """
+import os
 from dotenv import load_dotenv
-from redis import RedisError
-from app.middleware.session_middleware import RedisStore
-from app.dependencies import get_stability_api_key
+from openai import OpenAI
 
+# Load the environment variables
 load_dotenv()
 
-# Define an ImageService class
-class ImageService:
-    """ A class to represent the image service. """
-    def __init__(self, store: RedisStore = None):
-        self.store = store
-        self.session_id = self.store.session_id
-        self.image = self.load_image_url()
-        if not self.image:
-            self.image = None
+# Load the OpenAI API key and the organization ID
+OPENAI_API_KEY = os.getenv("OPENAI_KEY2")
+OPENAI_ORGANIZATION_ID = os.getenv("OPENAI_ORG2")
 
-    def generate_image_url(self, image_prompt):
-        """ Generate an image for a recipe """
+# Create the OpenAI client
+client = OpenAI(
+    api_key=OPENAI_API_KEY,
+    organization=OPENAI_ORGANIZATION_ID,
+    max_retries=3,
+    timeout=10
+    )
 
-        # Load the stable diffusion api key
-        api_key = get_stability_api_key()
-        r = requests.post(
-            "https://api.deepai.org/api/stable-diffusion",
+def generate_image(recipe_name):
+    """ Generate an image from the given image request. """
+    # Generate the image
+    response = client.images.generate(
+        prompt=str(recipe_name),
+        model="dall-e-2",
+        size="1024x1024",
+        quality="standard",
+        n=1
+    )
+    image_url = response.data[0].url
+    # Return the image response as a string
+    return f"Success! Your image can be viewed at {image_url}"
 
-            data={
-                'text':  f'{image_prompt}',
-                'grid_size': "1",
-            },
-            headers={'api-key': api_key},
-            timeout=100
-        )
-        # Save the image to redis
-        self.save_image_url(r.json()['output_url'])
-
-        # Return the json object containing the image url
-        return r.json()
-
-    def load_image_url(self):
-        """ Load an image from the store by the image_name """
-        try:
-            image = self.store.redis.get(f'{self.session_id}_image')
-            if image:
-                return image
-            else:
-                return None
-        except RedisError as e:
-            print(f"Failed to load image from Redis: {e}")
-            return None
-
-    def save_image_url(self, image):
-        """ Save an image to the store by the image_name """
-        try:
-            # Save the recipe to redis
-            self.store.redis.set(f'{self.session_id}_image', image)
-        except RedisError as e:
-            print(f"Failed to save image to Redis: {e}")
-        return image
-
-    def delete_image_url(self):
-        """ Delete an image from the store by the image_name """
-        try:
-            # Delete the recipe from redis
-            self.store.redis.delete(f'{self.session_id}_image')
-        except RedisError as e:
-            print(f"Failed to delete image from Redis: {e}")
-        return {"message": "Image deleted."}

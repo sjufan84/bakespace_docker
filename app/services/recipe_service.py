@@ -1,214 +1,254 @@
-""" This module contains the recipe service class. """
+""" OpenAI and local functions related to recipes """
 import logging
-<<<<<<< HEAD
 import os
+import sys
 from dotenv import load_dotenv
-import openai
-from anthropic import Anthropic, APIConnectionError
-from redis.exceptions import RedisError
-from app.models.recipe import Recipe
-from app.middleware.session_middleware import RedisStore
-from app.utils.chat_utils import format_claude_prompt
-from app.utils.recipe_utils import parse_recipe
+from openai import OpenAI
+from openai import OpenAIError
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from models.recipe import Recipe, FormattedRecipe # noqa: E402
 
-load_dotenv() # Load the .env file
-=======
-from redis import RedisError
-from app.middleware.session_middleware import RedisStore
->>>>>>> 8527395785d28333fd5240a8229180810d928d69
+# Load environment variables
+load_dotenv()
 
-logging.basicConfig(level=logging.DEBUG)
-# Create a dictionary to house the chef data to populate the chef model
-# Create a dictionary to house the chef data to populate the chef model
-openai_chat_models = {
-    "adventurous_chef": {
-        "model_name": "ft:gpt-3.5-turbo-0613:david-thomas:ab-sous-chef:86VMDut4",
-        "style": "adventurous chef in the style of Anthony Bourdain"
-    },
-    "home_cook": {
-        "model_name": "ft:gpt-3.5-turbo-0613:david-thomas:rr-sous-chef:86U8O9Fp",
-        "style": "home cook in the style of Rachel Ray"
-    },
-    "pro_chef": {
-        "model_name": "ft:gpt-3.5-turbo-0613:david-thomas:gr-sous-chef:86TgiHTW",
-        "style": "professional chef in the style of Gordon Ramsey"
-    },
-    "general": {
-        "model_name": "gpt-turbo-0613",
-        "style": "master sous chef in the style of the best chefs in the world"
-    }
+# Set OpenAI API key
+api_key = os.getenv("OPENAI_KEY2")
+organization = os.getenv("OPENAI_ORG2")
+
+# Set up the client
+client = OpenAI(api_key=api_key, organization=organization, max_retries=3, timeout=10)
+
+serving_size_dict = {
+  "Family-Size": 4,
+  "For Two": 2,
+  "For One": 1,
+  "Potluck-Size": 20
 }
 
-# Create a chat-gpt object
-openai.api_key = os.getenv("OPENAI_KEY2")
-openai.organization = os.getenv("OPENAI_ORG2")
-
-anthropic = Anthropic(
-    # defaults to os.environ.get("ANTHROPIC_API_KEY")
-    api_key=os.getenv("ANTHROPIC_API_KEY"),
-)
-
-# Create a dictionary to house the chef data to populate the chef model
-openai_chat_models = {
-  "adventurous_chef": {
-    "model_name": "ft:gpt-3.5-turbo-0613:david-thomas:ab-sous-chef:86VMDut4",
-    "style": "adventurous chef in the style of Anthony Bourdain"
-  },
-    "home_cook": {
-        "model_name": "ft:gpt-3.5-turbo-0613:david-thomas:rr-sous-chef:86U8O9Fp",
-        "style": "home cook in the style of Rachel Ray"
-    },
-    "pro_chef": {
-        "model_name" : "ft:gpt-3.5-turbo-0613:david-thomas:gr-sous-chef:86TgiHTW",
-        "style": "professional chef in the style of Gordon Ramsey"
-    },
-    "general": {
-        "model_name": "gpt-turbo-0613",
-        "style": "master sous chef in the style of the best chefs in the world"
-    }
-}
-
+# Convert the Recipe model to a dictionary
+recipe_dict = Recipe.schema()
 # Establish the core models that will be used by the chat service
-core_models = ["gpt-3.5-turbo-16k-0613", "gpt-3.5-turbo-16k", "gpt-3.5-turbo-0613", "gpt-3.5-turbo"]
+core_models = ["gpt-3.5-turbo-1106", "gpt-3.5-turbo-1106", 
+"gpt-3.5-turbo-16k", "gpt-3.5-turbo-0613", "gpt-3.5-turbo"]
 
-# Create a class for the recipe service
-class RecipeService:
-    """ A class to represent the recipe service. """
-    def __init__(self, store: RedisStore = None, chef_choice: str = None):
-        self.store = store
-        self.session_id = self.store.session_id
-        self.recipe = self.load_recipe()
-        if not self.recipe:
-            self.recipe = None
-<<<<<<< HEAD
-        self.chef_choice = chef_choice
-        if not self.chef_choice:
-            self.chef_choice = "general"
+# Create Recipe Functions
+def create_recipe(specifications: str, serving_size: str):
+    """ Generate a recipe based on the specifications provided """
+    messages = [
+        {
+            "role": "system", "content": f"""You are a master chef helping a user
+                create a recipe based on their specifications {specifications} and the
+                serving size {serving_size_dict[serving_size]}.  Even if the specifications are just a dish name or type,
+                go ahead and create a recipe.  Make sure the recipe name is fun and unique. 
+                Return the recipe as a JSON object with the same
+                schema as the Recipe {recipe_dict} model.  Return only the recipe object.""",
+        },
+    ]
+    # Create a list of models to loop through in case one fails
+    models = core_models
 
-    # Create a function to be able to load a recipe from the store by the recipe_name
-    def load_recipe(self):
-        """ Load the session recipe from the store"""
-=======
-        self.chef_type = self.store.redis.get(f'{self.session_id}:chef_type')
-
-    # Create a function to be able to load a recipe from the store by the recipe_name
-    def load_recipe(self):
-        """ Load a recipe from the store by the recipe_name """
->>>>>>> 8527395785d28333fd5240a8229180810d928d69
+    # Loop through the models and try to generate the recipe
+    for model in models:
         try:
-            # Load the recipe hash from redis with all of the keys
-            recipe_json = self.store.redis.hgetall(f'{self.session_id}_recipe')
-            if recipe_json:
-                return recipe_json
-<<<<<<< HEAD
-            return None
-=======
-            else:
-                return None
->>>>>>> 8527395785d28333fd5240a8229180810d928d69
-        except RedisError as e:
-            print(f"Failed to load recipe from Redis: {e}")
-            return None
+            logging.debug("Trying model: %s.", model)
+            response = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=1,
+                top_p=1,
+                max_tokens=750,
+                response_format = {"type" : "json_object"}
+            )
+            # Get the chef response
+            chef_response = response.choices[0].message.content
+  
+            # Return the chef response
+            return chef_response   
+        except OpenAIError as e:
+            logging.error("Error with model: %s. Error: %s", model, e)
+            continue
 
-    # Create a function to save a recipe to the store by the recipe_name
-    def save_recipe(self, recipe):
-<<<<<<< HEAD
-        """ Save a recipe to the store by session_id """
-        try:
-            # Save the recipe to redis as a dictionary
-            self.store.redis.hmset(f'{self.session_id}_recipe', mapping=recipe)
-        except AttributeError as e:
-            # Save the recipe as a string
-            self.store.redis.set(f'{self.session_id}_recipe', recipe)
-            print(f"Failed to save recipe dict to Redis: {e}.  Saving as string.")
-=======
-        """ Save a recipe to the store by the recipe_name """
-        try:
-            if isinstance(recipe, dict):
-                # Save the recipe to redis
-                self.store.redis.hmset(f'{self.session_id}_recipe', mapping = recipe)
-            else:
-                return {"message": "Recipe must be a dictionary."}
-        except RedisError as e:
-            print(f"Failed to save recipe to Redis: {e}")
->>>>>>> 8527395785d28333fd5240a8229180810d928d69
-        return recipe
 
-    # Create a function to delete a recipe from the store by the recipe_name
-    def delete_recipe(self):
-        """ Delete a recipe from the store by the recipe_name """
-        try:
-            # Delete the recipe from redis
-            self.store.redis.delete(f'{self.session_id}_recipe')
-        except RedisError as e:
-            print(f"Failed to delete recipe from Redis: {e}")
-        return {"message": "Recipe deleted."}
-<<<<<<< HEAD
 
-    def generate_recipe(self, specifications: str, chef_type: str = "general"):
-        """ Generate a recipe based on the user's specifications. """
-        #claude_prompt = format_claude_prompt(f""" 
-        #Please generate a recipe for the user based on the following\
-        #specifications: {specifications}.  You are a master chef of type {chef_type}.\
-        #acting as the user's personal chef. Have fun with the interaction with the user and blow\
-        #them away with a great recipe!\
-        #The recipe in your response should be formatted\
-        #as {Recipe}. Please make sure to include all of the required fields in the recipe.""")
 
-        # Create the chat object
-        #try:
-        #    response = anthropic.completions.create(
-        #        model="claude-2",
-        #        prompt=claude_prompt,
-        #        max_tokens_to_sample=300,
-        #        timeout=60,
-        #        temperature=1,
-        #        top_p=1,
-        #    )
-            # Parse the recipe
-        #    recipe = parse_recipe(response.completion)
-            # Create a dictionary to house the recipe data to populate the recipe model
-            # Save the recipe to the store
-        #    self.save_recipe(recipe)
+        
+create_recipe_tool = {
+  "name": "create_new_recipe",
+  "description": "Create a new recipe for the user based on their specifications.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "specifications": {
+        "type": "string",
+        "description": "The specifications for the recipe the user wants you to create."
+      },
+      "serving_size": {
+        "type": "string",
+        "description": "The serving size the user would like for the recipe."
+      }
+    },
+    "required": [
+      "specifications",
+      "serving_size"
+    ]
+  }
+}
 
-        #    return {"recipe": recipe, "response": response.completion}
-        #except APIConnectionError as e:
-        #    print(f"A connection error {e} occurred")
-        models = ["gpt-4-0613", "gpt-4"]
+# ---------------------------------------------------------------------------------------------------------------
+
+# Adjust recipe functions
+def adjust_recipe(recipe: dict, adjustments: str):
+        """ Chat a new recipe that needs to be generated based on\
+        a previous recipe. """
+        # Set the chef style
         messages = [
             {
-                "role": "system", "content": f"""You are a master chef of\
-                type {openai_chat_models[chef_type]["style"]}\
-                generating a recipe for a user based on their specifications {specifications}.\
-                Make sure that the recipe that you generate is formatted as a Recipe object\
-                {Recipe}.  Please make sure to include all of the required fields in the recipe\
-                and have fun with the interaction with the user and blow them away with a great\
-                recipe!"""
+                "role": "system", "content": f"""You are helping a user adjust a recipe {recipe}\
+                that you generated for them earlier.\
+                The adjustments are {adjustments}.  Return the adjusted recipe\
+                as a JSON object with the same schema as the Recipe {Recipe} model.\
+                Return only the recipe object.""",
             },
             {
-                "role": "user", "content": "Hi Chef, create a recipe for me based on my specifications."
+                "role": "user", "content": "Hi chef, thanks for the recipe you generated\
+                for me earlier. Can you help me adjust it?"
             }
         ]
+
+        #models = [model, "gpt-3.5-turbo-16k-0613", "gpt-3.5-turbo-16k"]
+        models = core_models
         for model in models:
             try:
-                response = openai.ChatCompletion.create(
-                    model=model,
-                    messages=messages,
-                    temperature=1,
-                    top_p=1,
-                    max_tokens=500
-                )
-                # Parse the recipe'
-                recipe = parse_recipe(response.choices[0].message.content)
-                # Save the recipe to the store
-                self.save_recipe(recipe)
+                response = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=0.75,
+                top_p=0.75,
+                max_tokens=1000,
+                response_format = {"type" : "json_object"}
+            )
+                recipe = response.choices[0].message.content
+                return recipe
 
-                return {"recipe": recipe, "response": response.choices[0].message.content}
             except TimeoutError as a:
                 print(f"Timeout error: {str(a)}")
                 continue
-            except APIConnectionError as error:
-                print(f"A connection error {error} occurred")
-                continue
-=======
->>>>>>> 8527395785d28333fd5240a8229180810d928d69
+
+# Adjust recipe tool
+adjust_recipe_tool = {
+  "name": "adjust_recipe",
+  "description": "Adjust a recipe for the user based on their specifications.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "adjustments": {
+        "type": "string",
+        "description": "The adjustments the user wants you to make to the recipe."
+      },
+      "recipe": {
+        "type": "string",
+        "description": "The recipe the user wants you to adjust."
+      }
+    },
+    "required": [
+      "adjustments",
+      "recipe"
+    ]
+  }
+}
+
+# ---------------------------------------------------------------------------------------------------------------
+# Add the function to extract and format recipe text from the user's files
+def format_recipe(recipe_text: str):
+    """ Extract and format the text from the user's files. """
+    messages = [
+        {
+            "role" : "system", "content" : f"""You are a master chef helping a user
+            format a recipe that they have uploaded.  This may be extracted from a photo of a 
+            recipe, so you may need to infer or use your knowledge as a master chef to fill out
+            the rest of the recipe.  The extracted recipe text is {recipe_text}.
+            The recipe should be returned as a JSON object as close to the same schema as the
+            Recipe {FormattedRecipe} model.  Mostly we want the user to be able to save our
+            recipe in the database, ask questions about it, etc., so we need it to be as close
+            to our schema as possible. If you simply cannot format the recipe, create a new recipe
+            that you think will be similar to the one the user uploaded.  Return only the recipe object.""",
+        }
+    ]
+
+    #models = [model, "gpt-3.5-turbo-16k-0613", "gpt-3.5-turbo-16k"]
+    models = ["gpt-3.5-turbo-1106", "gpt-4-1106-preview"]
+    for model in models:
+        try:
+            response = client.chat.completions.create(
+            model=model,
+            messages=messages,
+            temperature=0.5,
+            top_p=0.75,
+            max_tokens=1000,
+            response_format = {"type" : "json_object"}
+        )
+            recipe = response.choices[0].message.content
+            return recipe
+
+        except TimeoutError as a:
+            print(f"Timeout error: {str(a)}")
+            continue
+
+# Adjust recipe tool
+adjust_recipe_tool = {
+  "name": "adjust_recipe",
+  "description": "Adjust a recipe for the user based on their specifications.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "adjustments": {
+        "type": "string",
+        "description": "The adjustments the user wants you to make to the recipe."
+      },
+      "recipe": {
+        "type": "string",
+        "description": "The recipe the user wants you to adjust."
+      }
+    },
+    "required": [
+      "adjustments",
+      "recipe"
+    ]
+  }
+}
+
+# ---------------------------------------------------------------------------------------------------------------
+# Add the function to do the initial pass over the raw extracted text to return
+# to the user for adjustments
+def initial_pass(raw_recipe_text: str):
+    """ Initial pass over the raw extracted text to return to the user for adjustments """
+    messages = [
+        {
+            "role" : "system", "content" : f"""You are a master chef helping a user
+            format a recipe that they have uploaded.  This is your initial pass over the 
+            raw recipe text {raw_recipe_text}.  The goal here is to quickly return the text
+            to the user in a format where they can make any adjustments they need to before
+            re-submitting.  Return the the recipe as close to the same schema as the
+            Recipe {FormattedRecipe} model.  Only return the recipe object.  Do not spend
+            too much time on this as this is the first pass.  We will do a second pass
+            later for more detailed formatting."""
+        }
+    ]
+
+    #models = [model, "gpt-3.5-turbo-16k-0613", "gpt-3.5-turbo-16k"]
+    models = ["gpt-4", "gpt-3.5-turbo-1106", "gpt-4-1106-preview"]
+    for model in models:
+        try:
+            response = client.chat.completions.create(
+            model=model,
+            messages=messages,
+            temperature=0.5,
+            top_p=0.75,
+            max_tokens=1000,
+        )
+            recipe = response.choices[0].message.content
+            return recipe
+
+        except TimeoutError as a:
+            print(f"Timeout error: {str(a)}")
+            continue

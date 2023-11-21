@@ -8,8 +8,6 @@ from app.routes.recipe_routes import router as recipe_routes
 from app.routes.pairings_routes import router as pairings
 from app.routes.image_routes import router as image_routes
 from app.routes.extraction_routes import router as extraction_routes
-# Import middleware
-from .middleware.session_middleware import SessionMiddleware
 
 
 DESCRIPTION = """

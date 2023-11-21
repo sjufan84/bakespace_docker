@@ -10,10 +10,10 @@ from openai import OpenAI
 from dotenv import load_dotenv
 # Add the app directory to the system path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from app.services.recipe_functions import create_recipe,\
+from services.recipe_service import create_recipe,\
 adjust_recipe, format_recipe, initial_pass # noqa E402
-from app.services.pairing_functions import generate_pairings # noqa E402
-from app.services.image_functions import generate_image # noqa E402
+from services.pairing_service import generate_pairings # noqa E402
+from services.image_service import generate_image # noqa E402
 from app.services.run_service import RunService # noqa E402
 from app.middleware.session_middleware import RedisStore, get_redis_store # noqa E402
 from app.dependencies import get_openai_client # noqa E402
@@ -110,7 +110,6 @@ def poll_run_status(run_id: str, thread_id: str):
                 })
                 tool_return_values.append({
                     "tool_name" : function_name,
-                    "tool_call_id": tool_call_id,
                     "output": function_output
                 })
 
@@ -129,6 +128,7 @@ def poll_run_status(run_id: str, thread_id: str):
         "thread_id": thread_id, 
         "message": final_messages.data[0].content[0].text.value,
         "run_id": run_id,
+        "tool_return_values": tool_return_values
     }
 
 
