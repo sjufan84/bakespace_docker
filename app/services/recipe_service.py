@@ -28,7 +28,7 @@ serving_size_dict = {
 # Convert the Recipe model to a dictionary
 recipe_dict = Recipe.schema()
 # Establish the core models that will be used by the chat service
-core_models = ["gpt-3.5-turbo-1106", "gpt-3.5-turbo-1106", 
+core_models = ["gpt-3.5-turbo-1106", 
 "gpt-3.5-turbo-16k", "gpt-3.5-turbo-0613", "gpt-3.5-turbo"]
 
 # Create Recipe Functions
@@ -43,8 +43,8 @@ def create_recipe(specifications: str, serving_size: str):
                 create a recipe based on their specifications {specifications} and the
                 serving size {serving_size}.  Even if the specifications are just a dish name or type,
                 go ahead and create a recipe.  Make sure the recipe name is fun and unique. 
-                Return the recipe as a JSON object with the same
-                schema as the Recipe {recipe_dict} model.  Return only the recipe object.""",
+                Return the recipe as a JSON object with as close to the same
+                schema as the Recipe {Recipe} model as possible.  Return only the recipe object.""",
         },
     ]
     # Create a list of models to loop through in case one fails

@@ -35,6 +35,36 @@ id_dict = {
     "adventurous_chef": "asst_7JDTkQhCiGWTE9i0VqBdvnpX"
 }
 
+def get_thread_tool_outputs(thread_id: str = None):
+  """ Get the function outputs from the thread """
+  if not thread_id:
+    raise ValueError("Thread ID is required.")
+  function_outputs = []
+  run_steps = list_thread_run_steps(thread_id=thread_id)
+  for step in run_steps:
+    if step.step_details.tool_calls.function:
+      function_outputs.append({
+        "function_name": step.step_details.tool_calls.function.name,
+        "output": step.step_details.tool_calls.function.output,
+        "arguments": step.step_details.tool_calls.function.arguments})
+  return function_outputs
+
+# Define a function to iterate through the tool calls and return the
+# outputs for a specific tool'
+def get_specific_thread_tool_outputs(tool_names: List[str], thread_id: str = None):
+    """ Get the tool outputs for specific tools in a thread """
+    filtered_tool_outputs = []
+    if not thread_id:
+        raise ValueError("Thread ID is required.")
+    tool_outputs = get_thread_tool_outputs(thread_id=thread_id)
+    # Iterate through the tool outputs and if the tool name is in the list
+    # of tool names, append the output to the list
+    for tool_output in tool_outputs:
+        if tool_output["function_name"] in tool_names:
+            filtered_tool_outputs.append(tool_output)
+
+    return filtered_tool_outputs
+
 available_functions = {
     "functions" : {
     "create_recipe": create_recipe,
@@ -42,8 +72,9 @@ available_functions = {
     "generate_pairings": generate_pairings,
     "generate_image": generate_image,
     "format_recipe": format_recipe,
-    "initial_pass": initial_pass
-
+    "initial_pass": initial_pass,
+    "get_thread_tool_outputs": get_thread_tool_outputs,
+    "get_specific_thread_tool_outputs": get_specific_thread_tool_outputs,
     }
 }
 
@@ -174,18 +205,32 @@ def get_assistant_id(chef_type: str):
   assistant_id = id_dict[chef_type]
   return assistant_id
 
-def list_run_steps(thread_id: str = None, run_id: str = None, limit: int = 20, order: str = "desc"):
-      """ List the steps from a run """
+def list_runs(thread_id: str):
+    """ List the runs from a thread """
+    client = get_openai_client()
+    # Check to see if there is a thread_id in the call, if not,
+    # load the thread_id from the store
+    if not thread_id:
+        raise ValueError("Thread ID is required.")
+    # Load the runs from redis
+    runs = client.beta.threads.runs.list(thread_id=thread_id)
+    return runs
+
+def list_thread_run_steps(thread_id: str):
+      """ List the steps from a thread """
       client = get_openai_client()
       # Check to see if there is a thread_id in the call, if not,
       # load the thread_id from the store
       if not thread_id:
         raise ValueError("Thread ID is required.")
-      # Load the steps from redis
-      run_steps = client.beta.threads.runs.steps.list(
+      # List the runs from the thread
+      runs = list_runs(thread_id=thread_id)
+      steps_list = []
+      for run in runs:
+        steps = client.beta.threads.runs.steps.list(
           thread_id=thread_id,
-          run_id=run_id,
-          limit=limit,
-          order=order
-      )
-      return run_steps
+          run_id=run.id
+        )
+        steps_list.append(steps)
+
+      return steps_list

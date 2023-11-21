@@ -66,7 +66,8 @@ async def create_thread_run(create_run_request: CreateThreadRunRequest):
     "messages": [
         {
           "role" : "user",
-          "content" : message_content, 
+          "content" : message_content,
+          "metadata" : create_run_request.message_metadata,
     }]}   
   )
   # Poll the run status
@@ -95,6 +96,7 @@ async def add_message_and_run(message_request: CreateMessageRunRequest):
         message_request.thread_id,
         content=message_request.message_content,
         role="user",
+        metadata=message_request.message_metadata,
     )
     # Log the message
     logging.info(f"Message created: {message}")

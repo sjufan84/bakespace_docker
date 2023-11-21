@@ -10,12 +10,12 @@ class Recipe(BaseModel):
     name: str = Field(description = "The name of the recipe.")
     desc: Optional[str] = Field(description = "A short description of the recipe.")
     preptime: int = Field(description = "The time it takes to prepare the recipe.")
-    cooktime: int = Field(description = "The time it takes to cook the recipe.")
+    cooktime: Optional[int] = Field(description = "The time it takes to cook the recipe.")
     totaltime: int = Field(description = "The total time it takes to prepare and cook the recipe.")
-    servings: int = Field(description = "The number of servings or serving size of the recipe.")
+    servings: int = Field(description = "The number of servings or approximate number of servings of the recipe.")
     directions: List[str] = Field(description = "The directions for preparing the recipe.")
     ingredients: List[str] = Field(description = "The ingredients for the recipe.")
-    calories: int = Field(description = "The estimated calories for one serving of the recipe.  Does not\
+    calories: Optional[int] = Field(description = "The estimated calories for one serving of the recipe.  Does not\
     have to be exact.")
 
     @property
