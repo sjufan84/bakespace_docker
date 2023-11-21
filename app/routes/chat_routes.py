@@ -107,7 +107,7 @@ async def add_message_and_run(message_request: CreateMessageRunRequest):
         thread_id=message_request.thread_id
     )
     # Poll the run status
-    response = poll_run_status(run_id=run.id, thread_id=run.thread_id)
+    response = json.dumps(poll_run_status(run_id=run.id, thread_id=run.thread_id))
 
     return response
 
