@@ -114,12 +114,12 @@ def create_run(thread_id: str, assistant_id: str):
 '''
 
 def poll_run_status(run_id: str, thread_id: str):
-    logging.debug(f"Polling run status for run_id: {run_id}, thread_id: {thread_id}")
+    logging.info(f"Polling run status for run_id: {run_id}, thread_id: {thread_id}")
     run_status = client.beta.threads.runs.retrieve(thread_id=thread_id, run_id=run_id)
     tool_return_values = []
 
     while run_status.status not in ["completed", "failed", "expired", "cancelling", "cancelled"]:
-        logging.debug(f"Current run status: {run_status.status}")
+        logging.info(f"Current run status: {run_status.status}")
         if run_status.status == "requires_action":
             # Handle the action required by the assistant
             tool_outputs = []
@@ -132,7 +132,7 @@ def poll_run_status(run_id: str, thread_id: str):
                 tool_call_id = tool_call.id
                 parameters = json.loads(tool_call.function.arguments)
 
-                logging.debug(f"Calling function: {function_name} with parameters: {parameters}")
+                logging.info(f"Calling function: {function_name} with parameters: {parameters}")
 
                 # Call the function
                 function_output = call_named_function(function_name=function_name, **parameters)
@@ -158,7 +158,7 @@ def poll_run_status(run_id: str, thread_id: str):
     # Gather the final messages after completion
     final_messages = client.beta.threads.messages.list(thread_id=thread_id, limit=1)
 
-    logging.debug(f"Final messages: {final_messages.data[0].content[0].text.value}")
+    logging.info(f"Final messages: {final_messages.data[0].content[0].text.value}")
 
     return {
         "thread_id": thread_id, 
