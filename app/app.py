@@ -7,6 +7,7 @@ from app.routes.chat_routes import router as chat_routes
 from app.routes.pairings_routes import router as pairings_routes
 from app.routes.image_routes import router as image_routes
 from app.routes.extraction_routes import router as extraction_routes
+from app.routes.anthropic_routes import router as anthropic_routes
 
 
 DESCRIPTION = """
@@ -107,6 +108,6 @@ app.add_middleware(
 
 
 # Include routers
-routers = [chat_routes, pairings_routes, image_routes, extraction_routes]
+routers = [chat_routes, pairings_routes, image_routes, extraction_routes, anthropic_routes]
 for router in routers:
     app.include_router(router)

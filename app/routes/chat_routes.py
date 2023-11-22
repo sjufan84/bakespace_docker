@@ -57,17 +57,17 @@ async def create_thread_run(create_run_request: CreateThreadRunRequest):
   """ Create a thread and run """
   client = get_openai_client()
   if create_run_request.serving_size:
-    message_content = create_run_request.message_content + " " + "Serving size: " + \
-    create_run_request.serving_size if create_run_request.serving_size else\
-    create_run_request.message_content
+    message_content = create_run_request.message_content + " " + "Serving size: " + create_run_request.serving_size
+  else:
+    message_content = create_run_request.message_content
   run = client.beta.threads.create_and_run(
   assistant_id=get_assistant_id(create_run_request.chef_type),  
   thread={
     "messages": [
         {
           "role" : "user",
-          "content" : message_content,
-          "metadata" : create_run_request.message_metadata,
+          "content" : message_content, 
+          "metadata" : create_run_request.message_metadata
     }]}   
   )
   # Poll the run status

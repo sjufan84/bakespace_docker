@@ -114,32 +114,33 @@ the recipe display-->
             </select>
             <button class="btn" id="sendChat" style="background-color: #b05e5d; color: white;">Send</button>                
         </div>
-    </div>
-</div>
-</div>
-</div>
+      </div>
     </div>
   </div>
-  
-    <!-- Space for displaying pairing and image results -->
-    <div class="row mt-4">
-        <div class="col-md-12">
-            <div id="pairingsResult" class="result-section">
-                <!-- Food pairings will be displayed here -->
-            </div>
-            <div id="imageResult" class="result-section">
-                <!-- Recipe image will be displayed here -->
-            </div>
-        </div>
+</div>
+</div>
+  <!-- Create a new section to dynamically display the different tool outputs
+  from our API call.  Each output should be dynamically displayed on the row below the recipe output 
+  and the chat container -->
+  <div class="col-md-4">
+    <div id="toolOutputs" class="card h-100">
+      <div class="card-body">
+          <!-- Tool outputs will be displayed here -->
+      </div>
     </div>
+</div>
 </div>
 
 </body>
 <script type = "module">
   import showdown from 'https://cdn.skypack.dev/showdown';
   let threadId = null;
+  let toolName = null;
   // Import showdown library
   let converter = new showdown.Converter();
+  let tools_list = ["create_recipe", "adjust_recipe", "generate_pairings", 
+  "generate_image", "format_recipe", "initial_pass", "get_thread_tool_outputs",
+  "get_specific_thread_tool_outputs"]
 
   document.getElementById('sendChat').addEventListener('click', function() {
     console.log('sendChat clicked')
@@ -171,6 +172,42 @@ the recipe display-->
     }
 });
 
+function addToolOutputContainer(toolOutput, toolName) {
+    let outputsContainer = document.getElementById('toolOutputs');
+    let outputDiv = document.createElement('div');
+    outputDiv.classList.add('tool-output-container');
+
+    // Assuming toolOutput is the content you want to display
+    // You can customize this part based on the type of content (text, image, etc.)
+    outputDiv.innerHTML = `<h3>${toolName}</h3><p>${toolOutput}</p>`;
+
+    outputsContainer.appendChild(outputDiv);
+}
+
+function displayToolOutput(tool) {
+    let toolName = tool.tool_name;
+    let toolOutput = tool.output;
+    
+    // Decide how to display based on tool name
+    switch (toolName) {
+        case 'generate_pairings':
+            // Display pairings
+            addToolOutputContainer(toolOutput, 'Pairings');
+            break;
+        case 'generate_image':
+            // Display image
+            // Assuming toolOutput is a URL to the image
+            let imageContent = `<img src="${toolOutput}" alt="Generated Image">`;
+            addToolOutputContainer(imageContent, 'Generated Image');
+            break;
+        // Handle other tool names...
+        default:
+            // Default text output
+            addToolOutputContainer(toolOutput, toolName);
+    }
+}
+
+
 function displayMessage(message, sender) {
     console.log('displayMessage called with message:', message, 'and sender:', sender);
     let chatBox = document.querySelector('#chatBox');
@@ -201,19 +238,8 @@ async function fetchBakeBotResponse(userInput, chefStyle) {
     return message;
 }
 
-document.getElementById('generatePairings').addEventListener('click', function() {
-    // Code to request pairings from the API
-    // Update the pairingsResult section with the response
-});
-
-document.getElementById('generateImage').addEventListener('click', function() {
-    // Code to request an image from the API
-    // Update the imageResult section with the response
-});
-
-
 document.getElementById('askBakeBot').addEventListener('click', function() {
-  let userMessage = "I would like a recipe for chicken pot pie"
+  let userMessage = "I would like a recipe for chicken pot pie and a wine pairing."
   let chefType = "pro_chef"
   let servingSize = "Potluck-Size"
   let message_content =  + " " + userMessage + "Serving Size: " + servingSize + " "
@@ -242,16 +268,19 @@ document.getElementById('askBakeBot').addEventListener('click', function() {
     let message = data.message
     // Store the thread ID
     threadId = data.thread_id;
-      // Handle response data
-      console.log(data, message);
-      // Convert the markdown to HTML
+
+    // Handle each tool's output
+    let tools = data.tool_return_values;
+    console.log('tools:', tools)
+    tools.forEach(tool => {
+        console.log('tool:', tool)
+        displayToolOutput(tool);
+    });
       let html = converter.makeHtml(message);
-      console.log(html);
-      // Display the recipe content
       document.getElementById('recipeContent').innerHTML = html;
-    })
-  .catch(error => console.error('Error:', error))
-});
+      console.log(html);
+      }).catch(error => console.error('Error:', error))
+    });
 
 document.getElementById('uploadButton').addEventListener('click', function() {
     let fileInput = document.getElementById('recipeFile');

@@ -4,10 +4,14 @@ from typing import Union
 import logging
 import requests
 import asyncio
-from openai import OpenAI
 from redis.exceptions import RedisError
 from app.middleware.session_middleware import RedisStore
-from app.dependencies import get_openai_api_key, get_openai_org, get_openai_client
+from app.dependencies import (
+  get_openai_api_key, 
+  get_openai_org, 
+  get_openai_client, 
+  get_anthropic_client
+)
 from app.models.recipe import Recipe
 from app.utils.recipe_utils import parse_recipe, create_message_from_recipe
 from app.services.recipe_service import RecipeService
