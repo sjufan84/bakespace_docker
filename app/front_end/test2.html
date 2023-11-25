@@ -29,38 +29,27 @@
   <body>
     <!--<div id="fullPage" class="grid grid-cols-2 grid-rows-2 flex-auto"> -->
     <div id="mainContainer" class="grid grid-cols-12 grid-rows-12 flex-auto">
-      <div class="row h-12">
+      <div class="row col-md-12">
         <!-- Recipe Display Column -->
-        <div class="col-lg-8 col-md-12 md:w-2/3 flex-auto">
-          <div class="flex-grow recipe-container bg-light shadow rounded p-4">
+        <div class="col-md-8 flex-auto">
+          <div class="flex-auto recipe-container bg-light shadow rounded p-4">
             <h2 class="h3 font-weight-bold mb-3" id="recipeName">Your Recipe</h2>
             <div id="recipeContent" class="recipe-content"></div>
-            <button id="generatePairings" class="btn btn-custom-green mt-3">Generate Pairings</button>
-            <button id="generateImage" class="btn btn-custom-green mt-3">Generate Image</button>
-            <button id="askBakeBot" class="btn btn-custom-green mt-3">Generate Recipe</button>
-            <button id="saveRecipe" class="btn btn-custom-green mt-3">Save the Recipe</button>
           </div>
         </div>
     
         <!-- Chat Column -->
-        <div class="col-lg-4 col-md-12 flex-auto overflow-auto mt-sm-2 mt-md-0" id="chatColumn">
-          <div  class="card h-100 flex-auto">
-            <div id="chatBox" class="card-body bg-light shadow rounded flex-auto">
-              <div id="chat-messages" class="flex-auto">
+        <div class="col-md-4 flex-auto" id="chatColumn">
+            <div id="chatBox" class="card h-100 p-3 bg-light shadow rounded flex-grow">
+              <div id="chat-messages" class="flex-auto overflow-y-auto">
                 <!-- BakeBot message -->
-                <div class="bot-message mb-2 d-flex justify-content-start align-items-center mr-2">
+                <div class="bot-message mb-2 d-flex justify-content-start align-items-center mr-2" id="bot-message">
                   <img src="../../resources/bakebot_icon.png" alt="BakeBot" class="chat-icon small-image">
-                  <div class="chat-bubble bot-bubble ml-2 bg-red-200">This looks great!  Here are some other fun things we can do:
-                    <ul>
-                      <li>Generate pairings</li>
-                      <li>Generate an image</li>
-                      <li>Adjust the recipe</li>
-                    </ul>
+                  <div class="chat-bubble bot-bubble ml-2 bg-red-200">This looks great!  Let me know if you have any questions, want to generate a pairing, or anything else I can help with!
                   </div>
                 </div>
-            
                 <!-- User message -->
-                <div class="user-message mb-2 d-flex justify-content-end align-items-center">
+                <div class="user-message mb-2 d-flex justify-content-end align-items-center" id="user-message">
                   <img src="../../resources/user_image.png" alt="User" class="chat-icon small-image ml-2">
                   <div class="chat-bubble user-bubble mr-3 text-end">I hate you!</div>
                 </div>
@@ -68,33 +57,35 @@
             
              <!-- User input area -->
               <div class="input-area" id="chatInputArea">
-                <textarea class="form-control mb-2" placeholder="Type your message..." id="chatInput"></textarea>
-                <div class="align-bottom">
-                  <div class="col-md-8">
-                    <select class="form-control mr-2 columns-2 mb-3 h-2/3" id="chefStyle">
-                      <option>Classic Pro Chef</option>
-                      <option>Sweet Home Chef</option>
-                      <option>Snarky Fun Chef</option>
-                    </select>
-                  </div>
-                  <div class="col-md-4 d-flex justify-content-end">
-                    <button class="btn btn-custom-red w-1/3 h-2/3 form-control" id="sendChat">Send</button>                
-                  </div>
+                <div class="row mb-2 p-2 align-bottom">
+                  <textarea class="form-control" placeholder="Type your message..." id="chatInput"></textarea>
+                </div>
+                <div class="row col-md-12 justify-content-around mb-3">
+                  <select class="col-md-6" id="chefStyle">
+                  <option>Classic Pro Chef</option>
+                  <option>Sweet Home Chef</option>
+                  <option>Snarky Fun Chef</option>
+                  </select>
+                  <button class="btn btn-secondary col-md-5" id="sendChat">Send</button>
+                </div>
+                <div class="col-md-12 justify-content-around">
+                  <p class="p-2 col-md-12 font-bold">Some examples of where we can go from here:</p>
+                  <button id="generatePairings" type="promptInput" class="btn border-black col-md-5 col-md-12 mb-1">Can I get a wine pairing with this?</button>
+                  <button id="generateImage" type="promptInput" class="btn border-black col-md-12 mb-1">I'd love to create an image of this recipe.</button>
+                  <button id="saveRecipe" type="promptInput" class="btn border-black col-md-12">I'd like to save this recipe.</button>   
                 </div>
               </div>
             </div>
           </div>
-        </div>
-        </div>
-        <div id="lower-contents" class="row grid grid-cols-2 flex-auto">
-        <!-- Tool Outputs Column -->
-        <div class="col-lg-8 col-md-12 md:w-2/3 flex-row">
-          <div id="toolOutputs" class="card h-100">
-              <!-- Tool outputs will be displayed here -->
+        <div id="lower-contents" class="col-md-12">
+          <!-- Tool Outputs Column -->
+          <div class="row col-md-12">
+            <div id="toolOutputs" class="card h-100 col-md-8 flex-1">
+            <!-- Tool outputs will be displayed here -->
             </div>
           </div>
         </div>
-    </div>
+      </div>
 </body>
 <script>
   let recipeData = JSON.parse(localStorage.getItem('recipeData'));
@@ -114,6 +105,33 @@
       };
       return chefStyleMap[chefStyle] || chefStyle; // Fallback to original if not found
     }
+
+  function displayMessage(message, sender) {
+    // Display the message in the appropriate chat bubble
+    if (sender === 'user') {
+      // Create a new user message
+      let userMessage = document.createElement('div');
+      userMessage.className = 'user-message mb-2 d-flex justify-content-end align-items-center';
+      userMessage.innerHTML = `
+        <img src="../../resources/user_image.png" alt="User" class="chat-icon small-image ml-2">
+        <div class="chat-bubble user-bubble mr-3 text-end">${message}</div>
+      `;
+      // Append the user message to the chat messages container
+      document.getElementById('chat-messages').appendChild(userMessage);
+    }
+    else {
+      // Create a new bot message
+      let botMessage = document.createElement('div');
+      botMessage.className = 'bot-message mb-2 d-flex justify-content-start align-items-center mr-2';
+      botMessage.innerHTML = `
+        <img src="../../resources/bakebot_icon.png" alt="BakeBot" class="chat-icon small-image">
+        <div class="chat-bubble bot-bubble ml-2 bg-red-200">${message}</div>
+      `;
+      // Append the bot message to the chat messages container
+      document.getElementById('chat-messages').appendChild(botMessage);
+    }
+  }
+    
   // Create a function to load in the local recipeData and then display the results in the 
   // recipeContent div's innerHTML
   function loadRecipeData() {
@@ -262,7 +280,7 @@ function displayToolOutput(tool, message) {
   toolOutput = JSON.parse(toolOutput);
 
   // Get the output container element
-  let outputContainer = document.getElementById('output-container');
+  let outputContainer = document.getElementById('toolOutputs');
 
   // Create a new div element for each tool output
   let outputDiv = document.createElement('div');
@@ -271,7 +289,9 @@ function displayToolOutput(tool, message) {
   switch (toolName) {
       case 'generate_pairings':
           // Display pairings as text
-          outputDiv.innerHTML = `<h3>Pairings</h3><pre>${generatePairingCards(toolOutput.pairings)}</pre>`;
+          let wineHtml = converter.makeHtml(message);
+          //outputDiv.innerHTML = `<h3>Pairings</h3><pre>${generatePairingCards(toolOutput.pairings)}</pre>`;
+          document.getElementById('toolOutputs').innerHTML = wineHtml;  
           break;
       case 'generate_image':
           // Display image
@@ -302,33 +322,6 @@ function displayToolOutput(tool, message) {
     // Add a new container for the tool output
     addToolOutputContainer(toolOutput, toolName);
   }
-
-  function displayMessage(message, sender) {
-    console.log('displayMessage called with message:', message, 'and sender:', sender);
-    let chatBox = document.querySelector('#chatBox'); // Correct the selector
-    console.log('chatBox:', chatBox);
-
-    // Create the container for the entire message
-    let messageDiv = document.createElement('div');
-    messageDiv.classList.add('chat-message');
-
-    // Check if the message is from the user or the bot
-    if (sender === 'user') {
-        messageDiv.classList.add('user-message');
-        messageDiv.innerHTML = `
-            <div class="chat-bubble user-bubble">${message}</div>
-            <img src="../../resources/user_image.png" alt="User" class="chat-icon">`;
-    } else {
-        messageDiv.classList.add('bot-message');
-        messageDiv.innerHTML = `
-            <img src="../../resources/bakebot_icon.png" alt="BakeBot" class="chat-icon">
-            <div class="chat-bubble bot-bubble">${message}</div>`;
-    }
-
-    chatBox.appendChild(messageDiv);
-    console.log('messageDiv appended to chatBox:', chatBox);
-}
-
 
 async function fetchBakeBotResponse(userInput, chefStyle) {
     // Convert the frontend chef style to match the backend model's expected values

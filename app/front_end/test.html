@@ -33,75 +33,64 @@
     </style>
 </head>
 <body>
-    <body>
-        <div class="container my-5">
-            <div class="row mb-4">
-                <div class="col-md-8">
-                    <h1 class="h2 font-weight-bold mb-3">Introducing BakeBot -- your ultimate kitchen companion!</h1>
-                    <p>Our fun and intelligent AI kitchen assistant is here to make cooking a breeze.
-                      Create new recipes, customize existing ones, and even upload your own recipes
-                      or recipe cards! You can ask questions with just one click. With "BakeBot,"
-                      you’ll never wonder “what’s for dinner” again!</p>
-                </div>
-            </div>
-    
-            <h2 class="h3 font-weight-bold mb-3">Let's get cooking!</h2>
-            <div class="row">
-                <div class="col-12 mb-3">
-                    <textarea class="form-control" id="userQuestion" rows="5" placeholder=
-                    "If you would like to create a new recipe, simply tell BakeBot what type of recipe
-                    you are looking for, any dietary restrictions, and any other specifications, and
-                    let the magic begin!  After your recipe is generated, you will also have the chance to ask
-                    questions about it, adjust it, and even generate pairings!  Feel free to ask 
-                    any other general cooking questions you may have.  BakeBot is here to help!"></textarea>
-                </div>
-                <div class="col-12 mb-3">
-                    <div id="select-buttons-group">
-                    <label>Chef Style:</label>
-                    <div id="chefStyleButtons" class="btn-group mb-3" role="group" aria-label="Chef Style">
-                      <button type="button" class="btn btn-secondary ml-2" value="Home Cook">Home Cook</button>
-                      <button type="button" class="btn btn-secondary ml-2" value="Pro Chef">Pro Chef</button>
-                      <button type="button" class="btn btn-secondary ml-2" value="Snarky Fun Chef">Snarky Fun Chef</button>
-                  </div>
-                </div>
-                <div class="col-12 mb-1">
-                    <label>Serving Size:</label>
-                    <div id="servingSizeButtons" class="btn-group" role="group" aria-label="Serving Size">
-                      <button type="button" class="btn btn-secondary ml-2" value="Just Me">Just Me</button>
-                      <button type="button" class="btn btn-secondary ml-2" value="For Two">For Two</button>
-                      <button type="button" class="btn btn-secondary ml-2" value="Family-Size">Family-Size</button>
-                      <button type="button" class="btn btn-secondary ml-2" value="Potluck-Size">Potluck-Size</button>
-                    </div>
-                </div>
-            </div>
-                <div class="col-12 mb-3">
-                    <button id="askBakeBot" class="btn btn-custom-green w-25 bg-inherit mb-4">ASK BAKEBOT</button>
-                </div>
-            </div>
-    
-            <h2 class="h3 font-weight-bold mb-3">Upload a Recipe / Scan a Photo</h2>
-            <div class="row">
-                <div class="col-12 mb-3">
-                    <textarea class="form-control" rows="5" placeholder="Paste the text of your recipe here or upload it below.
-                    You can upload a text file, pdf file, or even an image of a recipe card! Even if it is handwritten,
-                    we can extract the relevant text and format it in a way to use it on BakeSpace just like any other recipe.
-                    BakeBot will do its best to fill in the blanks if there is something missing on the recipe card, and you
-                    will have the chance to review and edit the recipe before it is published."></textarea>
-                </div>
-                <!--- Create a row for the file uploader and the upload recipe button -->
-                <div id = "uploadFilesRow" class = "align-content-center">
-                <div class="col-md-4 mb-3">
-                  <label for="formFileMultiple" class="form-label"></label>
-                  <input class="form-control" type="file" id="formFileMultiple" multiple>
-                </div>
-                
-                <div class="col-md-4 mb-3">
-                    <button id="uploadButton" class="btn btn-custom-red">Or Upload Recipe</button>
-                </div>
-            </div>
-            </div>
-          </div>
-
+  <div class="container my-5">
+    <div class="row mb-4">
+      <div class="col-md-12">
+        <h2 class="h2 font-weight-bold mb-3">Introducing BakeBot -- your ultimate kitchen companion!</h2>
+        <p>Our fun and intelligent AI kitchen assistant is here to make cooking a breeze.
+          Create new recipes, customize existing ones, and even upload your own recipes
+          or recipe cards! You can ask questions with just one click. With "BakeBot,"
+          you’ll never wonder “what’s for dinner” again!</p>
+      </div>
+    </div>
+    <h3 class="h3 font-weight-bold mb-3">Create a recipe from scratch:</h3>
+    <div class="row mb-3">
+      <div class="mb-1">
+        <textarea class="form-control text-left flex-auto align-text-bottom" id="userQuestion" rows="5" placeholder=
+        "If you would like to create a new recipe, simply tell BakeBot what type of recipe you are looking for, any dietary restrictions, and any other specifications, and let the magic begin!  After your recipe is generated, you will also have the chance to ask questions about it, adjust it, and even generate pairings!  Feel free to ask any other general cooking questions you may have.  BakeBot is here to help!"></textarea>
+      </div>
+    </div>
+    <div class = "row-auto mb-3 justify-start items-start text-left">
+      <div class="col-12 mb-1">
+        <label class="mr-3">Chef Style:</label>
+        <div id="chefStyleButtons" class="btn-group" role="group" aria-label="Chef Style">
+          <button type="button" class="btn btn-secondary" value="Home Cook">Home Cook</button>
+          <button type="button" class="btn btn-secondary ml-2" value="Pro Chef">Pro Chef</button>
+          <button type="button" class="btn btn-secondary ml-2" value="Snarky Fun Chef">Snarky Fun Chef</button>
+        </div>
+      </div>
+    </div>
+    <div class = "row-auto mb-3 justify-start items-start text-left">
+      <div class="col-12 mb-1">
+        <label class="mr-3">Serving Size:</label>
+        <div id="servingSizeButtons" class="btn-group" role="group" aria-label="Serving Size">
+          <button type="button" class="btn btn-secondary" value="Just Me">Just Me</button>
+          <button type="button" class="btn btn-secondary ml-2" value="For Two">For Two</button>
+          <button type="button" class="btn btn-secondary ml-2" value="Family-Size">Family-Size</button>
+          <button type="button" class="btn btn-secondary ml-2" value="Potluck-Size">Potluck-Size</button>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6 mb-3">
+        <button id="askBakeBot" class="btn btn-custom-green bg-inherit mb-4 col-md-5">ASK BAKEBOT</button>
+    </div>
+    <h3 class="h3 font-weight-bold mb-3">Or upload a recipe / scan a photo:</h3>
+    <div class="row mb-1">
+      <div class="col-12">
+        <textarea class="form-control" rows="3" placeholder="You can either paste the recipe text of your recipe in this box, or upload the recipe below.  Uploaded recipes can be in the format of a text file, pdf, or an image file.  Once uploaded, the text will be extracted and formatted, and you will have the chance to make edits as well as ask BakeBot any questions you may have about the recipe."></textarea>
+      </div>
+    </div>
+    <!--- Create a row for the file uploader and the upload recipe button -->
+    <div class="row align-items-center justify-items-center" id="uploadRecipeRow">
+      <div class="col-md-4 mb-3">
+        <label for="formFileMultiple" class="form-label"></label>
+        <input class="form-control" type="file" id="formFileMultiple" multiple>
+      </div>
+      <div class="col-md-4 mb-3 mt-4">
+        <button id="uploadButton" class="btn btn-custom-red">Upload Recipe</button>
+      </div>
+    </div>
+  </div>
 <script>
   // Function to handle chef style button clicks
   document.querySelectorAll('#chefStyleButtons button').forEach(button => {
