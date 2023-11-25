@@ -10,7 +10,6 @@ from app.dependencies import (
   get_openai_api_key, 
   get_openai_org, 
   get_openai_client, 
-  get_anthropic_client
 )
 from app.models.recipe import Recipe
 from app.utils.recipe_utils import parse_recipe, create_message_from_recipe

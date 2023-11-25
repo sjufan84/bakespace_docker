@@ -95,8 +95,8 @@ def extract_json_from_response(response_text):
         
         try:
             # Parse the JSON data
-            extracted_json = json.loads(json_text)
-            return extracted_json
+            #extracted_json = json.loads(json_text)
+            return json_text
         except json.JSONDecodeError as e:
             print(f"Error parsing JSON: {e}")
             return None
@@ -106,7 +106,7 @@ def extract_json_from_response(response_text):
 
 def format_prompt(system_prompt: str, user_prompt: str, chat_history: List[ChatMessage] = None):
   """ Format the prompt for the Anthropic API. """
-  prompt = f"{system_prompt}.  Your chat history so far is {chat_history}. {HUMAN_PROMPT} {user_prompt} {AI_PROMPT}"
+  prompt = f"{system_prompt}.  Your chat history, if any, is {chat_history}. {HUMAN_PROMPT} {user_prompt} {AI_PROMPT}"
   
   return prompt
 
@@ -142,46 +142,42 @@ def chat(request: ChatRequest):
   return {"chef_response" : response.completion, "chat_history" : chat_history}
 
 # Define the basic recipe generation function
-def create_recipe(request: RecipeRequest):
+def create_recipe(specifications: str, serving_size: str):
   """ Create a recipe with the Anthropic API. """
   # Create a prompt for the model to generate the recipe based on the user's specifications,
   # serving size, and chef type
-  chef_type = request.chef_type
-  system_prompt = prompts_dict[request.chef_type]["initial_prompt"]
-  system_prompt += f"""The user would like you to generate
-  a recipe for them with the following specifications: {request.specifications}.
-  The serving size is {request.serving_size}. Please generate a recipe for them.
-  Return the recipe portion of your response as JSON object in the following format:\n\n
-  {AnthropicRecipe.schema_json(indent=2)} """
+  system_prompt = f"""You are a master chef helping a user
+                create a recipe based on their specifications {specifications} and the
+                serving size {serving_size}.  Even if the specifications are just a dish name or type,
+                go ahead and create a recipe.  Make sure the recipe name is fun and unique. 
+                Return the recipe as a JSON object in the following format:\n\n
+                {AnthropicRecipe.schema_json(indent=2)}"""
 
-  user_prompt = f"Hi, Chef.  Please help me generate a recipe based on the specifications {request.specifications}\
-  for a serving size of {request.serving_size}."
+  user_prompt = f"Hi, Chef.  Please help me generate a recipe based on the specifications\
+  {specifications} and the serving size {serving_size}."
 
   # Convert the user message into a ChatMessage object
-  user_message = ChatMessage(message=user_prompt, role="user")
+  #user_message = ChatMessage(message=user_prompt, role="user")
   # If there is no chat history, create one
-  if not request.chat_history:
-    chat_history = [user_message]
-  else:
-    chat_history = request.chat_history + [user_message]
-  prompt = format_prompt(system_prompt, user_prompt, request.chat_history)
+  #if not request.chat_history:
+  #  chat_history = [user_message]
+  #else:
+  #  chat_history = request.chat_history + [user_message]
+  prompt = format_prompt(system_prompt, user_prompt)
 
   # Call the chat function
   response = anthropic.completions.create(
     prompt=prompt,
-    temperature=prompts_dict[chef_type]["temperature"],
-    max_tokens_to_sample=prompts_dict[chef_type]["max_tokens_to_sample"],
+    temperature=0.7,
+    max_tokens_to_sample=1000,
     model="claude-2.1",
     stream=False
   )
   recipe = extract_json_from_response(response.completion)
-  # Convert the response into a ChatMessage object
-  chef_message = ChatMessage(message=response.completion, role="assistant")
-  # Add the chef message to the chat history
-  chat_history.append(chef_message)
-  
-  # Return the response
-  return {"chef_response" : response.completion, "recipe" : recipe, "chat_history" : chat_history}
+  if recipe:
+    return recipe
+  else:
+    return response.completion
 
 def adjust_recipe(request: AdjustRecipeRequest):
   """ Adjust a recipe based on the user's adjustments. """

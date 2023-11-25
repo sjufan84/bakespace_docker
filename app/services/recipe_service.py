@@ -7,6 +7,7 @@ from openai import OpenAI
 from openai import OpenAIError
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from models.recipe import Recipe, FormattedRecipe # noqa: E402
+from services.anthropic_service import AnthropicRecipe # noqa: E402
 
 # Load environment variables
 load_dotenv()
@@ -28,7 +29,7 @@ serving_size_dict = {
 # Convert the Recipe model to a dictionary
 recipe_dict = Recipe.schema()
 # Establish the core models that will be used by the chat service
-core_models = ["gpt-3.5-turbo-1106", 
+core_models = ["gpt-3.5-turbo-1106", "gpt-4-1106-preview",
 "gpt-3.5-turbo-16k", "gpt-3.5-turbo-0613", "gpt-3.5-turbo"]
 
 # Create Recipe Functions
@@ -43,8 +44,8 @@ def create_recipe(specifications: str, serving_size: str):
                 create a recipe based on their specifications {specifications} and the
                 serving size {serving_size}.  Even if the specifications are just a dish name or type,
                 go ahead and create a recipe.  Make sure the recipe name is fun and unique. 
-                Return the recipe as a JSON object with as close to the same
-                schema as the Recipe {Recipe} model as possible.  Return only the recipe object.""",
+                Return the recipe as a JSON object in the following format:\n\n
+                {AnthropicRecipe.schema()}""",
         },
     ]
     # Create a list of models to loop through in case one fails
@@ -169,12 +170,12 @@ def format_recipe(recipe_text: str):
             "role" : "system", "content" : f"""You are a master chef helping a user
             format a recipe that they have uploaded.  This may be extracted from a photo of a 
             recipe, so you may need to infer or use your knowledge as a master chef to fill out
-            the rest of the recipe.  The extracted recipe text is {recipe_text}.
-            The recipe should be returned as a JSON object as close to the same schema as the
-            Recipe {FormattedRecipe} model.  Mostly we want the user to be able to save our
-            recipe in the database, ask questions about it, etc., so we need it to be as close
-            to our schema as possible. If you simply cannot format the recipe, create a new recipe
-            that you think will be similar to the one the user uploaded.  Return only the recipe object.""",
+            the rest of the recipe.  The extracted recipe text is {recipe_text}.  The goal is
+            to return the recipe as a JSON object in the following format:\n\n
+            {FormattedRecipe.schema()}\n\n
+            If you cannot fill out the entire schema, that is okay.  Just fill out as much as you
+            can and infer the rest or leave it blank.  The user will then have the chance to have
+            you adjust the recipe later.  Return only the recipe object.""",
         }
     ]
 

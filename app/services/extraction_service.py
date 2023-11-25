@@ -9,23 +9,23 @@ from app.dependencies import get_google_vision_credentials, get_openai_client
 credentials = get_google_vision_credentials()
 client = get_openai_client()
 
-def extract_text_file_contents(self, files) -> str:
+def extract_text_file_contents(files) -> str:
     """ Extract the text from the text file."""
     total_file_contents = ''
     for file in files:
         file_contents = file
-        file_contents = self.spellcheck_text(file_contents)
+        #file_contents = self.spellcheck_text(file_contents)
         total_file_contents += file_contents
     return file_contents
 
-def extract_pdf_file_contents(self, files) -> str:
+def extract_pdf_file_contents(files: List[UploadFile]) -> str:
     """ Extract the text from the pdf file. """
     file_contents = ''
     for file in files:
         pdf = pdfplumber.open(file)
         for page in pdf.pages:
             file_contents += page.extract_text()
-            file_contents = self.spellcheck_text(file_contents)
+            #file_contents = spellcheck_text(file_contents)
     return file_contents
 
 async def extract_image_text(files: List[bytes]) -> str:

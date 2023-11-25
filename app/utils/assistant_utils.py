@@ -10,8 +10,12 @@ from openai import OpenAI
 from dotenv import load_dotenv
 # Add the app directory to the system path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from services.recipe_service import create_recipe,\
-adjust_recipe, format_recipe, initial_pass # noqa E402
+from services.recipe_service import ( # noqa E402
+  adjust_recipe, # noqa E402
+  format_recipe, # noqa E402
+  initial_pass # noqa E402
+) # noqa E402
+from services.anthropic_service import create_recipe # noqa E402
 from services.pairing_service import generate_pairings # noqa E402
 from services.image_service import generate_image # noqa E402
 from app.services.run_service import RunService # noqa E402
@@ -147,7 +151,7 @@ def poll_run_status(run_id: str, thread_id: str):
             run_status = run
         else:
             # If the status is "queued" or "in-progress", wait and then retrieve status again
-            time.sleep(1.5)
+            time.sleep(1.75)
             run_status = client.beta.threads.runs.retrieve(thread_id=thread_id, run_id=run_id)
 
     # Gather the final messages after completion
