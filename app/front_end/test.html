@@ -154,7 +154,7 @@
     .then(data => {
       localStorage.setItem('recipeData', data);
       // Redirect to the display page with the token as a query parameter
-      window.location.href = `test2.html`;
+      window.location.href = `test3.html`;
     })
     .catch(error => console.error('Error:', error))
   });
@@ -176,16 +176,14 @@ document.getElementById('uploadButton').addEventListener('click', function() {
     })
     .then(response => response.json())
     .then(data => {
-      // Handle response
-      //localStorage.setItem('uploadData', data);
-      // Display the data on the page
+      // Update the uploadedRecipeData variable
+      localStorage.setItem('uploadedRecipeData', data);
       console.log(data);
       // Redirect to the display page with the token as a query parameter
-      //window.location.href = `test2.html`;
+      window.location.href = `test3.html`;
     })
     .catch(error => console.error('Error:', error));
 });
-
 </script>
 </body>
 </html>

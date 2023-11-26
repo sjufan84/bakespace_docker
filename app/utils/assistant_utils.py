@@ -151,7 +151,7 @@ def poll_run_status(run_id: str, thread_id: str):
             run_status = run
         else:
             # If the status is "queued" or "in-progress", wait and then retrieve status again
-            time.sleep(1.75)
+            time.sleep(1.25)
             run_status = client.beta.threads.runs.retrieve(thread_id=thread_id, run_id=run_id)
 
     # Gather the final messages after completion

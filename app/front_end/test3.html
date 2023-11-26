@@ -12,7 +12,6 @@
     <style>
 
       .recipe-container {
-          max-height: 600px; /* Adjust the height as needed */
           overflow-y: auto; /* Adds a scrollbar when content overflows */
       }
 
@@ -32,7 +31,7 @@
       <div class="row col-md-12">
         <!-- Recipe Display Column -->
         <div class="col-md-8 flex-auto">
-          <div class="flex-auto recipe-container bg-light shadow rounded p-4">
+          <div class="flex-auto recipe-container bg-light shadow rounded p-4 max-h-3/4">
             <h2 class="h3 font-weight-bold mb-3" id="recipeName">Your Recipe:</h2>
             <div id="recipeContent" class="recipe-content"></div>
           </div>
@@ -40,7 +39,9 @@
     
         <!-- Chat Column -->
         <div class="col-md-4 flex-auto" id="chatColumn">
-            <div id="chatBox" class="card h-100 p-3 bg-light shadow rounded flex-grow">
+          <!-- Chat container row -->
+          <div class="row-span-2 col-md-12 ">
+            <div id="chatBox" class="card p-3 bg-light shadow rounded overflow-auto flex-auto row-span-2">
               <div id="chat-messages" class="flex-auto overflow-y-auto">
                 <!-- BakeBot message -->
                 <div class="bot-message mb-2 d-flex justify-content-start align-items-center mr-2" id="bot-message">
@@ -54,8 +55,7 @@
                   <div class="chat-bubble user-bubble mr-3 text-end">I hate you!</div>
                 </div>
               </div>
-            
-             <!-- User input area -->
+              <!-- User input area -->
               <div class="input-area" id="chatInputArea">
                 <div class="row mb-2 p-2 align-bottom">
                   <textarea class="form-control" placeholder="Type your message..." id="chatInput"></textarea>
@@ -72,31 +72,181 @@
                   <p class="p-2 col-md-12 font-bold">Some examples of where we can go from here:</p>
                   <button id="generatePairings" type="promptInput" class="btn border-black col-md-5 col-md-12 mb-1">Can I get a wine pairing with this?</button>
                   <button id="generateImage" type="promptInput" class="btn border-black col-md-12 mb-1">I'd love to create an image of this recipe.</button>
+                  <button id="adjustRecipe" type="promptInput" class="btn border-black col-md-12 mb-1">I'd like to adjust this recipe.</button>
                   <button id="saveRecipe" type="promptInput" class="btn border-black col-md-12">I'd like to save this recipe.</button>   
                 </div>
               </div>
             </div>
           </div>
-        <div id="lower-contents" class="row grid grid-cols-2 flex-auto">
-          <!-- Tool Outputs Column -->
-          <div class="col-lg-8 col-md-12 md:w-2/3 flex-row">
-            <div id="toolOutputs" class="card h-100">
-            <!-- Tool outputs will be displayed here -->
-            </div>
-          </div>
+        </div>
+        <!-- Tool Outputs Column -->
+          <!-- We want to reserve two columns directly below the recipe
+        container and the chat column that that will display the image and / or
+        or the pairing messages.  If there is only one tool output,
+        it should take up the same width and height as the recipe container.
+        If there are two, they should each take up 1/2 of the width of the
+        recipe container but be the same height as the recipe.  All
+        overflow should be handled automatically  -->
+        <div class="row col-md-12" id="toolOutputs">
         </div>
       </div>
 </body>
 <script>
-  let recipeData = JSON.parse(localStorage.getItem('recipeData'));
-  let threadId = recipeData.thread_id;
+  let threadId = null;
   let toolName = null;
-  let recipeName = JSON.parse(recipeData.tool_return_values[0].output).recipe_name;
-  // Import showdown library
+  let toolOutput = null;
+  let message = null;
+  let recipeName = null;
+  let recipeData = null;
+  let uploadedRecipeData = null;
+  let recipeContent = null;
   let converter = new showdown.Converter();
   let tools_list = ["create_recipe", "adjust_recipe", "generate_pairings", 
   "generate_image", "format_recipe", "initial_pass", "get_thread_tool_outputs",
   "get_specific_thread_tool_outputs"]
+  let metadata = null;
+
+  // Check to see if there is a recipeData or uploadedRecipeData in local storage
+  // If there is uploadedRecipe data, display the fields as editable
+  // If there is recipeData, display the recipe
+  //if (localStorage.getItem('recipeData')) {
+  //  let recipeData = JSON.parse(localStorage.getItem('recipeData'));
+  //  let threadId = recipeData.thread_id;
+    // Display the recipe
+  //  loadRecipeData(recipeData);
+  //}
+  if (localStorage.getItem('uploadedRecipeData')) {
+    // Display the editable fields
+    displayAndEditRecipe(JSON.parse(localStorage.getItem('uploadedRecipeData')));
+  }
+    // Create a function to load in the local recipeData and then display the results in the 
+  // recipeContent div's innerHTML
+  function loadRecipeData(recipeData) {
+    console.log('recipeData:', recipeData)
+    // Set the recipeName h2 to the recipe name
+    let recipe_name = JSON.parse(recipeData.tool_return_values[0].output).recipe_name;
+    document.getElementById('recipeName').innerHTML = recipe_name;
+    // Convert the recipe data to HTML
+    let html = converter.makeHtml(recipeData.message);
+    // Display the recipe data in the recipeContent div
+    document.getElementById('recipeContent').innerHTML = html;
+  }
+
+  function displayAndEditRecipe(uploadedRecipe) {
+  // Create the form
+  let form = document.createElement('form');
+  form.className = 'needs-validation';
+  form.noValidate = true;
+  // Overflow should be handled automatically
+  form.style.overflow = 'auto';
+  // Max height of the form should be 3/4 of the recipe container
+  form.style.maxHeight = '75%';
+
+  // For each property in the uploadedRecipe object
+  for (let property in uploadedRecipe) {
+    // Check if the property is 'ingredients' or 'directions'
+    if (property === 'ingredients' || property === 'directions') {
+      // Create a list group
+      let listGroup = document.createElement('ul');
+      listGroup.className = 'list-group mb-3'; // Add margin-bottom for space between fields
+
+      // For each item in the property array
+      for (let i = 0; i < uploadedRecipe[property].length; i++) {
+        // Create a list group item
+        let listItem = document.createElement('li');
+        listItem.className = 'list-group-item';
+
+        // Create an input field
+        let input = document.createElement('input');
+        input.id = property + i;
+        input.value = uploadedRecipe[property][i];
+        input.className = 'form-control';
+        input.required = true;
+
+        // Append the input field to the list group item
+        listItem.appendChild(input);
+
+        // Append the list group item to the list group
+        listGroup.appendChild(listItem);
+      }
+
+      // Append the list group to the form
+      form.appendChild(listGroup);
+    } else {
+      // Create a form group
+      let formGroup = document.createElement('div');
+      formGroup.className = 'form-group mb-3'; // Add margin-bottom for space between fields
+
+      // Create a label
+      let label = document.createElement('label');
+      label.textContent = property.charAt(0).toUpperCase() + property.slice(1) + ':'; // Capitalize and add a colon
+      label.for = property;
+      label.className = 'form-label'; // Add Bootstrap class for bold text
+
+      // Create an input field
+      let input = document.createElement('input');
+      input.id = property;
+      input.value = uploadedRecipe[property];
+      input.className = 'form-control';
+      input.required = true;
+
+      // Append the label and input field to the form group
+      formGroup.appendChild(label);
+      formGroup.appendChild(input);
+
+      // Append the form group to the form
+      form.appendChild(formGroup);
+    }
+  }
+
+  // Create a submit button
+  let submitButton = document.createElement('button');
+  submitButton.type = 'submit';
+  submitButton.textContent = 'Submit';
+  submitButton.className = 'btn btn-primary mt-3'; // Add margin-top for space above the button
+
+  // Append the submit button to the form
+  form.appendChild(submitButton);
+
+  // Add an event listener to the form
+  form.addEventListener('submit', function(event) {
+    // Prevent the default form submission
+    event.preventDefault();
+
+    // Get the new values from the input fields and update the uploadedRecipe object
+    for (let property in uploadedRecipe) {
+      if (property === 'ingredients' || property === 'directions') {
+        for (let i = 0; i < uploadedRecipe[property].length; i++) {
+          uploadedRecipe[property][i] = document.getElementById(property + i).value;
+        }
+      } else {
+        uploadedRecipe[property] = document.getElementById(property).value;
+      }
+    }
+    // Create a new recipe object
+    let uploadedRecipe = {
+      'recipe_name': uploadedRecipe.recipe_name,
+      'ingredients': uploadedRecipe.ingredients,
+      'directions': uploadedRecipe.directions,
+      'preptime': uploadedRecipe.prep_time,
+      'cooktime': uploadedRecipe.cook_time,
+      'totaltime': uploadedRecipe.total_time,
+      'servings': uploadedRecipe.servings,
+      'calories': uploadedRecipe.calories,
+    };
+      // Re-submit the recipe
+    // You'll need to replace this with your own function for submitting the recipe
+    submitRecipe(uploadedRecipe);
+  });
+
+  // Append the form to the DOM
+  // You'll need to replace 'recipeContent' with the id of the element where you want to display the form
+  document.getElementById('recipeContent').appendChild(form);
+}
+
+// Create a function to submit the recipe
+function submitRecipe(recipe) {}
+  // @TODO - Add your code here
 
   function convertChefStyle(chefStyle) {
       const chefStyleMap = {
@@ -133,22 +283,6 @@
     }
   }
     
-  // Create a function to load in the local recipeData and then display the results in the 
-  // recipeContent div's innerHTML
-  function loadRecipeData() {
-    console.log('recipeData:', recipeData)
-    // Set the recipeName h2 to the recipe name
-    document.getElementById('recipeName').innerHTML = recipeName;
-    // Convert the recipe data to HTML
-    let html = converter.makeHtml(recipeData.message);
-    // Display the recipe name in the recipeName h2
-    //document.getElementById('recipeName').innerHTML = recipeName;
-    // Display the recipe data in the recipeContent div
-    document.getElementById('recipeContent').innerHTML = html;
-  }
-
-  // Display the recipe data upon the page loading
-  loadRecipeData();
   // Create a listener for the generatePairings button
   document.getElementById('generatePairings').addEventListener('click', function() {
     let message = "Please generate wine pairings for a Kung Pao Chicken dish.";
@@ -183,80 +317,6 @@
     }
 });
 
-function generateRecipeCard(recipeData) {
-    // Define an HTML template with placeholders
-    const template = `
-        <div class="recipe-card">
-            <h1 class="recipe-name">{{recipe_name}}</h1>
-            <p class="serving-size">Serving Size: {{serving_size}}</p>
-            <p class="calories">Calories: {{calories}}</p>
-            <p class="fun-fact">Fun Fact: {{fun_fact}}</p>
-            <h2>Ingredients</h2>
-            <ul class="ingredients-list">
-                {{ingredients}}
-            </ul>
-            <h2>Directions</h2>
-            <ol class="directions-list">
-                {{directions}}
-            </ol>
-            <p class="prep-time">Preparation Time: {{prep_time}} minutes</p>
-            <p class="cook-time">Cooking Time: {{cook_time}} minutes</p>
-        </div>
-    `;
-    // Replace the placeholders with the recipe data
-    let recipeCard = template
-        .replace('{{recipe_name}}', recipeData.recipe_name)
-        .replace('{{serving_size}}', recipeData.serving_size)
-        .replace('{{calories}}', recipeData.calories)
-        .replace('{{fun_fact}}', recipeData.fun_fact)
-        .replace('{{ingredients}}', generateIngredientsList(recipeData.ingredients))
-        .replace('{{directions}}', generateDirectionsList(recipeData.directions))
-        .replace('{{prep_time}}', recipeData.prep_time)
-        .replace('{{cook_time}}', recipeData.cook_time);
-    return recipeCard;
-}
-
-// Create the ingredients list
-function generateIngredientsList(ingredients) {
-    let ingredientsList = '';
-    console.log('ingredients:', ingredients)
-    ingredients.forEach(ingredient => {
-        ingredientsList += `<li>${ingredient}</li>`;
-    });
-    return ingredientsList;
-}
-
-// Create the directions list
-function generateDirectionsList(directions) {
-    let directionsList = '';
-    console.log('directions:', directions)
-    directions.forEach(direction => {
-        directionsList += `<li>${direction}</li>`;
-    });
-    return directionsList;
-}
-
-// Create a function to generate a pairing card
-function generatePairingCards(pairingData) {
-   // This is a parsed JSON object with a list of two
-   // pairings.  For each pairing we want to display the
-   // pairing_text and the pairing_reason
-  let pairingCards = '';
-  const template = `
-      <div class="pairing-card">
-          <h3 class="pairing-text">{{pairing_text}}</h3>
-          <p class="pairing-reason">{{pairing_reason}}</p>
-      </div>
-    `;
-  pairingData.forEach(pairing => {
-      pairingCards += template
-          .replace('{{pairing_text}}', pairing.pairing_text)
-          .replace('{{pairing_reason}}', pairing.pairing_reason);
-    });
-
-  return pairingCards;
-}
-
 function addToolOutputContainer(toolOutput, toolName) {
   // Get the tool outputs container
   let toolOutputsContainer = document.getElementById('toolOutputs');
@@ -271,14 +331,7 @@ function addToolOutputContainer(toolOutput, toolName) {
   toolOutputsContainer.appendChild(toolOutputDiv);
 }
 
-function displayToolOutput(tool, message) {
-  let toolName = tool.tool_name;
-  let toolOutput = tool.output;
-  console.log(message);
-  console.log('toolName:', toolName);
-  console.log('toolOutput:', toolOutput);
-  toolOutput = JSON.parse(toolOutput);
-
+function displayPairingOutput(message) {
   // Get the output container element
   let outputContainer = document.getElementById('output-container');
 
@@ -314,12 +367,9 @@ function displayToolOutput(tool, message) {
   // Append the output div to the output container
   outputContainer.appendChild(outputDiv);
 
-    // Append the output div to the output container
-    outputContainer.appendChild(outputDiv);
-
-    // Add a new container for the tool output
-    addToolOutputContainer(toolOutput, toolName);
-  }
+  // Add a new container for the tool output
+  addToolOutputContainer(toolOutput, toolName);
+}
 
 async function fetchBakeBotResponse(userInput, chefStyle) {
     // Convert the frontend chef style to match the backend model's expected values
