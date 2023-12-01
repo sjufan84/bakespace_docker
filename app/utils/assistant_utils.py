@@ -15,9 +15,8 @@ from services.recipe_service import ( # noqa E402
   format_recipe, # noqa E402
   initial_pass, # noqa E402
   save_recipe, # noqa E402
-  create_recipe # noqa E402
 ) # noqa E402
-from services.anthropic_service import AnthropicRecipe # noqa E402
+from services.anthropic_service import AnthropicRecipe, create_recipe # noqa E402
 from services.pairing_service import generate_pairings # noqa E402
 from services.image_service import generate_image # noqa E402
 from app.models.pairing import Pairing # noqa E402

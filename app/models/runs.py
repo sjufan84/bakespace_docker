@@ -1,7 +1,7 @@
 """ Run objects for the app """
 import os
 import sys
-from typing import List, Optional
+from typing import Optional
 from pydantic import BaseModel, Field
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(os.getcwd()))))
 
@@ -13,7 +13,7 @@ class CreateMessageRunRequest(BaseModel):
     added to. Must be one of ['adventurous_chef', 'home_cook', 'pro_chef']")
     message_content: str = Field(..., description="The content of the message to be added to the thread.")
     message_metadata: Optional[dict] = Field({}, description="The metadata for the message.")
-    file_ids: Optional[List[str]] = []
+    #file_ids: Optional[List[str]] = []
 
 class CreateThreadRunRequest(BaseModel):
     """ Create Thread Run Request Model """
