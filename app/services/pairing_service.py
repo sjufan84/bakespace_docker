@@ -22,7 +22,7 @@ core_models = ["gpt-3.5-turbo-1106",
 
 # Create a function to generate a pairing
 # Create Recipe Functions
-def generate_pairings(pairing_type: str, recipe_description: str):
+def generate_pairings(pairing_type: str, recipe: dict):
     """ Generate a recipe based on the specifications provided """
     # Define the first system message.  This let's the model know what type of output\
     # we are expecting and in what format it needs to be in.
@@ -30,7 +30,7 @@ def generate_pairings(pairing_type: str, recipe_description: str):
     messages = [
         {
             "role": "system", "content": f"""You are a master chef helping a user
-            pair a {pairing_type} with a recipe {recipe_description}.  Please provide a list of 2 pairings
+            pair a {pairing_type} with a recipe {recipe}.  Please provide a list of 2 pairings
             in the format of a JSON list of dictionaries with the following keys: {Pairing.schema()["properties"].keys()}.
             Return only the list of pairings."""
         },
@@ -46,7 +46,7 @@ def generate_pairings(pairing_type: str, recipe_description: str):
             response = client.chat.completions.create(
                 model=model,
                 messages=messages,
-                temperature=0.75,
+                temperature=0.5,
                 top_p=1,
                 max_tokens=750,
                 response_format = {"type" : "json_object"}

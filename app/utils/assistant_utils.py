@@ -13,11 +13,14 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from services.recipe_service import ( # noqa E402
   adjust_recipe, # noqa E402
   format_recipe, # noqa E402
-  initial_pass # noqa E402
+  initial_pass, # noqa E402
+  save_recipe, # noqa E402
+  create_recipe # noqa E402
 ) # noqa E402
-from services.anthropic_service import create_recipe # noqa E402
+from services.anthropic_service import AnthropicRecipe # noqa E402
 from services.pairing_service import generate_pairings # noqa E402
 from services.image_service import generate_image # noqa E402
+from app.models.pairing import Pairing # noqa E402
 from app.services.run_service import RunService # noqa E402
 from app.dependencies import get_openai_client # noqa E402
 
@@ -68,18 +71,57 @@ def get_specific_thread_tool_outputs(tool_names: List[str], thread_id: str = Non
 
     return filtered_tool_outputs
 
-available_functions = {
-    "functions" : {
-    "create_recipe": create_recipe,
-    "adjust_recipe": adjust_recipe,
-    "generate_pairings": generate_pairings,
-    "generate_image": generate_image,
-    "format_recipe": format_recipe,
-    "initial_pass": initial_pass,
-    "get_thread_tool_outputs": get_thread_tool_outputs,
-    "get_specific_thread_tool_outputs": get_specific_thread_tool_outputs,
+functions_dict = {
+    "adjust_recipe": {
+        "function" : adjust_recipe,
+        # For each field in the returned recipe, map a key to the field name
+        "metadata_message": "Current adjusted condrecipe: ",
+    },
+    "create_recipe": {
+        "function" : create_recipe,
+        "metadata_message": "Current recipe: ",
+    },
+    "format_recipe": {
+        "function" : format_recipe,
+        "metadata_message": "Current formatted recipe: ",
+    },
+    #"generate_pairings": {
+    #    "function" : generate_pairings,
+    #    "metadata_message": "Current pairings: ",
+    #},
+    "generate_image": {
+        "function" : generate_image,
+        "metadata_message": "Current image: ",
+    },
+    "initial_pass": {
+        "function" : initial_pass,
+        "metadata_message": "Current initial pass: ",
+    },
+    "save_recipe": {
+        "function" : save_recipe,
+        "metadata_message": "Current saved recipe: ",
     }
 }
+
+# Define a function to add messages to the thread for metadata storage
+def add_message(thread_id: str, function_name: str = None,
+  meta_map: dict = None):
+  """ Add a message to the thread """ 
+  if not thread_id:
+    raise ValueError("Thread ID is required.")
+  if not function_name:
+    raise ValueError("Function name is required.")
+  if not meta_map:
+    raise ValueError("Metadata is required.")
+  # Create the message
+  thread_message = client.beta.threads.messages.create(
+    thread_id=thread_id,
+    role="user",
+    content=functions_dict[function_name]["metadata_message"],
+    metadata=meta_map
+  )
+
+  return thread_message
 
 def get_session_id(session_id: str = Query(...)):
     """ Dependency function to get the session id from the header """
@@ -91,9 +133,11 @@ def get_run_service(session_id:str = Depends(get_session_id)):
 def call_named_function(function_name: str, **kwargs):
     try:
         # Check if the function name exists in the dictionary
-        if function_name in available_functions["functions"]:
-            # Call the function with unpacked keyword arguments
-            return available_functions["functions"][function_name](**kwargs)
+        if function_name in functions_dict:
+            # Call the function
+            function_output = functions_dict[function_name]["function"](**kwargs)
+            # Return the function output
+            return function_output
         else:
             return f"Function {function_name} not found."
     except TypeError as e:
@@ -141,6 +185,10 @@ def poll_run_status(run_id: str, thread_id: str):
                     "tool_call_id": tool_call_id,
                     "output": function_output
                 })
+                # Add a message to the thread for metadata storage
+                #add_message(thread_id=thread_id,
+                #function_name=function_name, meta_map=parameters)
+                # Append the tool return values
                 tool_return_values.append({
                     "tool_name" : function_name,
                     "output": function_output
@@ -151,7 +199,7 @@ def poll_run_status(run_id: str, thread_id: str):
             run_status = run
         else:
             # If the status is "queued" or "in-progress", wait and then retrieve status again
-            time.sleep(1.25)
+            time.sleep(1.45)
             run_status = client.beta.threads.runs.retrieve(thread_id=thread_id, run_id=run_id)
 
     # Gather the final messages after completion

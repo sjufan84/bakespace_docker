@@ -2,6 +2,7 @@
 import logging
 import os
 import sys
+import json
 from dotenv import load_dotenv
 from openai import OpenAI
 from openai import OpenAIError
@@ -58,7 +59,7 @@ def create_recipe(specifications: str, serving_size: str):
             response = client.chat.completions.create(
                 model=model,
                 messages=messages,
-                temperature=1,
+                temperature=0.75,
                 top_p=1,
                 max_tokens=750,
                 response_format = {"type" : "json_object"}
@@ -256,3 +257,11 @@ def initial_pass(raw_recipe_text: str):
         except TimeoutError as a:
             print(f"Timeout error: {str(a)}")
             continue
+
+# Save the recipe to the MySQL database
+# For now this will just return dummy data
+def save_recipe(recipe: object = None):
+    """ Save the recipe to the MySQL database """
+    # Parse the recipe object to save it to the database
+    #parsed_recipe = json.dumps(recipe)  
+    return "Recipe saved successfully."
