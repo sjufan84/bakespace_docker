@@ -12,7 +12,8 @@ class CreateMessageRunRequest(BaseModel):
     chef_type: str = Field("home_cook", description="The assistant choice for the run to be\
     added to. Must be one of ['adventurous_chef', 'home_cook', 'pro_chef']")
     message_content: str = Field(..., description="The content of the message to be added to the thread.")
-    message_metadata: Optional[dict] = Field({}, description="The metadata for the message.")
+    message_metadata: Optional[object] = Field({}, description="The metadata for the message.  A mapping of\
+    key-value pairs that can be used to store additional information about the message.")
     #file_ids: Optional[List[str]] = []
 
 class CreateThreadRunRequest(BaseModel):

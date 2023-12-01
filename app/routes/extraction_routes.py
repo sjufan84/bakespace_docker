@@ -4,14 +4,14 @@ from typing import List
 from pathlib import Path
 from fastapi import (
   APIRouter, UploadFile, Query,
-  HTTPException, File, Body
+  HTTPException, File
 )
-from app.models.recipe import Recipe
 from app.services.extraction_service import (
   extract_image_text, extract_pdf_file_contents,
   extract_text_file_contents
 )
-from app.services.recipe_service import format_recipe
+#from app.services.recipe_service import format_recipe
+from app.services.anthropic_service import AnthropicRecipe, format_recipe
 
 UPLOAD_DIR = Path(__file__).parent.parent.parent / "uploads"
 
@@ -45,11 +45,15 @@ file_handlers = {
 
 @router.post(
     "/upload-files/",
-    response_description="The processed text from uploaded files.",
+    response_description=f"The processed text from uploaded files.  Will be returned\
+    as a JSON object with the fields of {AnthropicRecipe.schema()['properties'].keys()}.",
     summary="Upload and process files.",
-    description="Upload one or more files. The files should be of the same type and one of the following: pdf, txt, jpg, jpeg, png. The file contents are extracted and processed.",
-    tags=["Recipe Text Extraction Endpoints"])
-
+    description="Upload one or more files. The\
+    files should be of the same type and one of the following: pdf, txt, jpg, jpeg, png.\
+    The file contents are extracted and processed.",\
+    tags=["Recipe Text Extraction Endpoints"],
+    responses={200: {"model": AnthropicRecipe}},
+)
 async def extract_and_format_recipes(
     files: List[UploadFile] = File(..., description="The list of files to upload.")):
     """ Define the function to upload files.  Takes in a list of files. """
@@ -80,6 +84,8 @@ async def extract_and_format_recipes(
       formatted_text = format_recipe(extracted_text)
     # Return the extracted text
     return formatted_text
+
+
 @router.post(
     "/format-recipe",
     response_description="The formatted recipe text.",
@@ -94,3 +100,4 @@ async def format_text_endpoint(
     recipe = format_recipe(recipe_text)
     # Return the formatted recipe
     return recipe
+    

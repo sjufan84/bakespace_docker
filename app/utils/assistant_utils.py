@@ -14,7 +14,7 @@ from services.recipe_service import ( # noqa E402
   adjust_recipe, # noqa E402
   format_recipe, # noqa E402
   initial_pass, # noqa E402
-  save_recipe, # noqa E402
+  save_recipe, # noqa E402 # noqa E402
 ) # noqa E402
 from services.anthropic_service import AnthropicRecipe, create_recipe # noqa E402
 from services.pairing_service import generate_pairings # noqa E402
@@ -198,7 +198,7 @@ def poll_run_status(run_id: str, thread_id: str):
             run_status = run
         else:
             # If the status is "queued" or "in-progress", wait and then retrieve status again
-            time.sleep(1.45)
+            time.sleep(1.5)
             run_status = client.beta.threads.runs.retrieve(thread_id=thread_id, run_id=run_id)
 
     # Gather the final messages after completion
@@ -279,3 +279,19 @@ def list_thread_run_steps(thread_id: str):
         steps_list.append(steps)
 
       return steps_list
+
+def create_message(thread_id: str, content: str, metadata: object = None):
+    """ Create a message in the thread """
+    client = get_openai_client()
+    # Check to see if there is a thread_id in the call, if not,
+    # load the thread_id from the store
+    if not thread_id:
+        raise ValueError("Thread ID is required.")
+    # Create the message
+    message = client.beta.threads.messages.create(
+        thread_id=thread_id,
+        role="user",
+        content=content,
+        metadata=metadata
+    )
+    return message

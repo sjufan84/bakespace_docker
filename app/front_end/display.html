@@ -14,50 +14,79 @@
         width: 30px; /* Adjust this value to your liking */
         height: 30px; /* Adjust this value to your liking */
       }
-      .user-bubble {
-        background-color: #7CBCA6; /* Custom green color */
-        color: white;
-      }
+
       .flex-auto {
         flex: 1 1 auto;
       }
       .scrollable-content {
-        overflow-y: auto;
-        max-height: calc(100vh - 250px); /* Adjust this value as needed */
+          overflow-y: auto; /* Enables vertical scrolling */
+          max-height: calc(100vh - 50px); /* Adjust max height as needed */
       }
-      .equal-height {
+
+      .equal-height-column {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+      }
+      
+      #mainContainer {
+        height: 100%;
+      }
+
+      .bot-message, .user-message {
+        font-size: 1rem;
+      }
+
+      .recipe-form {
         display: flex;
         flex-direction: column;
         height: 100%;
+        overflow-y: auto;
       }
-    </style>
+
+      .form-group {
+        margin-bottom: 1rem;
+      }
+
+      .form-control {
+        padding: 0.5rem;
+        font-size: 1rem;
+        line-height: 1.5;
+        color: #495057;
+        background-color: #fff;
+        background-clip: padding-box;
+        border: 1px solid #ced4da;
+        border-radius: 0.25rem;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+      }
+  </style>
   
 </head>
   <body>
-    <div id="mainContainer" class="container-fluid d-flex h-100 flex-column">
+    <div id="mainContainer" class="container-fluid d-flex flex-column">
       <div class="row flex-grow-1">
         <!-- Recipe and Output Display Column -->
-        <div class="col-md-8 d-flex flex-column">
-          <div id="recipeContent" class="recipe-container bg-light shadow rounded p-4 scrollable-content">
+        <div class="col-md-7 equal-height-column">
+          <div id="recipeContent" class="recipe-container bg-light shadow rounded p-4 scrollable-content equal-height-column">
             <!-- Recipe content goes here -->
           </div>
-          <div id="toolOutputs" class="output-container bg-light shadow rounded p-4 scrollable-content mt-4">
-            <!-- Outputs display goes here -->
-          </div>
+          <!-- <div id="toolOutputs" class="output-container bg-light shadow rounded p-4 scrollable-content mt-4">
+            Outputs display goes here 
+          </div> -->
         </div>
-        <div class="col-md-4 d-flex flex-column" id="chatColumn">
-          <div id="chatBox" class="card p-3 bg-light shadow rounded flex-grow-1 d-flex flex-column">
+        <div class="col-md-5 equal-height-column" id="chatColumn">
+          <div id="chatBox" class="card p-3 bg-light shadow rounded d-flex flex-column scrollable-content equal-height-column">
             <div id="chat-messages" class="scrollable-content">
                 <!-- BakeBot message -->
                 <div class="bot-message mb-2 d-flex justify-content-start align-items-center mr-2" id="bot-message">
                   <img src="../../resources/bakebot_icon.png" alt="BakeBot" class="chat-icon small-image">
-                  <div class="chat-bubble bot-bubble ml-2 bg-red-200">This looks great!  Let me know if you have any questions, want to generate a pairing, or anything else I can help with!
+                  <div class="chat-bubble bot-bubble ml-2 bg-red-200">This looks great!  Let me know if you have any questions, want to generate a pairing, or anything else I can help with!  If you've uploaded a recipe, make sure that the fields are correct and then submit so we can chat about it!
                   </div>
                 </div>
                 <!-- User message -->
                 <div class="user-message mb-2 d-flex justify-content-end align-items-center" id="user-message">
                   <img src="../../resources/user_image.png" alt="User" class="chat-icon small-image ml-2">
-                  <div class="chat-bubble user-bubble mr-3 text-end">I hate you!</div>
+                  <div class="chat-bubble user-bubble mr-3 text-end"></div>
                 </div>
               </div>
               <!-- User input area -->
@@ -94,6 +123,7 @@
   let toolName = null;
   let toolOutput = null;
   let message = null;
+  let messageMetadata = {};
   let recipeName = null;
   let recipeData = null;
   let uploadedRecipeData = null;
@@ -104,38 +134,151 @@
   "generate_image", "format_recipe", "initial_pass", "get_thread_tool_outputs",
   "get_specific_thread_tool_outputs"]
   let metadata = null;
+  let chefStyle = document.getElementById('chefStyle').value;
+
+  // -------------------------- Display Functions -------------------------- //
+
   // Create a function to display the tool output
   const displayToolOutput = (tool, toolOutput, message) => {
     console.log('displayToolOutput called with tool:', tool, 'and message:', message, 'and toolOutput:', toolOutput)
     let toolName = tool.tool_name;
     // Get the tool name and output
-   // If the tool name is generate_pairings, generate_image,
-   // or adjust_recipe, display the message as HTML in the toolOutputs div
+    // If the tool name is generate_pairings, generate_image,
+    // or adjust_recipe, display the message as HTML in the toolOutputs div
     if (toolName === 'generate_pairings' || toolName === 'generate_image') {
       // Convert the tool output to HTML
       console.log('toolOutput:', toolOutput)
       let html = converter.makeHtml(toolOutput);
       // Display the tool output in the toolOutputs div
       document.getElementById('toolOutputs').innerHTML = html;
+    }
+    // If the tool output is adjust_recipe, replaace the recipeContent div's innerHTML
+    // with the new recipe content
+    else if (toolName === 'adjust_recipe') {
+      // Convert the tool output to HTML
+      let html = converter.makeHtml(toolOutput);
+      // Display the tool output in the recipeContent div
+      document.getElementById('recipeContent').innerHTML = html;
+    }
+    // If the create recipe tool is called, replace the recipeContent div's innerHTML
+    else if (toolName === 'create_recipe') {
+      // Convert the tool output to HTML
+      let html = converter.makeHtml(toolOutput);
+      // Display the tool output in the recipeContent div
+      document.getElementById('recipeContent').innerHTML = html;
+    }
   }
-  // If the tool output is adjust_recipe, replaace the recipeContent div's innerHTML
-  // with the new recipe content
-  else if (toolName === 'adjust_recipe') {
-    // Convert the tool output to HTML
-    let html = converter.makeHtml(toolOutput);
-    // Display the tool output in the recipeContent div
-    document.getElementById('recipeContent').innerHTML = html;
-  }
-  // If the create recipe tool is called, replace the recipeContent div's innerHTML
-  else if (toolName === 'create_recipe') {
-    // Convert the tool output to HTML
-    let html = converter.makeHtml(toolOutput);
-    // Display the tool output in the recipeContent div
-    document.getElementById('recipeContent').innerHTML = html;
-  }
-}
 
+  function displayMessage(message, sender) {
+    // Display the message in the appropriate chat bubble
+    if (sender === 'user') {
+      // Create a new user message
+      let userMessage = document.createElement('div');
+      userMessage.className = 'user-message mb-2 d-flex justify-content-end align-items-center';
+      userMessage.innerHTML = `
+        <img src="../../resources/user_image.png" alt="User" class="chat-icon small-image ml-2">
+        <div class="chat-bubble user-bubble mr-3 text-end">${message}</div>
+      `;
+      // Append the user message to the chat messages container
+      document.getElementById('chat-messages').appendChild(userMessage);
+    }
+    else {
+      // Create a new bot message
+      let botMessage = document.createElement('div');
+      botMessage.className = 'bot-message mb-2 d-flex justify-content-start align-items-center mr-2';
+      botMessage.innerHTML = `
+        <img src="../../resources/bakebot_icon.png" alt="BakeBot" class="chat-icon small-image">
+        <div class="chat-bubble bot-bubble ml-2 bg-red-200">${message}</div>
+      `;
+      // Append the bot message to the chat messages container
+      document.getElementById('chat-messages').appendChild(botMessage);
+    }
+  }
+
+  function displayAndEditRecipe(uploadedRecipe) {
+  // Parse the uploadedRecipe if it's a string
+  if (typeof uploadedRecipe === 'string') {
+    uploadedRecipe = JSON.parse(uploadedRecipe);
+  }
+
+  // Get the recipeContent div
+  let recipeContentDiv = document.getElementById('recipeContent');
+
+  // Clear the current content
+  recipeContentDiv.innerHTML = '';
+
+  // Create a form
+  let form = document.createElement('form');
+  form.className = 'recipe-form';
+
+  // Create an input for each field in the uploadedRecipe
+  for (let field in uploadedRecipe) {
+    // Create a form group
+    let formGroup = document.createElement('div');
+    formGroup.className = 'form-group';
+
+    // Convert the labels to title case and create a label
+    let label = document.createElement('label');
+    label.for = field;
+    label.innerHTML = field.replace('_', ' ').replace(/\w\S*/g, (w) => (w.replace(/^\w/, (c) => c.toUpperCase())));
+    label.className = 'form-label';
+
+    // Create an input
+    let input = document.createElement('input');
+    input.type = 'text';
+    input.id = field;
+    input.name = field;
+    input.value = uploadedRecipe[field];
+    input.className = 'form-control';
+
+    // Append the label and input to the form group
+    formGroup.appendChild(label);
+    formGroup.appendChild(input);
+
+    // Append the form group to the form
+    form.appendChild(formGroup);
+  }
+
+  // Create a submit button
+  let submitButton = document.createElement('button');
+  submitButton.className = 'btn btn-custom-green';
+  submitButton.innerHTML = 'Submit';
+  submitButton.type = 'button';
+
+  // Display the form and submit button
+  recipeContentDiv.appendChild(form);
+  recipeContentDiv.appendChild(submitButton);
+
+  // Add a listener to the submit button
+  submitButton.addEventListener('click', function() {
+    // Get the form data
+    let formData = new FormData(form);
+    // Convert the form data to a JSON object
+    let recipe = {};
+    for (let pair of formData.entries()) {
+      console.log(pair[0]+ ', '+ pair[1]);
+      recipe[pair[0]] = pair[1];
+    }
+    // Convert the recipe object to a string
+    recipe = JSON.stringify(recipe);
+    // Submit the recipe
+    submitRecipe(recipe).then(response => {
+      // Display the response
+      console.log('response:', response)
+    })
+  });
+}
   
+  function displayRecipe(recipeText) {
+    console.log('displayRecipe called')
+    // Convert the recipe text to HTML
+    let html = converter.makeHtml(recipeText);
+    // Display the recipe text in the recipeContent div
+    document.getElementById('recipeContent').innerHTML = html;
+  }
+
+  // -------------------------- End Display Functions -------------------------- //
+
   // Create a function to load in the local recipeData and then display the results in the 
   // recipeContent div's innerHTML
   function loadRecipeData() {
@@ -167,34 +310,31 @@
       displayRecipe(message, recipeName);
     }
   }
+
   // Run the loadRecipeData function if the recipeData is null
   if (recipeData === null) {
     loadRecipeData();
   }
-  function displayAndEditRecipe(uploadedRecipe) {}
   
-  function displayRecipe(recipeText) {
-    console.log('displayRecipe called')
-    // Convert the recipe text to HTML
-    let html = converter.makeHtml(recipeText);
-    // Display the recipe text in the recipeContent div
-    document.getElementById('recipeContent').innerHTML = html;
+  function submitRecipe(recipe) {
+    // Pass the recipe object to the backend within a new message
+    let submitMessage = `The user has uploaded a recipe that they would like to ask questions about.  Here are the details: ${recipe}.`;
+    let recipeMetadata = {
+      "uploaded_recipe": recipe
+    };
+    console.log('recipeMetadata:', recipeMetadata)
+    // Send the message to the backend and await the response
+    // Send input to BakeBot API and get response
+    return fetchBakeBotResponse(message_content=submitMessage, chefStyle=chefStyle, messageMetadata=recipeMetadata);
   }
-// Create a function to submit the recipeger
-function submitRecipe(recipe) {}
-  // Pass the recipe object to the backend for 
-  // question answering, recipe adjustments, etc.
-  // Present the recipe back to the user in the recipe
-  // message format and the provide the options to save,
-  // etc.
-  
-function saveRecipe(recipe) {
-  // Save the recipe to the database
-  // You'll need to replace this with your own function for saving the recipe
-  // we coould also give this as a tool for the AI agent to use
-  // @TODO: get token to test out database saves
-  saveRecipeToDatabase(recipe);
-}
+    
+  function saveRecipe(recipe) {
+    // Save the recipe to the database
+    // You'll need to replace this with your own function for saving the recipe
+    // we coould also give this as a tool for the AI agent to use
+    // @TODO: get token to test out database saves
+    saveRecipeToDatabase(recipe);
+  }
 
   function convertChefStyle(chefStyle) {
       const chefStyleMap = {
@@ -204,33 +344,7 @@ function saveRecipe(recipe) {
       };
       return chefStyleMap[chefStyle] || chefStyle; // Fallback to original if not found
     }
-
-  function displayMessage(message, sender) {
-    // Display the message in the appropriate chat bubble
-    if (sender === 'user') {
-      // Create a new user message
-      let userMessage = document.createElement('div');
-      userMessage.className = 'user-message mb-2 d-flex justify-content-end align-items-center';
-      userMessage.innerHTML = `
-        <img src="../../resources/user_image.png" alt="User" class="chat-icon small-image ml-2">
-        <div class="chat-bubble user-bubble mr-3 text-end">${message}</div>
-      `;
-      // Append the user message to the chat messages container
-      document.getElementById('chat-messages').appendChild(userMessage);
-    }
-    else {
-      // Create a new bot message
-      let botMessage = document.createElement('div');
-      botMessage.className = 'bot-message mb-2 d-flex justify-content-start align-items-center mr-2';
-      botMessage.innerHTML = `
-        <img src="../../resources/bakebot_icon.png" alt="BakeBot" class="chat-icon small-image">
-        <div class="chat-bubble bot-bubble ml-2 bg-red-200">${message}</div>
-      `;
-      // Append the bot message to the chat messages container
-      document.getElementById('chat-messages').appendChild(botMessage);
-    }
-  }
-
+  
   // Function to get the current value of the chef style dropdown
   function getChefStyle() {
     return document.getElementById('chefStyle').value;
@@ -300,8 +414,8 @@ function saveRecipe(recipe) {
 });
 
 
-// -------------------------- Primary Chat Function -------------------------- //
-async function fetchBakeBotResponse(userInput, chefStyle) {
+// -------------------------- Primary Backend Chat Function -------------------------- //
+async function fetchBakeBotResponse(userInput, chefStyle, messageMetadata) {
     // Convert the frontend chef style to match the backend model's expected values
     let chefType;
     if (chefStyle === "Home Cook") {
@@ -313,26 +427,25 @@ async function fetchBakeBotResponse(userInput, chefStyle) {
     else {
         chefType = "adventurous_chef";
     }
-    console.log('fetchBakeBotResponse called with userInput:', userInput, 'and chefStyle:', chefStyle, 'and threadId:', threadId)
     // If thread ID is null, create a new thread
     if (threadId === null) {
-      console.log('threadId is null')
-      // Send this data to FastAPI backend
-      fetch('http://localhost:8000/create_thread_run', {
-          method: 'POST',
-          headers: {
-              'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            "message_content": userInput,
-              "chef_type": chefType, // Ensure this matches 'chef_type' in the Pydantic model
-              // If there is no serving size, set it to an empty string
-              "serving_size": ""
-          })
-      }
-      ).then(response => response.json())
-      .then(data => {
-        console.log('data:', data)
+  // Send this data to FastAPI backend
+  let response = await fetch('http://localhost:8000/create_thread_run', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      "message_content": userInput,
+      "chef_type": chefType, // Ensure this matches 'chef_type' in the Pydantic model
+      // If there is no serving size, set it to an empty string
+      "serving_size": "",
+      // If there is message metadata, pass it to the backend
+      "metadata": messageMetadata
+    })
+  });
+  // Convert the JSON response to a JavaScript object
+  let data = await response.json().then(data => {
         // Convert the JSON response to a JavaScript object
         data = JSON.parse(data);
         // Extract the message from the response
@@ -351,6 +464,7 @@ async function fetchBakeBotResponse(userInput, chefStyle) {
           });
         }
         // return the message
+        console.log('message:', message)
         return message;
         }).catch(error => console.error('Error:', error))
     }
@@ -363,12 +477,15 @@ async function fetchBakeBotResponse(userInput, chefStyle) {
           body: JSON.stringify({
               "message_content": userInput,
               "chef_type": chefType,
-              "thread_id": threadId
+              "thread_id": threadId,
+              // If there is message metadata, pass it to the backend
+              "metadata": messageMetadata,
+              // If there is no serving size, set it to an empty string
+              "serving_size": ""
           })
       });
       // Convert the JSON response to a JavaScript object
       let data = await response.json();
-      console.log('data:', data)
       data = JSON.parse(data);
       // Extract the message from the response
       let message = data.message
@@ -386,6 +503,7 @@ async function fetchBakeBotResponse(userInput, chefStyle) {
         });
       }
       // return the message
+      console.log('message:', message)
       return message;
   }
 }

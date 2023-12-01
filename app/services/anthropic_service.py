@@ -146,12 +146,20 @@ def create_recipe(specifications: str, serving_size: str):
   """ Create a recipe with the Anthropic API. """
   # Create a prompt for the model to generate the recipe based on the user's specifications,
   # serving size, and chef type
-  system_prompt = f"""You are a master chef helping a user
-                create a recipe based on their specifications {specifications} and the
-                serving size {serving_size}.  Even if the specifications are just a dish name or type,
-                go ahead and create a recipe.  Make sure the recipe name is fun and unique. 
-                Return the recipe as a JSON object in the following format:\n\n
-                {AnthropicRecipe.schema_json(indent=2)}"""
+  system_prompt = f"""You are an expert chef helping to create a unique recipe. 
+    Please consider the user's specifications: '{specifications}' and their desired serving size: '{serving_size}'. 
+    Generate a creative and appealing recipe and format the output as a JSON object following this schema:
+
+    Recipe Name (recipe_name): A unique and descriptive title for the recipe.
+    Ingredients (ingredients): A list of ingredients required for the recipe.
+    Directions (directions): Step-by-step instructions for preparing the recipe.
+    Preparation Time (prep_time): The time taken for preparation in minutes.
+    Cooking Time (cook_time): The cooking time in minutes, if applicable.
+    Serving Size (serving_size): A description of the serving size.
+    Calories (calories): Estimated calories per serving, if known.
+    Fun Fact (fun_fact): An interesting fact about the recipe or its ingredients.
+
+    Ensure that the recipe is presented in a clear and organized manner, adhering to the {AnthropicRecipe} class structure."""
 
   user_prompt = f"Hi, Chef.  Please help me generate a recipe based on the specifications\
   {specifications} and the serving size {serving_size}."
@@ -229,3 +237,27 @@ def generate_pairing(request: PairingRequest):
 
   # Return the response
   return {"chef_response" : response, "pairing" : pairing}
+
+def format_recipe(recipe_text: str):
+    """ Extract and format the text from the user's files. """
+    # Create the system prompt
+    system_prompt = f"""You are a master chef helping a user
+                format a recipe {recipe_text}.  
+                Please format the recipe as a JSON object in the following format:\n\n
+                {AnthropicRecipe.schema_json(indent=2)}"""
+    user_prompt = "Please format the recipe."
+    # Format the prompt
+    prompt = format_prompt(system_prompt, user_prompt)
+    # Call the chat function
+    response = anthropic.completions.create(
+      prompt=prompt,
+      temperature=prompts_dict["pro_chef"]["temperature"],
+      max_tokens_to_sample=prompts_dict["pro_chef"]["max_tokens_to_sample"],
+      model="claude-2.1",
+      stream=False
+    )
+    # Try extracting the JSON from the response
+    recipe = extract_json_from_response(response.completion)
+
+    # Return the response
+    return recipe

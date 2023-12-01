@@ -30,6 +30,10 @@
             border-color: #b05e5d;
             color: white;
         }
+        #funFactsContainer {
+          font-size: 20px;
+          font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -76,8 +80,18 @@
           <div class="col-md-6">
               <button id="askBakeBot" class="btn btn-custom-green mb-4">ASK BAKEBOT</button>
           </div>
+          <div id="funFactsRow" class="col-md-6 d-flex align-self-start align-items-start">
+            <div id="funFactsContainer" class="align-self-start" style="display: none;">
+              <!-- Fun facts will appear here -->
+              While Chef is working, did you know... <span id="funFacts"></span>
+            </div>
+            <div class="spinner-border text-primary align-self-start ml-3 mb-6" role="status" id="bbSpinner" style="display: none;">
+              <span class="sr-only">BakeBot is working...</span>
+            </div>
+          </div>
       </div>
       <!-- Or upload a recipe / scan a photo Section -->
+      <div id="uploadRecipeSection" class="mb-5">
       <h3 class="h3 font-weight-bold mb-3">Or upload a recipe / scan a photo:</h3>
       <div class="row mb-3">
           <div class="col-md-12">
@@ -92,12 +106,31 @@
           <div class="col-md-4 mb-3">
               <button id="uploadButton" class="btn btn-custom-red">Upload Recipe</button>
           </div>
-          <div id="spinner" class="col-md-4 spinner-border text-primary" role="status" style="display: none;">
-              <span class="sr-only">Loading...</span>
-          </div>
       </div>
+    </div>
   </div>
 <script>
+  let funFacts = [];
+
+  // Function to fetch and parse the CSV file
+  function loadFunFacts() {
+      fetch('../../resources/cooking_fun_facts.csv')
+          .then(response => response.text())
+          .then(text => {
+              const lines = text.split('\n');
+              // Skip the header, start from line 1
+              for (let i = 1; i < lines.length; i++) {
+                  if (lines[i].trim() !== '') {
+                      funFacts.push(lines[i].trim());
+                  }
+              }
+          });
+  }
+
+// Call this function when your app loads
+loadFunFacts();
+
+
   // Function to handle chef style button clicks
   document.querySelectorAll('#chefStyleButtons button').forEach(button => {
       button.addEventListener('click', function() {
@@ -123,9 +156,9 @@
   });
 
   document.getElementById('askBakeBot').addEventListener('click', function() {
-      let question = document.getElementById('userQuestion').value;
-      let chefStyle = document.chefStyle; // Use the stored chef style
-      let servingSize = document.servingSize; // Use the stored serving size
+    let question = document.getElementById('userQuestion').value;
+    let chefStyle = document.chefStyle; // Use the stored chef style
+    let servingSize = document.servingSize; // Use the stored serving size
 
     // Convert the frontend chef style to match the backend model's expected values
     let chefType;
@@ -144,6 +177,14 @@
             "chef_type": chefType, // Ensure this matches 'chef_type' in the Pydantic model
             "serving_size": servingSize
         }));
+     // Hide the button
+     this.style.display = 'none';
+
+    // Show and start fun facts
+    startFunFacts();
+    // Show the spinner
+    document.getElementById('bbSpinner').style.display = 'block';
+
     // Send this data to FastAPI backend
     fetch('http://localhost:8000/create_thread_run', {
         method: 'POST',
@@ -162,31 +203,97 @@
       localStorage.setItem('recipeType', 'new')
       // Redirect to the display page with the token as a query parameter
       window.location.href = `display.html`;
+      // Hide the spinner
+      document.getElementById('bbSpinner').style.display = 'none';
     })
     .catch(error => console.error('Error:', error))
+    .finally(() => {
+      // Stop fun facts
+      stopFunFacts();
+      document.getElementById('bbSpinner').style.display = 'none';
+    });
   });
 
 document.getElementById('uploadButton').addEventListener('click', function() {
   console.log("upload button clicked");
-    let fileInput = document.getElementById('formFileMultiple');
-    let formData = new FormData();
-    // Send the files to the backend
-    formData.append('files', fileInput.files[0]);
-    fetch('http://localhost:8000/upload-files/', {
-        method: 'POST',
-        body: formData,
-    })
-    .then(response => response.json())
-    .then(data => {
-      // Update the uploadedRecipeData variable
-      localStorage.setItem('recipeData', data);
-      localStorage.setItem('recipeType', 'uploaded');
-      console.log(data);
-      // Redirect to the display page with the token as a query parameter
-      window.location.href = `display.html`;
-    })
-    .catch(error => console.error('Error:', error));
-});
+  // If the recipe is in the text area, add it to the form data
+  let recipeText = document.getElementById('userQuestion').value;
+  if (recipeText.trim() !== '') {
+      let formData = new FormData();
+      formData.append('recipe_text', recipeText);
+      // Send the recipe text to the backend
+      fetch('http://localhost:8000/format-recipe', {
+          method: 'POST',
+          body: formData,
+      })
+      .then(response => response.json())
+      .then(data => {
+        // Update the uploadedRecipeData variable
+        localStorage.setItem('recipeData', data);
+        localStorage.setItem('recipeType', 'uploaded');
+        console.log(data);
+        // Redirect to the display page with the token as a query parameter
+        window.location.href = `display.html`;
+      })
+      .catch(error => console.error('Error:', error))
+      .finally(() => {
+        // Stop fun facts
+        stopFunFacts();
+        document.getElementById('bbSpinner').style.display = 'none';
+      });
+      // If there are files instead of text, add them to the form data
+  } else if (document.getElementById('formFileMultiple').files.length > 0) {
+      let formData = new FormData();
+      for (let i = 0; i < document.getElementById('formFileMultiple').files.length; i++) {
+          formData.append('files', document.getElementById('formFileMultiple').files[i]);
+      }
+      // Send the files to the backend
+      fetch('http://localhost:8000/upload-files/', {
+          method: 'POST',
+          body: formData,
+      })
+      .then(response => response.json())
+      .then(data => {
+        // Update the uploadedRecipeData variable
+        localStorage.setItem('recipeData', data);
+        localStorage.setItem('recipeType', 'uploaded');
+        console.log(data);
+        // Redirect to the display page with the token as a query parameter
+        window.location.href = `display.html`;
+      })
+      .catch(error => console.error('Error:', error))
+      .finally(() => {
+        // Stop fun facts
+        stopFunFacts();
+        document.getElementById('bbSpinner').style.display = 'none';
+      });
+    }
+  });
+
+  let funFactInterval;
+  let currentFactIndex = 0;
+
+  function startFunFacts() {
+      // Show fun facts container
+      const funFactsContainer = document.getElementById('funFactsContainer');
+      funFactsContainer.style.display = 'block';
+
+      // Start cycling through fun facts
+      funFactInterval = setInterval(() => {
+          if (funFacts.length > 0) {
+              currentFactIndex = Math.floor(Math.random() * funFacts.length);
+              funFactsContainer.textContent = funFacts[currentFactIndex];
+          }
+      }, 5000); // Change fun fact every 3 seconds
+  }
+
+  function stopFunFacts() {
+      clearInterval(funFactInterval);
+      document.getElementById('funFactsContainer').style.display = 'none';
+      // Show the button again
+      document.getElementById('askBakeBot').style.display = 'block';
+      document.getElementById('uploadButton').style.display = 'block';
+  }
 </script>
 </body>
 </html>

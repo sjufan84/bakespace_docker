@@ -2,13 +2,12 @@
 import logging
 import os
 import sys
-import json
 from dotenv import load_dotenv
 from openai import OpenAI
 from openai import OpenAIError
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from models.recipe import Recipe, FormattedRecipe # noqa: E402
-from services.anthropic_service import AnthropicRecipe # noqa: E402
+# from services.anthropic_service import AnthropicRecipe # noqa: E402
 
 # Load environment variables
 load_dotenv()
@@ -40,14 +39,23 @@ def create_recipe(specifications: str, serving_size: str):
         serving_size = serving_size_dict[serving_size]
 
     messages = [
-        {
-            "role": "system", "content": f"""You are a master chef helping a user
-                create a recipe based on their specifications {specifications} and the
-                serving size {serving_size}.  Even if the specifications are just a dish name or type,
-                go ahead and create a recipe.  Make sure the recipe name is fun and unique. 
-                Return the recipe as a JSON object in the following format:\n\n
-                {AnthropicRecipe.schema()}""",
-        },
+      {
+        "role": "system",
+        "content": f"""You are an expert chef helping to create a unique recipe. 
+        Please consider the user's specifications: '{specifications}' and their desired serving size: '{serving_size}'. 
+        Generate a creative and appealing recipe and format the output as a JSON object following this schema:
+
+        Recipe Name (recipe_name): A unique and descriptive title for the recipe.
+        Ingredients (ingredients): A list of ingredients required for the recipe.
+        Directions (directions): Step-by-step instructions for preparing the recipe.
+        Preparation Time (prep_time): The time taken for preparation in minutes.
+        Cooking Time (cook_time): The cooking time in minutes, if applicable.
+        Serving Size (serving_size): A description of the serving size.
+        Calories (calories): Estimated calories per serving, if known.
+        Fun Fact (fun_fact): An interesting fact about the recipe or its ingredients.
+
+        Ensure that the recipe is presented in a clear and organized manner, adhering to the 'AnthropicRecipe' class structure."""
+      },
     ]
     # Create a list of models to loop through in case one fails
     models = core_models
@@ -181,7 +189,7 @@ def format_recipe(recipe_text: str):
     ]
 
     #models = [model, "gpt-3.5-turbo-16k-0613", "gpt-3.5-turbo-16k"]
-    models = ["gpt-3.5-turbo-1106", "gpt-4-1106-preview"]
+    models = ["gpt-4-1106-preview", "gpt-4"]
     for model in models:
         try:
             response = client.chat.completions.create(

@@ -36,7 +36,7 @@ async def get_recipe_chef_response():
             tags=["Chat Endpoints"],
             responses={200: {"description": "OK"}})
 async def get_chef_response(message_content: str,
-  message_metadata: Optional[dict] = None, thread_id: str = None, chef_type: str="home_cook",
+  message_metadata: Optional[object] = None, thread_id: str = None, chef_type: str="home_cook",
   serving_size: Optional[str] = None):
   """ Endpoint to get a response from the chatbot to a user's question. """
   client = get_openai_client()
