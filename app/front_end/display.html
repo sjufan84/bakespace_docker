@@ -95,7 +95,7 @@
                   <textarea class="form-control" placeholder="Type your message..." id="chatInput"></textarea>
                 </div>
                 <div class="row col-md-12 justify-content-around mb-3">
-                  <select class="col-md-6" id="chefStyle">
+                  <select class="col-md-6 bg-emerald-500" id="chefStyle">
                   <option>Classic Pro Chef</option>
                   <option>Sweet Home Chef</option>
                   <option>Snarky Fun Chef</option>
@@ -196,78 +196,75 @@
   }
 
   function displayAndEditRecipe(uploadedRecipe) {
-  // Parse the uploadedRecipe if it's a string
-  if (typeof uploadedRecipe === 'string') {
-    uploadedRecipe = JSON.parse(uploadedRecipe);
-  }
-
-  // Get the recipeContent div
-  let recipeContentDiv = document.getElementById('recipeContent');
-
-  // Clear the current content
-  recipeContentDiv.innerHTML = '';
-
-  // Create a form
-  let form = document.createElement('form');
-  form.className = 'recipe-form';
-
-  // Create an input for each field in the uploadedRecipe
-  for (let field in uploadedRecipe) {
-    // Create a form group
-    let formGroup = document.createElement('div');
-    formGroup.className = 'form-group';
-
-    // Convert the labels to title case and create a label
-    let label = document.createElement('label');
-    label.for = field;
-    label.innerHTML = field.replace('_', ' ').replace(/\w\S*/g, (w) => (w.replace(/^\w/, (c) => c.toUpperCase())));
-    label.className = 'form-label';
-
-    // Create an input
-    let input = document.createElement('input');
-    input.type = 'text';
-    input.id = field;
-    input.name = field;
-    input.value = uploadedRecipe[field];
-    input.className = 'form-control';
-
-    // Append the label and input to the form group
-    formGroup.appendChild(label);
-    formGroup.appendChild(input);
-
-    // Append the form group to the form
-    form.appendChild(formGroup);
-  }
-
-  // Create a submit button
-  let submitButton = document.createElement('button');
-  submitButton.className = 'btn btn-custom-green';
-  submitButton.innerHTML = 'Submit';
-  submitButton.type = 'button';
-
-  // Display the form and submit button
-  recipeContentDiv.appendChild(form);
-  recipeContentDiv.appendChild(submitButton);
-
-  // Add a listener to the submit button
-  submitButton.addEventListener('click', function() {
-    // Get the form data
-    let formData = new FormData(form);
-    // Convert the form data to a JSON object
-    let recipe = {};
-    for (let pair of formData.entries()) {
-      console.log(pair[0]+ ', '+ pair[1]);
-      recipe[pair[0]] = pair[1];
+    // Parse the uploadedRecipe if it's a string
+    if (typeof uploadedRecipe === 'string') {
+      uploadedRecipe = JSON.parse(uploadedRecipe);
     }
-    // Convert the recipe object to a string
-    recipe = JSON.stringify(recipe);
-    // Submit the recipe
-    submitRecipe(recipe).then(response => {
-      // Display the response
-      console.log('response:', response)
-    })
-  });
-}
+
+    // Get the recipeContent div
+    let recipeContentDiv = document.getElementById('recipeContent');
+
+    // Clear the current content
+    recipeContentDiv.innerHTML = '';
+
+    // Create a form
+    let form = document.createElement('form');
+    form.className = 'recipe-form';
+
+    // Create an input for each field in the uploadedRecipe
+    for (let field in uploadedRecipe) {
+      // Create a form group
+      let formGroup = document.createElement('div');
+      formGroup.className = 'form-group';
+
+      // Convert the labels to title case and create a label
+      let label = document.createElement('label');
+      label.for = field;
+      label.innerHTML = field.replace('_', ' ').replace(/\w\S*/g, (w) => (w.replace(/^\w/, (c) => c.toUpperCase())));
+      label.className = 'form-label';
+
+      // Create an input
+      let input = document.createElement('input');
+      input.type = 'text';
+      input.id = field;
+      input.name = field;
+      input.value = uploadedRecipe[field];
+      input.className = 'form-control';
+
+      // Append the label and input to the form group
+      formGroup.appendChild(label);
+      formGroup.appendChild(input);
+
+      // Append the form group to the form
+      form.appendChild(formGroup);
+    }
+
+    // Create a submit button
+    let submitButton = document.createElement('button');
+    submitButton.className = 'btn btn-custom-green';
+    submitButton.innerHTML = 'Submit';
+    submitButton.type = 'button';
+
+    // Display the form and submit button
+    recipeContentDiv.appendChild(form);
+    recipeContentDiv.appendChild(submitButton);
+
+    // Add a listener to the submit button
+    submitButton.addEventListener('click', function() {
+      // Get the form data
+      let formData = new FormData(form);
+      // Convert the form data to a JSON object
+      let recipe = {};
+      for (let pair of formData.entries()) {
+        console.log(pair[0]+ ', '+ pair[1]);
+        recipe[pair[0]] = pair[1];
+      }
+      // Convert the recipe object to a string
+      recipe = JSON.stringify(recipe);
+      // Submit the recipe
+      submitRecipe(recipe);
+    });
+  }
   
   function displayRecipe(recipeText) {
     console.log('displayRecipe called')
@@ -317,16 +314,34 @@
   }
   
   function submitRecipe(recipe) {
-    // Pass the recipe object to the backend within a new message
-    let submitMessage = `The user has uploaded a recipe that they would like to ask questions about.  Here are the details: ${recipe}.`;
-    let recipeMetadata = {
-      "uploaded_recipe": recipe
-    };
-    console.log('recipeMetadata:', recipeMetadata)
-    // Send the message to the backend and await the response
-    // Send input to BakeBot API and get response
-    return fetchBakeBotResponse(message_content=submitMessage, chefStyle=chefStyle, messageMetadata=recipeMetadata);
-  }
+  console.log('submitRecipe called with recipe:', recipe)
+  // Pass the recipe object to the backend within a new message
+  let submitMessage = `The user has uploaded a recipe that they would like to ask questions about.  Here are the details: ${recipe}.`;
+  let recipeMetadata = {
+    "uploaded_recipe": recipe
+  };
+  console.log('recipeMetadata:', recipeMetadata)
+  // Send the message to the backend and await the response
+  // Send input to BakeBot API and get response
+  return fetchBakeBotResponse(submitMessage, chefStyle, recipeMetadata).then(response => {
+    response = JSON.parse(response);
+    console.log('response:', response.message)
+    // Display BakeBot's response
+    // Check to see if the response is in markdown
+    if (response.message.includes('**')) {
+      // Convert the markdown to HTML
+      let html = converter.makeHtml(response.message);
+      // Display the HTML
+      displayMessage(html, 'bakebot');
+    }
+    else {
+      // Display the response as text
+      displayMessage(response.message, 'bakebot');
+    }
+    // Return the response data
+    return response.message;
+  });
+}
     
   function saveRecipe(recipe) {
     // Save the recipe to the database

@@ -1,13 +1,14 @@
-fastapi
-langchain
-openai==1.2.3
-pydantic
+fastapi==0.104.1
+openai==1.3.7
+pydantic==2.5.2
+pydantic-core==2.14.5
 python-dotenv
+anthropic==0.7.7
 Requests
-uvicorn
+uvicorn==0.24.0.post1
 pandas
 reportlab
-pdfplumber
-google-cloud-vision
-pyspellchecker
-redis
+pdfplumber==0.10.3
+google-cloud-vision==3.4.5
+pyspellchecker==@ file:///home/conda/feedstock_root/build_artifacts/pyspellchecker_1682498888598/work
+redis==5.0.1
