@@ -244,10 +244,7 @@ def format_recipe(recipe_text: str):
     system_prompt = f"""You are a master chef helping a user
                 format a recipe {recipe_text}.  
                 Please format the recipe as a JSON object in the following format:\n\n
-                {AnthropicRecipe.schema_json(indent=2)}.  If the text is clearly not a recipe,
-                and appears to be spam, inappropriate, or otherwise not a recipe, please return
-                a message as a JSON object to the user indicating that the text is not a recipe and that they
-                should try again with a different text."""
+                {AnthropicRecipe.schema_json(indent=2)}"""
 
     user_prompt = "Please format the recipe."
     # Format the prompt

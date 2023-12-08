@@ -6,12 +6,20 @@ from fastapi import (
   APIRouter, UploadFile, Query,
   HTTPException, File
 )
+import google.cloud.vision as vision # pylint: disable=no-member
+from app.dependencies import get_google_vision_credentials, get_openai_client
+
 from app.services.extraction_service import (
   extract_image_text, extract_pdf_file_contents,
   extract_text_file_contents
 )
 #from app.services.recipe_service import format_recipe
 from app.services.anthropic_service import AnthropicRecipe, format_recipe
+
+
+# Load the environment variables
+credentials = get_google_vision_credentials()
+client = get_openai_client()
 
 UPLOAD_DIR = Path(__file__).parent.parent.parent / "uploads"
 
@@ -100,4 +108,24 @@ async def format_text_endpoint(
     recipe = format_recipe(recipe_text)
     # Return the formatted recipe
     return recipe
-    
+
+
+@router.post("/upload-images")
+async def upload_images(files: List[UploadFile] = File(...)):
+    client = vision.ImageAnnotatorClient()
+
+    responses = []
+    for file in files:
+        contents = await file.read()
+        image = vision.Image(content=contents)
+        
+        # Using object localization (object detection)
+        response = client.object_localization(image=image)
+        objects = response.localized_object_annotations
+        detected_objects = [{'name': obj.name, 'confidence': obj.score} for obj in objects]
+        responses.append(detected_objects)
+
+    # You can process responses further as needed...
+    return {"responses": responses}
+
+

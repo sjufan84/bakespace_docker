@@ -48,65 +48,113 @@
     <!-- Create a recipe from scratch Section -->
     <h3 class="h3 font-weight-bold mb-3">Create a recipe from scratch:</h3>
     <div class="row mb-3">
-        <div class="col-md-12 mb-1">
-            <textarea class="form-control text-left" id="userQuestion" rows="4" placeholder="If you would like to create a new recipe, simply tell BakeBot what type of recipe you are looking for, any dietary restrictions, and any other specifications, and let the magic begin! After your recipe is generated, you will also have the chance to ask questions about it, adjust it, and even generate pairings! Feel free to ask any other general cooking questions you may have. BakeBot is here to help!"></textarea>
-        </div>
+      <div class="col-md-12 mb-1">
+        <textarea class="form-control text-left" id="userQuestion" rows="4"
+         placeholder="If you would like to create a new recipe, simply tell BakeBot what type of recipe you are looking for, any dietary restrictions, and any other specifications, and let the magic begin! After your recipe is generated, you will also have the chance to ask questions about it, adjust it, and even generate pairings! Feel free to ask any other general cooking questions you may have. BakeBot is here to help!"></textarea>
+      </div>
     </div>
     <!-- Chef Style Buttons Section -->
     <div class="row mb-3">
-        <div class="col-md-12 mb-1">
-            <label class="mr-3">Chef Style:</label>
-            <div id="chefStyleButtons" class="btn-group" role="group" aria-label="Chef Style">
-                <button type="button" class="btn btn-secondary" value="Home Cook">Home Cook</button>
-                <button type="button" class="btn btn-secondary ml-2" value="Pro Chef">Pro Chef</button>
-                <button type="button" class="btn btn-secondary ml-2" value="Snarky Fun Chef">Snarky Fun Chef</button>
-            </div>
+      <div class="col-md-12 mb-1">
+        <label class="mr-3">Chef Style:</label>
+        <div id="chefStyleButtons" class="btn-group" role="group" aria-label="Chef Style">
+            <button type="button" class="btn btn-secondary" value="Home Cook">Home Cook</button>
+            <button type="button" class="btn btn-secondary ml-2" value="Pro Chef">Pro Chef</button>
+            <button type="button" class="btn btn-secondary ml-2" value="Snarky Fun Chef">Snarky Fun Chef</button>
         </div>
-    </div>
-    <!-- Serving Size Buttons Section -->
-    <div class="row mb-3">
-        <div class="col-md-12 mb-1">
-            <label class="mr-3">Serving Size:</label>
-            <div id="servingSizeButtons" class="btn-group" role="group" aria-label="Serving Size">
-                <button type="button" class="btn btn-secondary" value="Just Me">Just Me</button>
-                <button type="button" class="btn btn-secondary ml-2" value="For Two">For Two</button>
-                <button type="button" class="btn btn-secondary ml-2" value="Family-Size">Family-Size</button>
-                <button type="button" class="btn btn-secondary ml-2" value="Potluck-Size">Potluck-Size</button>
-            </div>
-        </div>
-    </div>
-        <!-- Ask BakeBot Button Section -->
-        <div class="row mb-3">
-          <div class="col-md-6">
-              <button id="askBakeBot" class="btn btn-custom-green mb-4">ASK BAKEBOT</button>
-          </div>
-          <div id="funFactsRow" class="col-md-6 d-flex align-self-start align-items-start">
-            <div id="funFactsContainer" class="align-self-start" style="display: none;">
-              <!-- Fun facts will appear here -->
-              While Chef is working, did you know... <span id="funFacts"></span>
-            </div>
-            <div class="spinner-border text-primary align-self-start ml-3 mb-6" role="status" id="bbSpinner" style="display: none;">
-              <span class="sr-only">BakeBot is working...</span>
-            </div>
-          </div>
       </div>
-      <!-- Or upload a recipe / scan a photo Section -->
-      <div id="uploadRecipeSection" class="mb-5">
+    </div>
+      <!-- Serving Size Buttons Section -->
+      <div class="row mb-3">
+        <div class="col-md-12 mb-1">
+          <label class="mr-3">Serving Size:</label>
+          <div id="servingSizeButtons" class="btn-group" role="group" aria-label="Serving Size">
+            <button type="button" class="btn btn-secondary" value="Just Me">Just Me</button>
+            <button type="button" class="btn btn-secondary ml-2" value="For Two">For Two</button>
+            <button type="button" class="btn btn-secondary ml-2" value="Family-Size">Family-Size</button>
+            <button type="button" class="btn btn-secondary ml-2" value="Potluck-Size">Potluck-Size</button>
+          </div>
+        </div>
+      </div>
+      <!-- Ask BakeBot Button Section -->
+      <div class="row mb-3">
+        <div class="col-md-6">
+            <button id="askBakeBot" class="btn btn-custom-green mb-4">ASK BAKEBOT</button>
+        </div>
+      <div id="funFactsRow" class="col-md-6 d-flex align-self-start align-items-start">
+        <div id="funFactsContainer" class="align-self-start" style="display: none;">
+          <!-- Fun facts will appear here -->
+          While Chef is working, did you know... <span id="funFacts"></span>
+        </div>
+        <div class="spinner-border text-primary align-self-start ml-3 mb-6" role="status" id="bbSpinner" style="display: none;">
+          <span class="sr-only">BakeBot is working...</span>
+        </div>
+      </div>
+    </div>
+    <!-- Or upload a recipe / scan a photo Section -->
+    <div id="uploadRecipeSection" class="mb-5">
       <h3 class="h3 font-weight-bold mb-3">Or upload a recipe / scan a photo:</h3>
       <div class="row mb-3">
-          <div class="col-md-12">
-              <textarea class="form-control" rows="3" placeholder="You can either paste the recipe text of your recipe in this box, or upload the recipe below. Uploaded recipes can be in the format of a text file, pdf, or an image file. Once uploaded, the text will be extracted and formatted, and you will have the chance to make edits as well as ask BakeBot any questions you may have about the recipe."></textarea>
-          </div>
+        <div class="col-md-12">
+          <textarea class="form-control" rows="3" placeholder="You can either paste the recipe text of your recipe in this box, or upload the recipe below. Uploaded recipes can be in the format of a text file, pdf, or an image file. Once uploaded, the text will be extracted and formatted, and you will have the chance to make edits as well as ask BakeBot any questions you may have about the recipe."></textarea>
+        </di>
       </div>
       <!-- File Uploader Section -->
-      <div class="row align-items-center">
-          <div class="col-md-4 mb-3">
-              <input class="form-control" type="file" id="formFileMultiple" multiple>
-          </div>
-          <div class="col-md-4 mb-3">
-              <button id="uploadButton" class="btn btn-custom-red">Upload Recipe</button>
-          </div>
+      <div class="row align-items-center mt-3">
+        <div class="col-md-4 mb-3">
+            <input class="form-control" type="file" id="formFileMultiple" multiple>
+        </div>
+        <div class="col-md-4 mb-3">
+            <button id="uploadButton" class="btn btn-custom-green">Upload Recipe</button>
+        </div>
       </div>
+    </div>
+    <h3 class="h3 font-weight-bold mb-3">Find Recipes from Your Ingredients:</h3>
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <textarea class="form-control" rows="3" placeholder="Snap a picture of your pantry or fridge, or upload images of your ingredients, and let BakeBot suggest recipes based on what you have!"></textarea>
+        </div>
+    </div>
+    <div class="row align-items-center">
+        <div class="col-md-4 mb-3">
+            <input class="form-control" type="file" id="ingredientImageInput" accept="image/*" capture="environment" multiple style="display: none;">
+            <button id="cameraButton" class="btn btn-custom-green">📷 Snap a Picture</button>
+            <button id="uploadButton" class="btn btn-custom-red">Upload Images</button>
+        </div>
+        <div class="col-md-4 mb-3">
+            <button id="findRecipesButton" class="btn btn-custom-green">Find Recipes</button>
+        </div>
+    </div>
+    <div id="imagePreview" class="col-md-12 mb-3"></div>
+    <div class="spinner-border text-primary" role="status" id="ingredientSpinner" style="display: none;">
+        <span class="sr-only">Processing...</span>
+    </div>
+    <div id="ingredientConfirmationSection" style="display:none;">
+      <h3 class="h3 font-weight-bold mb-3">Confirm Your Ingredients:</h3>
+      <div class="row mb-3">
+        <div class="col-md-12">
+          <ul id="detectedIngredientsList" class="list-group">
+              <!-- Dynamically filled with detected ingredients -->
+          </ul>
+        </div>
+      </div>
+      <div class="row mb-3">
+        <div class="col-md-12">
+            <button id="editIngredientsButton" class="btn btn-custom-red">Edit Ingredients</button>
+        </div>
+      </div>
+      <div id="recipeSpecificationsSection" class="mb-3" style="display:none;">
+        <h3 class="h3 font-weight-bold mb-3">Specify Your Recipe Preferences:</h3>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <input type="text" class="form-control" id="recipePreferencesInput" placeholder="E.g., Vegan, Gluten-free, Low-carb">
+            </div>
+            <div class="col-md-6 mb-3">
+                <button id="generateRecipeButton" class="btn btn-custom-green">Generate Recipe</button>
+            </div>
+        </div>
+    </div>
+    
     </div>
   </div>
 <script>
@@ -284,7 +332,7 @@ document.getElementById('uploadButton').addEventListener('click', function() {
               currentFactIndex = Math.floor(Math.random() * funFacts.length);
               funFactsContainer.textContent = funFacts[currentFactIndex];
           }
-      }, 5000); // Change fun fact every 3 seconds
+      }, 6000); // Change fun fact every 3 seconds
   }
 
   function stopFunFacts() {
@@ -294,6 +342,48 @@ document.getElementById('uploadButton').addEventListener('click', function() {
       document.getElementById('askBakeBot').style.display = 'block';
       document.getElementById('uploadButton').style.display = 'block';
   }
+
+// --------------------------------- Ingredient Detection --------------------------------- //
+document.getElementById('cameraButton').addEventListener('click', () => {
+    // Trigger the file input click for camera capture
+    document.getElementById('ingredientImageInput').click();
+});
+
+document.getElementById('uploadButton').addEventListener('click', () => {
+    // Trigger the file input click for uploading images
+    document.getElementById('ingredientImageInput').click();
+});
+
+document.getElementById('ingredientImageInput').addEventListener('change', (event) => {
+    if (event.target.files.length > 0) {
+        const files = event.target.files;
+        // Process files for preview or send them to the backend...
+    }
+});
+
+document.getElementById('findRecipesButton').addEventListener('click', async () => {
+    const inputElement = document.getElementById('ingredientImageInput');
+    const files = inputElement.files;
+
+    if (files.length > 0) {
+        const formData = new FormData();
+        for (const file of files) {
+            formData.append('files', file);
+        }
+
+        // Send the request to the backend
+        const response = await fetch('http://<your-server>/upload-images', {
+            method: 'POST',
+            body: formData
+        });
+
+        // Handle the response
+        const result = await response.json();
+        console.log(result);
+    }
+});
+
+
 </script>
 </body>
 </html>
