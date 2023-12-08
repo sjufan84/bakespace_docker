@@ -66,8 +66,6 @@ async def get_chef_response(chef_response: GetChefResponse):
   # Check to make sure that there is a session_id and a thread_id
   if not chef_response.session_id:
     raise ValueError("Session ID is required.")
-  if not chef_response.thread_id:
-    raise ValueError("Thread ID is required.")
   # Get the assistant id based on the chef type
   assistant_id = get_assistant_id(chef_response.chef_type)
 
@@ -75,26 +73,42 @@ async def get_chef_response(chef_response: GetChefResponse):
     message_content = chef_response.message_content + " " + "Serving size: " + chef_response.serving_size
   else:
     message_content = chef_response.message_content
+  if chef_response.thread_id:
+    # Create and send the message
+    message = client.beta.threads.messages.create(
+        chef_response.thread_id,
+        content=message_content,
+        role="user",
+        metadata=chef_response.message_metadata,
+    )
+    # Log the message
+    logging.info(f"Message created: {message}")
 
-  # Create and send the message
-  message = client.beta.threads.messages.create(
-      chef_response.thread_id,
-      content=message_content,
-      role="user",
-      metadata=chef_response.message_metadata,
-  )
-  # Log the message
-  logging.info(f"Message created: {message}")
+    # Create the run
+    run = client.beta.threads.runs.create(
+        assistant_id=assistant_id,
+        thread_id=chef_response.thread_id
+    )
+    # Poll the run status
+    response = poll_run_status(run_id=run.id, thread_id=run.thread_id)
 
-  # Create the run
-  run = client.beta.threads.runs.create(
-      assistant_id=assistant_id,
-      thread_id=chef_response.thread_id
-  )
-  # Poll the run status
-  response = poll_run_status(run_id=run.id, thread_id=run.thread_id)
+    return {"chef_response" : response["message"], "thread_id" : chef_response.thread_id, "session_id" : chef_response.session_id}
+  
+  else:
+    run = client.beta.threads.create_and_run(
+    assistant_id=assistant_id,
+    thread={
+      "messages": [
+          {
+            "role" : "user",
+            "content" : message_content, 
+            "metadata" : chef_response.message_metadata
+      }]}
+    )
+    # Poll the run status
+    response = json.dumps(poll_run_status(run_id=run.id, thread_id=run.thread_id))
 
-  return {"chef_response" : response["message"], "thread_id" : chef_response.thread_id, "session_id" : chef_response.session_id}
+    return response
 
   
   
