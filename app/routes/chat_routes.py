@@ -3,12 +3,20 @@ from typing import List, Optional
 import logging
 import json
 from fastapi import APIRouter, File, UploadFile
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from app.utils.assistant_utils import poll_run_status, get_assistant_id, upload_files
 from app.models.runs import (
   CreateThreadRunRequest, CreateMessageRunRequest, CreateThreadRequest, GetChefResponse
 )
 from app.dependencies import get_openai_client  
+from app.services.recipe_service import create_recipe
+
+class CreateRecipeRequest(BaseModel):
+    """ Request body for creating a new recipe """
+    specifications: str = Field(..., description="The specifications for the recipe.")  
+    serving_size: Optional[str] = Field("Family-Size", description="The serving size for the recipe.")
+    chef_type: Optional[str] = Field("home_cook", description="The type of chef creating the recipe.")
+    session_id: Optional[str] = Field("12345", description="The session id for the chat session.")
 
 
 # Define a router object
@@ -238,3 +246,14 @@ async def list_run_steps(thread_id: str = None, run_id: str = None, limit: int =
       order=order
   )
   return run_steps
+
+  # Create an endpoint to create a new recipe
+@router.post("/create-recipe", 
+            summary="Create a new recipe", 
+            description='This endpoint creates a new recipe.\
+            The recipe is created using the provided recipe specifications.')
+async def create_new_recipe(recipe_request: CreateRecipeRequest):
+  """ Create a new recipe """
+  # Create the recipe
+  recipe = create_recipe(recipe_request.specifications, recipe_request.serving_size)
+  return recipe
