@@ -97,6 +97,7 @@ async def extract_and_format_recipes(
 @router.post(
     "/format-recipe",
     response_description="The formatted recipe text.",
+    include_in_schema=False,  
     summary="Format a raw recipe text.",
     description="Takes the raw recipe text that should have been returned from the\
     extraction methods, and formats it.",

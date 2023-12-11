@@ -11,7 +11,7 @@ from app.services.anthropic_service import (
 )
 router = APIRouter()
 
-@router.post("/anthropic_chat")
+@router.post("/anthropic_chat", include_in_schema=False)
 async def chat_endpoint(request: ChatRequest):
     """
     POST /chat
@@ -24,7 +24,7 @@ async def chat_endpoint(request: ChatRequest):
     """
     return chat(request)
 
-@router.post("/create_recipe")
+@router.post("/create_recipe", tags=["Recipes"])
 async def create_recipe_endpoint(request: RecipeRequest):
     """
     POST /create_recipe
@@ -37,7 +37,7 @@ async def create_recipe_endpoint(request: RecipeRequest):
     """
     return create_recipe(request)
 
-@router.post("/adjust_recipe")
+@router.post("/adjust_recipe", tags=["Recipes"])
 async def adjust_recipe_endpoint(request: AdjustRecipeRequest):
     """
     POST /adjust_recipe
@@ -50,7 +50,7 @@ async def adjust_recipe_endpoint(request: AdjustRecipeRequest):
     """
     return adjust_recipe(request)
 
-@router.post("/generate_pairing")
+@router.post("/generate_pairing", tags=["Pairings"])
 async def generate_pairing_endpoint(request: PairingRequest):
     """
     POST /generate_pairing

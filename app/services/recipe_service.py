@@ -7,7 +7,7 @@ from openai import OpenAI
 from openai import OpenAIError
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from models.recipe import Recipe, FormattedRecipe # noqa: E402
-# from services.anthropic_service import AnthropicRecipe # noqa: E402
+from services.anthropic_service import AnthropicRecipe # noqa: E402
 
 # Load environment variables
 load_dotenv()
@@ -48,13 +48,14 @@ def create_recipe(specifications: str, serving_size: str):
         Recipe Name (recipe_name): A unique and descriptive title for the recipe.
         Ingredients (ingredients): A list of ingredients required for the recipe.
         Directions (directions): Step-by-step instructions for preparing the recipe.
-        Preparation Time (prep_time): The time taken for preparation in minutes.
-        Cooking Time (cook_time): The cooking time in minutes, if applicable.
-        Serving Size (serving_size): A description of the serving size.
-        Calories (calories): Estimated calories per serving, if known.
-        Fun Fact (fun_fact): An interesting fact about the recipe or its ingredients.
+        Preparation Time (prep_time): Optional[Union[str, int] The time taken for preparation in minutes.
+        Cooking Time (cook_time): Optional[Union[str, int]] The cooking time in minutes, if applicable.
+        Serving Size (serving_size): Optional[Union[str, int]] A description of the serving size.
+        Calories (calories): Optional[Union[str, int]] Estimated calories per serving, if known.
+        Fun Fact (fun_fact): Optional[str] An interesting fact about the recipe or its ingredients.
 
-        Ensure that the recipe is presented in a clear and organized manner, adhering to the 'AnthropicRecipe' class structure."""
+        Ensure that the recipe is presented in a clear and organized manner, adhering to the 'AnthropicRecipe' {AnthropicRecipe} class structure
+        as outlined abobve."""
       },
     ]
     # Create a list of models to loop through in case one fails

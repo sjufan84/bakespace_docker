@@ -4,7 +4,7 @@ from app.services.pairing_service import generate_pairings
 
 router = APIRouter()
 
-@router.post("/generate_pairings", response_description="The pairings returned as a dictionary.")
+@router.post("/generate_pairings", response_description="The pairings returned as a dictionary.", tags=["Pairings"])
 async def get_pairings(pairing_type: str, recipe: dict):
     """
     POST /generate_pairings
