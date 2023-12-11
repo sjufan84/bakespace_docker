@@ -1,8 +1,9 @@
 """ Utilities to support the run endpoints """
+import asyncio
+import json
+import logging
 import os
 import sys
-import time
-import json
 from typing import List
 from fastapi import UploadFile, Query, Depends
 #from pydantic import BaseModel, Field
@@ -13,8 +14,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from services.recipe_service import ( # noqa E402
   adjust_recipe, # noqa E402
   format_recipe, # noqa E402
-  initial_pass, # noqa E402
-  save_recipe, # noqa E402 # noqa E402
+  #save_recipe, # noqa E402 # noqa E402
   create_recipe # noqa E402
 ) # noqa E402
 from services.anthropic_service import AnthropicRecipe # noqa E402
@@ -93,14 +93,14 @@ functions_dict = {
         "function" : generate_image,
         "metadata_message": "Current image: ",
     },
-    "initial_pass": {
-        "function" : initial_pass,
-        "metadata_message": "Current initial pass: ",
-    },
-    "save_recipe": {
-        "function" : save_recipe,
-        "metadata_message": "Current saved recipe: ",
-    }
+   # "initial_pass": {
+   #     "function" : initial_pass,
+   #     "metadata_message": "Current initial pass: ",
+   # },
+   # "save_recipe": {
+   #     "function" : save_recipe,
+   #     "metadata_message": "Current saved recipe: ",
+   # }
 }
 
 # Define a function to add messages to the thread for metadata storage
@@ -130,7 +130,21 @@ def get_session_id(session_id: str = Query(...)):
 def get_run_service(session_id:str = Depends(get_session_id)):
    return RunService(session_id)  
 
-def call_named_function(function_name: str, **kwargs):
+'''def call_named_function(function_name: str, **kwargs):
+    try:
+        # Check if the function name exists in the dictionary
+        if function_name in functions_dict:
+            # Call the function
+            function_output = functions_dict[function_name]["function"](**kwargs)
+            # Return the function output
+            return function_output
+        else:
+            return f"Function {function_name} not found."
+    except TypeError as e:
+        return f"Error in calling {function_name}: {e}"'''
+
+
+async def call_named_function(function_name: str, **kwargs):
     try:
         # Check if the function name exists in the dictionary
         if function_name in functions_dict:
@@ -142,25 +156,78 @@ def call_named_function(function_name: str, **kwargs):
             return f"Function {function_name} not found."
     except TypeError as e:
         return f"Error in calling {function_name}: {e}"
-'''
 
-class Message(BaseModel):
-    role: str = "user"
-    content: str = Field(..., description="The content of the message")
+async def retrieve_run_status(thread_id, run_id):
+    try:
+        # Assuming client has an async method for retrieving run status
+        return client.beta.threads.runs.retrieve(thread_id=thread_id, run_id=run_id)
+    except Exception as e:
+        logging.error(f"Error retrieving run status: {e}")
+        return None
 
-# Create the endpoint url for the function we want to call
-fastapi_base_url = "http://localhost:8000"
+async def poll_run_status(run_id: str, thread_id: str):
+    run_status = await retrieve_run_status(thread_id, run_id)
+    if run_status is None:
+        return None
 
-# Define a function to create a run
-def create_run(thread_id: str, assistant_id: str):
-    run = client.beta.threads.runs.create(
-        thread_id=thread_id,
-        assistant_id=assistant_id
-    )
-    return run
-'''
+    tool_return_values = []
 
-def poll_run_status(run_id: str, thread_id: str):
+    while run_status.status not in ["completed", "failed", "expired", "cancelling", "cancelled"]:
+        if run_status.status == "requires_action":
+            tool_outputs = []
+            tool_calls = run_status.required_action.submit_tool_outputs.tool_calls
+
+            async def process_tool_call(tool_call):
+                function_name = tool_call.function.name
+                tool_call_id = tool_call.id
+                parameters = json.loads(tool_call.function.arguments)
+
+                function_output = await call_named_function(function_name=function_name, **parameters)
+
+                tool_outputs.append({
+                    "tool_call_id": tool_call_id,
+                    "output": function_output
+                })
+
+                tool_return_values.append({
+                    "tool_name": function_name,
+                    "output": function_output
+                })
+
+            # Process each tool call in parallel
+            await asyncio.gather(*(process_tool_call(tool_call) for tool_call in tool_calls))
+
+            try:
+                run = client.beta.threads.runs.submit_tool_outputs(thread_id=thread_id, run_id=run_id, tool_outputs=tool_outputs)
+                run_status = run
+            except Exception as e:
+                logging.error(f"Error submitting tool outputs: {e}")
+                return None
+        else:
+            await asyncio.sleep(1.5)  # Non-blocking sleep
+            run_status = await retrieve_run_status(thread_id, run_id)
+            if run_status is None:
+                return None
+
+    try:
+        final_messages = client.beta.threads.messages.list(thread_id=thread_id, limit=1)
+    except Exception as e:
+        logging.error(f"Error retrieving final messages: {e}")
+        return None
+
+    return {
+        "thread_id": thread_id,
+        "message": final_messages.data[0].content[0].text.value if final_messages else "No final message",
+        "run_id": run_id,
+        "tool_return_values": tool_return_values
+    }
+
+# Usage Example:
+# asyncio.run(poll_run_status(client, run_id, thread_id))
+
+
+
+'''def poll_run_status(run_id: str, thread_id: str):
     run_status = client.beta.threads.runs.retrieve(thread_id=thread_id, run_id=run_id)
     tool_return_values = []
 
@@ -210,7 +277,7 @@ def poll_run_status(run_id: str, thread_id: str):
         "message": final_messages.data[0].content[0].text.value,
         "run_id": run_id,
         "tool_return_values": tool_return_values
-    }
+    }'''
 
 
 

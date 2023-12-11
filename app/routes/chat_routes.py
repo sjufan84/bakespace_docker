@@ -32,7 +32,7 @@ class ClearChatResponse(BaseModel):
 class InitializeChatResponse(BaseModel):
   """ Return class for the initialize_chat endpoint """
   thread_id: str = Field(..., description="The thread id for the run to be added to.")
-  session_id: str = Field(..., description="The session id for the chat session.")
+  #session_id: str = Field(..., description="The session id for the chat session.")
   message_content: str = Field(..., description="The message content.")
   chat_history: List[dict] = Field(..., description="The chat history for the chat session.")
 
@@ -122,7 +122,7 @@ async def initialize_general_chat(context : CreateThreadRequest, chat_service = 
   # Set the thread_id in the store
   chat_service.set_thread_id(message_thread.id)
 
-  return {"thread_id" : message_thread.id, "session_id" : get_session_id(), "message_content" : message_content, "chat_history" : chat_service.load_chat_history()}
+  return {"thread_id" : message_thread.id, "message_content" : message_content, "chat_history" : chat_service.load_chat_history()}
 
   
 @router.post("/get_chef_response", response_description=
@@ -164,10 +164,11 @@ async def get_chef_response(chef_response: GetChefResponse, chat_service: ChatSe
         thread_id=chef_response.thread_id
     )
     # Poll the run status
-    response = poll_run_status(run_id=run.id, thread_id=run.thread_id)
-
-    # Add the chef response to the chat history
-    chat_service.add_chef_message(response["message"])
+    response = await poll_run_status(run_id=run.id, thread_id=run.thread_id)
+    
+    return response
+    if response:      # Add the chef response to the chat history
+      chat_service.add_chef_message(response["message"])
 
 
     return {"chef_response" : response["message"], "thread_id" : chef_response.thread_id, "chat_history" : chat_service.load_chat_history()}
@@ -184,7 +185,8 @@ async def get_chef_response(chef_response: GetChefResponse, chat_service: ChatSe
       }]}
     )
     # Poll the run status
-    response = json.dumps(poll_run_status(run_id=run.id, thread_id=run.thread_id))
+    response = await poll_run_status(run_id=run.id, thread_id=run.thread_id)
+    response = json.dumps(response)
 
     return response
 

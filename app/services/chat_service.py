@@ -79,6 +79,10 @@ class ChatService:
             self.chef_type = "home_cook"
             self.save_chef_type()
         self.thread_id = self.store.redis.get(f'{self.session_id}:thread_id')
+        if self.thread_id:
+            self.thread_id = self.thread_id
+        else:
+            self.thread_id = None
 
 
     def load_chat_history(self):
@@ -162,7 +166,7 @@ class ChatService:
 
 
     # Define a function to initialize the chatbot with context and an optional recipe
-    def initialize_general_chat(self, context: Union[str, None] = None,
+    async def initialize_general_chat(self, context: Union[str, None] = None,
                                 chef_type:str = None) -> dict:
         """ Initialize the chatbot with an optional context for general chat. """
         # Set the chef type if it is passed in
@@ -185,11 +189,15 @@ class ChatService:
         # Save the chat history to redis
         self.save_chat_history()
 
-        # Return the initial message, session_id, and chat_history as a json object
-        return {"session_id": self.session_id, "chat_history": self.load_chat_history(),
-        "initial_message": initial_message, "chef_type": self.chef_type}
+        # Log the chat history
+        logging.log(logging.INFO, "Chat history: %s", self.chat_history)
 
-    def initialize_recipe_chat(self, recipe_text: Union[str, dict, Recipe],
+        # Return the initial message, session_id, and chat_history as a json object
+        logging.log(logging.INFO, "Session id: %s", self.session_id)
+        
+        return {"chat_history": self.chat_history, "session_id": self.session_id}
+
+    '''def initialize_recipe_chat(self, recipe_text: Union[str, dict, Recipe],
     chef_type:str=None) -> dict:
         """ Initialize the chatbot with a recipe. """
         # Convert the recipe to a string if not already
@@ -251,7 +259,7 @@ class ChatService:
 
         # Return the initial message, session_id, and chat_history as a json object
         return {"session_id": self.session_id, "chat_history": self.chat_history,
-        "initial_message": initial_message, "chef_type": self.chef_type}
+        "initial_message": initial_message, "chef_type": self.chef_type}'''
 
     # Define a function to get a response from the chatbot
     async def get_chef_response(self, question: str, chef_type:str=None):
@@ -329,7 +337,7 @@ class ChatService:
         self.chat_history = []
         self.save_chat_history()
         # Reset the thread_id
-        self.set_thread_id(None)
+        self.thread_id = None
 
         # Return the session_id, the chat_history, and "Chat history cleared" as a json object
         return {"session_id": self.session_id, "chat_history": self.chat_history, "thread_id": self.thread_id,

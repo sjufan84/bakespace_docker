@@ -238,7 +238,7 @@ def generate_pairing(request: PairingRequest):
   # Return the response
   return {"chef_response" : response, "pairing" : pairing}
 
-def format_recipe(recipe_text: str):
+async def format_recipe(recipe_text: str):
     """ Extract and format the text from the user's files. """
     # Create the system prompt
     system_prompt = f"""You are a master chef helping a user
