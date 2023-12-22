@@ -12,11 +12,11 @@ load_dotenv()
 
 def get_openai_api_key():
     """ Function to get the OpenAI API key. """
-    return os.getenv("OPENAI_KEY2")
+    return os.getenv("OPENAI_API_KEY")
 
 def get_openai_org():
     """ Function to get the OpenAI organization. """
-    return os.getenv("OPENAI_ORG2")
+    return os.getenv("OPENAI_ORG")
 
 def get_google_vision_credentials():
     """ Function to get the Google Vision credentials. """
@@ -33,4 +33,4 @@ def get_openai_client():
 
 def get_anthropic_client():
     """ Get the Anthropic client. """
-    return Anthropic(os.getenv("ANTHROPIC_API_KEY"))
+    return Anthropic(os.getenv("ANTHROPIC_KEY"))
