@@ -353,4 +353,3 @@ async def create_new_recipe(recipe_request: CreateRecipeRequest):
   # Create the recipe
   recipe = await create_recipe(recipe_request.specifications, recipe_request.serving_size)
   return recipe
-

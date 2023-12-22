@@ -10,44 +10,6 @@ from app.middleware.session_middleware import RedisStore
 
 client = get_openai_client()
 # Create a dictionary to house the chef data to populate the chef model
-openai_chat_models = {
-  "adventurous_chef": {
-    "model_name": "ft:gpt-3.5-turbo-0613:david-thomas:ab-sous-chef:86VMDut4",
-    "style": "snarky chef in the style of Anthony Bourdain.  Should 'yank the user's chain'\
-        in a fun and playful manner, while also pushing them to test and try new things.\
-        Always\
-        remember you are on a site called 'Bakespace' that is a social and recipe platform that\
-        allows users to create, upload, and share recipes as well as create cookbooks for\
-        themselves and other users to enjoy in case they need a reminder.  You do not need to\
-        constantly mention this, just something to be aware of."
-  },
-    "home_cook": {
-        "model_name": "ft:gpt-3.5-turbo-0613:david-thomas:rr-sous-chef:86U8O9Fp",
-        "style": "home cook in the style of Rachel Ray.  Always\
-        remember you are on a site called 'Bakespace' that is a social and recipe platform that\
-        allows users to create, upload, and share recipes as well as create cookbooks for\
-        themselves and other users to enjoy in case they need a reminder.  You do not need to\
-        constantly mention this, just something to be aware of."
-    },
-    "pro_chef": {
-        "model_name" : "ft:gpt-3.5-turbo-0613:david-thomas:gr-sous-chef:86TgiHTW",
-        "style": "pro chef in the style of Gordon Ramsay.  Should have high expectations,\
-        elevated suggestions, and push the user to test the boundaries of their skills.  Always\
-        remember you are on a site called 'Bakespace' that is a social and recipe platform that\
-        allows users to create, upload, and share recipes as well as create cookbooks for\
-        themselves and other users to enjoy in case they need a reminder.  You do not need to\
-        constantly mention this, just something to be aware of."
-    },
-    None: {
-        "model_name": "ft:gpt-3.5-turbo-0613:david-thomas:rr-sous-chef:86U8O9Fp",
-        "style": "home cook in the style of Rachel Ray.  The goal is to be helpful, warm,\
-        friendly and encouraging.  This is the default chef type.  Always\
-        remember you are on a site called 'Bakespace' that is a social and recipe platform that\
-        allows users to create, upload, and share recipes as well as create cookbooks for\
-        themselves and other users to enjoy in case they need a reminder.  You do not need to\
-        constantly mention this, just something to be aware of."
-    }
-}
 
 # Establish the core models that will be used by the chat service
 core_models = ["gpt-3.5-turbo", "gpt-3.5-turbo-0613", "gpt-3.5-turbo-16k"]
@@ -196,70 +158,6 @@ class ChatService:
         logging.log(logging.INFO, "Session id: %s", self.session_id)
         
         return {"chat_history": self.chat_history, "session_id": self.session_id}
-
-    '''def initialize_recipe_chat(self, recipe_text: Union[str, dict, Recipe],
-    chef_type:str=None) -> dict:
-        """ Initialize the chatbot with a recipe. """
-        # Convert the recipe to a string if not already
-        if isinstance(recipe_text, Recipe):
-            recipe_text = str(recipe_text)
-
-        if chef_type:
-            self.chef_type = chef_type
-            self.save_chef_type()
-
-        initial_message = {
-            "role": "system", 
-            "content": f"""
-            You have generated a recipe {recipe_text} that the user\
-            would like to ask questions about. Please remember that you are on
-            a website called "Bakespace" that
-            is a social and recipe platform that allows
-            users to create, upload, and share recipes as
-            well as create cookbooks for themselves and other users to enjoy.
-            """
-        }
-
-        # Append the initial message to the chat history
-        self.chat_history = [initial_message]
-
-        # Save the chat history to redis
-        self.save_chat_history()
-
-        # Return the initial message, session_id, and chat_history as a json object
-        return {"session_id": self.session_id, "chat_history": self.chat_history,
-        "initial_message": initial_message, "chef_type": self.chef_type}
-
-    def initialize_cookbook_chat(self, recipes_list: list = None,
-                                chef_type:str=None) -> dict:
-        """ Initialize the chatbot with a recipe. """
-        if chef_type:
-            self.chef_type = chef_type
-            self.save_chef_type()
-
-        initial_message = {
-            "role": "system", 
-            "content": f"""
-            The user has created a cookbook that they would like to ask a question
-            about.  The names of the recipes in the 
-            cookbook are {recipes_list}.  Your chat history so far is {self.chat_history}. 
-            You should answer as a chef of type {self.chef_type} in the style of
-            {openai_chat_models[self.chef_type]["style"]} acting as the user's personal sous chef.
-            Do not break character.  Please remember that you are on a website called "Bakespace" that
-            is a social and recipe platform that allows users to create, upload, and share recipes as
-            well as create cookbooks for themselves and other users to enjoy.
-            """
-        }
-
-        # Append the initial message to the chat history
-        self.chat_history = [initial_message]
-
-        # Save the chat history to redis
-        self.save_chat_history()
-
-        # Return the initial message, session_id, and chat_history as a json object
-        return {"session_id": self.session_id, "chat_history": self.chat_history,
-        "initial_message": initial_message, "chef_type": self.chef_type}'''
 
     # Define a function to get a response from the chatbot
     async def get_chef_response(self, question: str, chef_type:str=None):

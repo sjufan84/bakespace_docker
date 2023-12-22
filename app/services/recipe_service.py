@@ -54,7 +54,7 @@ async def create_recipe(specifications: str, serving_size: str):
         Fun Fact (fun_fact): Optional[str] An interesting fact about the recipe or its ingredients.
 
         Ensure that the recipe is presented in a clear and organized manner, adhering to the 'AnthropicRecipe' {AnthropicRecipe} class structure
-        as outlined abobve."""
+        as outlined above."""
       },
     ]
 
@@ -172,13 +172,19 @@ async def adjust_recipe(recipe: dict, adjustments: str):
                 "role": "system", "content": f"""You are helping a user adjust a recipe {recipe}\
                 that you generated for them earlier.\
                 The adjustments are {adjustments}.  Return the adjusted recipe\
-                as a JSON object with the same schema as the Recipe {Recipe} model.\
-                Return only the recipe object.""",
+                as a JSON object with the following schema:\n\n
+                Recipe Name (recipe_name): A unique and descriptive title for the recipe.
+                Ingredients (ingredients): A list of ingredients required for the recipe.
+                Directions (directions): Step-by-step instructions for preparing the recipe.
+                Preparation Time (prep_time): Optional[Union[str, int] The time taken for preparation in minutes.
+                Cooking Time (cook_time): Optional[Union[str, int]] The cooking time in minutes, if applicable.
+                Serving Size (serving_size): Optional[Union[str, int]] A description of the serving size.
+                Calories (calories): Optional[Union[str, int]] Estimated calories per serving, if known.
+                Fun Fact (fun_fact): Optional[str] An interesting fact about the recipe or its ingredients.
+
+                Ensure that the recipe is presented in a clear and organized manner, adhering to the 'AnthropicRecipe' {AnthropicRecipe} class structure
+                as outlined above."""
             },
-            {
-                "role": "user", "content": "Hi chef, thanks for the recipe you generated\
-                for me earlier. Can you help me adjust it?"
-            }
         ]
 
         #models = [model, "gpt-3.5-turbo-16k-0613", "gpt-3.5-turbo-16k"]
@@ -192,7 +198,7 @@ async def adjust_recipe(recipe: dict, adjustments: str):
                 top_p=0.75,
                 max_tokens=1000,
                 response_format = {"type" : "json_object"}
-            )
+              )
                 recipe = response.choices[0].message.content
                 return recipe
 
