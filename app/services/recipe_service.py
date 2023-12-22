@@ -32,7 +32,7 @@ recipe_dict = Recipe.schema()
 core_models = ["gpt-3.5-turbo-1106", "gpt-4-1106-preview",
 "gpt-3.5-turbo-16k", "gpt-3.5-turbo-0613", "gpt-3.5-turbo"]
 
-async def create_recipe(client, specifications: str, serving_size: str):
+async def create_recipe(specifications: str, serving_size: str):
     """ Generate a recipe based on the specifications provided asynchronously """
     if serving_size in serving_size_dict.keys():
         serving_size = serving_size_dict[serving_size]
@@ -335,3 +335,4 @@ def save_recipe(recipe: object = None):
     #parsed_recipe = json.dumps(recipe)  
     return "Recipe saved successfully."
     '''
+    

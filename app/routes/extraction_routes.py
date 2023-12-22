@@ -60,7 +60,6 @@ file_handlers = {
     files should be of the same type and one of the following: pdf, txt, jpg, jpeg, png.\
     The file contents are extracted and processed.",\
     tags=["Recipe Text Extraction Endpoints"],
-    responses={200: {"model": AnthropicRecipe}},
 )
 async def extract_and_format_recipes(
     files: List[UploadFile] = File(..., description="The list of files to upload.")):
@@ -76,20 +75,20 @@ async def extract_and_format_recipes(
     # If the file type is pdf, send it to the pdf endpoint with the file.file attribute
     file_type = file_types.pop()
     if file_type== "pdf":
-      extracted_text = extract_pdf_file_contents([file.file for file in files])
-      formatted_text = format_recipe(extracted_text)
+      extracted_text = await extract_pdf_file_contents([file.file for file in files])
+      formatted_text = await format_recipe(extracted_text)
       #formatted_text = format_recipe_text(extracted_text)
     # If the file type is text, send it to the text endpoint with the file.file attribute
     if file_type == "txt":
       extracted_text = extract_text_file_contents([file.file.read().decode('utf-8',
       errors = 'ignore') for file in files])
-      formatted_text = format_recipe(extracted_text)
+      formatted_text = await format_recipe(extracted_text)
     # If the file type is an image, send it to the image endpoint with the files encoded as base64
     if file_type in ["jpg", "jpeg", "png"]:
       # Encode the images as base64
       encoded_images = [base64.b64encode(file.file.read()).decode("utf-8") for file in files]
       extracted_text = await extract_image_text(encoded_images)
-      formatted_text = format_recipe(extracted_text)
+      formatted_text = await format_recipe(extracted_text)
     # Return the extracted text
     return formatted_text
 

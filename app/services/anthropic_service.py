@@ -142,7 +142,7 @@ def chat(request: ChatRequest):
   return {"chef_response" : response.completion, "chat_history" : chat_history}
 
 # Define the basic recipe generation function
-def create_recipe(specifications: str, serving_size: str):
+async def create_recipe(specifications: str, serving_size: str):
   """ Create a recipe with the Anthropic API. """
   # Create a prompt for the model to generate the recipe based on the user's specifications,
   # serving size, and chef type
@@ -258,7 +258,13 @@ async def format_recipe(recipe_text: str):
       stream=False
     )
     # Try extracting the JSON from the response
-    recipe = extract_json_from_response(response.completion)
+    try:
+      recipe = extract_json_from_response(response.completion)
+    except json.JSONDecodeError as e:
+      print(f"Error parsing JSON: {e}")
+      recipe = response.completion
 
     # Return the response
     return recipe
+
+   

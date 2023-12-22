@@ -10,8 +10,9 @@ from app.models.runs import (
 )
 from app.middleware.session_middleware import RedisStore, get_redis_store 
 from app.dependencies import get_openai_client  
-from app.services.recipe_service import create_recipe
+#from app.services.recipe_service import create_recipe
 from app.services.chat_service import ChatService
+from app.services.anthropic_service import create_recipe
 
 # Define a router object
 router = APIRouter()
@@ -161,7 +162,8 @@ async def get_chef_response(chef_response: GetChefResponse, chat_service: ChatSe
     # Create the run
     run = client.beta.threads.runs.create(
         assistant_id=assistant_id,
-        thread_id=chef_response.thread_id
+        thread_id=chef_response.thread_id,
+        tools=[]
     )
     # Poll the run status
     response = await poll_run_status(run_id=run.id, thread_id=run.thread_id)
@@ -194,7 +196,8 @@ async def get_chef_response(chef_response: GetChefResponse, chat_service: ChatSe
             summary="Clear the chat history.",
             response_model=ClearChatResponse,
             tags=["Chat Endpoints"])
-async def clear_chat_history(session_id: str, chat_service: ChatService = Depends(get_chat_service)):
+async def clear_chat_history(session_id: str, chat_service:
+    ChatService = Depends(get_chat_service)):
     """ Endpoint to clear the chat history. """
     # Clear the chat history
     response = chat_service.clear_chat_history()
@@ -345,6 +348,6 @@ async def list_run_steps(thread_id: str = None, run_id: str = None, limit: int =
 async def create_new_recipe(recipe_request: CreateRecipeRequest):
   """ Create a new recipe """
   # Create the recipe
-  recipe = create_recipe(recipe_request.specifications, recipe_request.serving_size)
+  recipe = await create_recipe(recipe_request.specifications, recipe_request.serving_size)
   return recipe
 

@@ -9,7 +9,7 @@ from app.dependencies import get_google_vision_credentials, get_openai_client
 credentials = get_google_vision_credentials()
 client = get_openai_client()
 
-def extract_text_file_contents(files) -> str:
+async def extract_text_file_contents(files) -> str:
     """ Extract the text from the text file."""
     total_file_contents = ''
     for file in files:
@@ -18,7 +18,7 @@ def extract_text_file_contents(files) -> str:
         total_file_contents += file_contents
     return file_contents
 
-def extract_pdf_file_contents(files: List[UploadFile]) -> str:
+async def extract_pdf_file_contents(files: List[UploadFile]) -> str:
     """ Extract the text from the pdf file. """
     file_contents = ''
     for file in files:
