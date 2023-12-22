@@ -4,11 +4,14 @@ import logging
 import json
 from fastapi import APIRouter, File, UploadFile, Depends, Query
 from pydantic import BaseModel, Field
-from app.utils.assistant_utils import poll_run_status, get_assistant_id, upload_files
-from app.models.runs import (
-  CreateThreadRunRequest, CreateMessageRunRequest, CreateThreadRequest, GetChefResponse
+from app.utils.assistant_utils import (
+  poll_run_status, get_assistant_id, upload_files
 )
-from app.middleware.session_middleware import RedisStore, get_redis_store 
+from app.models.runs import (
+  CreateThreadRunRequest, CreateMessageRunRequest,
+  CreateThreadRequest, GetChefResponse
+)
+from app.middleware.session_middleware import RedisStore, get_redis_store
 from app.dependencies import get_openai_client  
 #from app.services.recipe_service import create_recipe
 from app.services.chat_service import ChatService
