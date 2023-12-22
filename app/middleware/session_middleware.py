@@ -16,19 +16,16 @@ r = redis.Redis(
   port=11565,
   password='yvl6wEThAapkABEhVcsEMMUToNJokxP9')
 
+session_id = "test1234!"
 
 class SessionMiddleware(BaseHTTPMiddleware):
     """ SessionMiddleware is a class that represents a middleware for sessions """
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
-        session_id = None
-
         if request.url.path not in ["/openapi.json", "/docs", "/redoc"]:
           session_id = request.query_params.get("session_id")
-        elif request.url.path == "/docs":
-          session_id = "test1234!"
-          print("session_id: ", session_id)
+        
         response = await call_next(request)
 
         if session_id:  # Only set the session_id header if it's not None
@@ -41,18 +38,12 @@ class RedisStore:
     def __init__(self, session_id: str):
         self.redis = r
         self.session_id = session_id
-
-def get_redis_store(request: Request = None) -> RedisStore:
+        
+def get_redis_store(request: Request) -> RedisStore:
     """ get_redis_store is a function that returns a RedisStore object """
     # Get the session_id from the query parameters or use "test1234!"
-    if request:
-        session_id = request.query_params.get("session_id")
-    else:
-        session_id = "test1234!"
-
+    session_id = request.query_params.get("session_id")
     return RedisStore(session_id)
-
-
 
 # Initialize FastAPI app and add middleware
 app = FastAPI()

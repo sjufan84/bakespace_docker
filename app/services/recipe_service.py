@@ -3,21 +3,32 @@ import logging
 import os
 import sys
 from dotenv import load_dotenv
-from openai import OpenAI
+from fastapi import Depends, Query
 from openai import OpenAIError
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from models.recipe import Recipe # noqa: E402
+from app.dependencies import get_openai_client # noqa: E402 
 from services.anthropic_service import AnthropicRecipe # noqa: E402
+from app.services.redis_service import RedisService
+from app.middleware.session_middleware import RedisStore, get_redis_store
+
+
+def get_session_id(session_id: str = Query(...)):
+    """ Dependency function to get the session id from the header """
+    return session_id
+
+# A new dependency function to get the chat service
+# We need to get the session_id from the headers
+def get_redis_service(store: RedisStore = Depends(get_redis_store)):
+    """ Define a function to get the chat service.  Takes in session_id and store."""
+    return RedisService(store=store)
+
 
 # Load environment variables
 load_dotenv()
 
-# Set OpenAI API key
-api_key = os.getenv("OPENAI_KEY2")
-organization = os.getenv("OPENAI_ORG2")
-
 # Set up the client
-client = OpenAI(api_key=api_key, organization=organization, max_retries=3, timeout=10)
+client = get_openai_client()
 
 serving_size_dict = {
   "Family-Size": 4,
@@ -36,6 +47,8 @@ async def create_recipe(specifications: str, serving_size: str):
     """ Generate a recipe based on the specifications provided asynchronously """
     if serving_size in serving_size_dict.keys():
         serving_size = serving_size_dict[serving_size]
+
+    redis_service = get_redis_service()
 
     messages = [
       {
@@ -73,6 +86,10 @@ async def create_recipe(specifications: str, serving_size: str):
                 response_format={"type": "json_object"}
             )
             chef_response = response.choices[0].message.content
+            try:
+              redis_service.save_recipe(chef_response.recipe_name, chef_response)
+            except Exception as e:
+              print(f"Error saving recipe to Redis: {str(e)}")
             return chef_response
         except OpenAIError as e:
             logging.error("Error with model: %s. Error: %s", model, e)

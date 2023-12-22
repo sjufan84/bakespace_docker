@@ -1,14 +1,19 @@
 """ Redis service for interacting with the Redis database. """
 import json
-from fastapi import Depends, Query
+from fastapi import Query, Depends
 from redis.exceptions import RedisError
 from app.middleware.session_middleware import RedisStore, get_redis_store
 
-store = get_redis_store()
+
+def get_store(store: RedisStore = Depends(get_redis_store)):
+    """ Dependency function to get the Redis store """
+    return store
 
 def get_session_id(session_id: str = Query(...)):
     """ Dependency function to get the session id from the header """
     return session_id
+
+store = get_store() 
 
 class RedisService:
   """ RedisService is a class that represents a Redis service. """
@@ -36,6 +41,14 @@ class RedisService:
           self.store.redis.set(f'{self.session_id}:chat_history', chat_history_json)
       except RedisError as e:
           print(f"Failed to save chat history to Redis: {e}")
+      return self.chat_history
+
+  def clear_chat_history(self):
+      """ Clear the chat history from Redis. """
+      try:
+          self.store.redis.delete(f'{self.session_id}:chat_history')
+      except RedisError as e:
+          print(f"Failed to clear chat history from Redis: {e}")
       return self.chat_history
 
   def get_recipe(self, recipe_name):
