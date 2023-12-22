@@ -68,9 +68,6 @@ class CheckStatusResponse(BaseModel):
     chat_history: List[dict] = Field(..., description="The chat history for the chat session.")
     thread_id: Optional[str] = Field(None, description="The thread id for the chat session.")
 
-# Set the allowed chef types
-allowed_chef_types = ["home_cook", "pro_chef", "adventurous_chef", None]
-
 def get_session_id(session_id: str = Query(...)):
     """ Dependency function to get the session id from the header """
     return session_id

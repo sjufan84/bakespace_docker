@@ -1,13 +1,19 @@
 """ Redis service for interacting with the Redis database. """
 import json
+from fastapi import Depends, Query
 from redis.exceptions import RedisError
 from app.middleware.session_middleware import RedisStore, get_redis_store
 
+store = get_redis_store()
+
+def get_session_id(session_id: str = Query(...)):
+    """ Dependency function to get the session id from the header """
+    return session_id
 
 class RedisService:
   """ RedisService is a class that represents a Redis service. """
-  def __init__(self, store: RedisStore = None):
-    self.store = get_redis_store()
+  def __init__(self, store: RedisStore = store):
+    self.store = store
     self.session_id = self.store.session_id
 
   def load_chat_history(self):
