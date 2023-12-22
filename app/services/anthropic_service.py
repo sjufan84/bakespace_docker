@@ -37,7 +37,7 @@ class AnthropicRecipe(BaseModel):
     serving_size: str = Field(..., description="The serving size of the recipe.")
     calories: Optional[int] = Field(..., description="The estimated calories for one\
       serving of the dish.")
-    fun_fact: str = Field(..., description="A fun or interesting fact about the recipe.\
+    fun_fact: Optional[str] = Field(..., description="A fun or interesting fact about the recipe.\
       This could be one of its ingredients, the region of the world it is from, etc.")
 
 class PairingRequest(BaseModel):

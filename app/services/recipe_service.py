@@ -218,7 +218,7 @@ adjust_recipe_tool = {
         "description": "The adjustments the user wants you to make to the recipe."
       },
       "recipe": {
-        "type": "string",
+        "type": "object",
         "description": "The recipe the user wants you to adjust."
       }
     },
