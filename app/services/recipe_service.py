@@ -4,23 +4,11 @@ import os
 import sys
 import json
 from dotenv import load_dotenv
-from fastapi import Query
 from openai import OpenAIError
-import redis
-from redis.exceptions import RedisError
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from app.dependencies import get_openai_client # noqa: E402 
-from services.anthropic_service import AnthropicRecipe # noqa: E402
-from app.middleware.session_middleware import RedisStore, get_redis_store
-
-r = redis.Redis(
-  host='redis-11565.c124.us-central1-1.gce.cloud.redislabs.com',
-  port=11565,
-  password='yvl6wEThAapkABEhVcsEMMUToNJokxP9')
-
-def get_session_id(session_id: str = Query(...)):
-    """ Dependency function to get the session id from the header """
-    return session_id
+from app.dependencies import get_openai_client  # noqa: E402 
+from services.anthropic_service import AnthropicRecipe  # noqa: E402
+from app.utils.redis_utils import save_recipe  # noqa: E402
 
 # Load environment variables
 load_dotenv()
@@ -38,16 +26,6 @@ serving_size_dict = {
 # Establish the core models that will be used by the chat service
 core_models = ["gpt-3.5-turbo-1106", "gpt-4-1106-preview",
 "gpt-3.5-turbo-16k", "gpt-3.5-turbo-0613", "gpt-3.5-turbo"]
-
-def save_recipe(recipe_name: str, recipe: dict):
-    """ Save the recipe to Redis. """
-    session_id = get_session_id() # Get the session id from the header
-    try:
-        recipe_json = json.dumps(recipe)
-        r.set(f'{session_id}:{recipe_name}', recipe_json)
-    except RedisError as e:
-        print(f"Failed to save recipe to Redis: {e}")
-    return print("Recipe saved successfully.")
 
 def create_recipe(specifications: str, serving_size: str):
     """ Generate a recipe based on the specifications provided asynchronously """
@@ -101,64 +79,7 @@ def create_recipe(specifications: str, serving_size: str):
 
     return None  # Return None or a default response if all models fail
 
-# Usage Example:
-# response = asyncio.run(async_create_recipe(client, specifications, serving_size))
-
-
-'''# Create Recipe Functions
-def create_recipe(specifications: str, serving_size: str):
-    """ Generate a recipe based on the specifications provided """
-    if serving_size in serving_size_dict.keys():
-        serving_size = serving_size_dict[serving_size]
-
-    messages = [
-      {
-        "role": "system",
-        "content": f"""You are an expert chef helping to create a unique recipe. 
-        Please consider the user's specifications: '{specifications}' and their desired serving size: '{serving_size}'. 
-        Generate a creative and appealing recipe and format the output as a JSON object following this schema:
-
-        Recipe Name (recipe_name): A unique and descriptive title for the recipe.
-        Ingredients (ingredients): A list of ingredients required for the recipe.
-        Directions (directions): Step-by-step instructions for preparing the recipe.
-        Preparation Time (prep_time): Optional[Union[str, int] The time taken for preparation in minutes.
-        Cooking Time (cook_time): Optional[Union[str, int]] The cooking time in minutes, if applicable.
-        Serving Size (serving_size): Optional[Union[str, int]] A description of the serving size.
-        Calories (calories): Optional[Union[str, int]] Estimated calories per serving, if known.
-        Fun Fact (fun_fact): Optional[str] An interesting fact about the recipe or its ingredients.
-
-        Ensure that the recipe is presented in a clear and organized manner, adhering to the 'AnthropicRecipe' {AnthropicRecipe} class structure
-        as outlined abobve."""
-      },
-    ]
-    # Create a list of models to loop through in case one fails
-    models = core_models
-
-    # Loop through the models and try to generate the recipe
-    for model in models:
-        try:
-            logging.debug("Trying model: %s.", model)
-            response = client.chat.completions.create(
-                model=model,
-                messages=messages,
-                temperature=0.75,
-                top_p=1,
-                max_tokens=750,
-                response_format = {"type" : "json_object"}
-            )
-            # Get the chef response
-            chef_response = response.choices[0].message.content
-  
-            # Return the chef response
-            return chef_response   
-        except OpenAIError as e:
-            logging.error("Error with model: %s. Error: %s", model, e)
-            continue'''
-
-
-
-
-        
+# Create recipe tool
 create_recipe_tool = {
   "name": "create_new_recipe",
   "description": "Create a new recipe for the user based on their specifications.",
@@ -184,7 +105,7 @@ create_recipe_tool = {
 # ---------------------------------------------------------------------------------------------------------------'''
 
 # Adjust recipe functions
-async def adjust_recipe(recipe: dict, adjustments: str):
+def adjust_recipe(recipe: dict, adjustments: str):
         """ Chat a new recipe that needs to be generated based on\
         a previous recipe. """
         # Set the chef style
@@ -317,49 +238,4 @@ adjust_recipe_tool = {
     ]
   }
 }
-'''
 # ---------------------------------------------------------------------------------------------------------------
-# Add the function to do the initial pass over the raw extracted text to return
-# to the user for adjustments
-def initial_pass(raw_recipe_text: str):
-    """ Initial pass over the raw extracted text to return to the user for adjustments """
-    messages = [
-        {
-            "role" : "system", "content" : f"""You are a master chef helping a user
-            format a recipe that they have uploaded.  This is your initial pass over the 
-            raw recipe text {raw_recipe_text}.  The goal here is to quickly return the text
-            to the user in a format where they can make any adjustments they need to before
-            re-submitting.  Return the the recipe as close to the same schema as the
-            Recipe {FormattedRecipe} model.  Only return the recipe object.  Do not spend
-            too much time on this as this is the first pass.  We will do a second pass
-            later for more detailed formatting."""
-        }
-    ]
-
-    #models = [model, "gpt-3.5-turbo-16k-0613", "gpt-3.5-turbo-16k"]
-    models = ["gpt-4", "gpt-3.5-turbo-1106", "gpt-4-1106-preview"]
-    for model in models:
-        try:
-            response = client.chat.completions.create(
-            model=model,
-            messages=messages,
-            temperature=0.5,
-            top_p=0.75,
-            max_tokens=1000,
-        )
-            recipe = response.choices[0].message.content
-            return recipe
-
-        except TimeoutError as a:
-            print(f"Timeout error: {str(a)}")
-            continue
-
-# Save the recipe to the MySQL database
-# For now this will just return dummy data
-def save_recipe(recipe: object = None):
-    """ Save the recipe to the MySQL database """
-    # Parse the recipe object to save it to the database
-    #parsed_recipe = json.dumps(recipe)  
-    return "Recipe saved successfully."
-    '''
-    

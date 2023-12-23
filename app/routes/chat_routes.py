@@ -2,20 +2,19 @@
 from typing import List, Optional, Union
 import logging
 import json
-from fastapi import APIRouter, File, UploadFile, Depends, Query
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 from app.utils.assistant_utils import (
-  poll_run_status, get_assistant_id, upload_files
+  poll_run_status, get_assistant_id
 )
 from app.models.runs import (
   CreateThreadRunRequest, CreateMessageRunRequest,
   CreateThreadRequest, GetChefResponse
 )
 from app.middleware.session_middleware import RedisStore, get_redis_store
-from app.dependencies import get_openai_client  
-#from app.services.recipe_service import create_recipe
+from app.dependencies import get_openai_client 
 from app.services.chat_service import ChatService
-from app.services.anthropic_service import create_recipe
+from app.services.recipe_service import create_recipe
 
 # Define a router object
 router = APIRouter()
@@ -36,7 +35,6 @@ class ClearChatResponse(BaseModel):
 class InitializeChatResponse(BaseModel):
   """ Return class for the initialize_chat endpoint """
   thread_id: str = Field(..., description="The thread id for the run to be added to.")
-  #session_id: str = Field(..., description="The session id for the chat session.")
   message_content: str = Field(..., description="The message content.")
   chat_history: List[dict] = Field(..., description="The chat history for the chat session.")
   session_id: str = Field(..., description="The session id for the chat session.")
@@ -99,18 +97,25 @@ async def status_call(chat_service: ChatService = Depends(get_chat_service)) -> 
             response_model = InitializeChatResponse,
             responses={200: {"thread_id": "The thread id for the run to be added to.",
             "session_id" : "The session id.", "message_content" : "The message content."}})
-async def initialize_general_chat(context : CreateThreadRequest, chat_service = Depends(get_chat_service)):
-  """ Endpoint to initialize a general chat session. """
-  # Save the initial message to the store
-  chat_service.add_user_message(context.message_content)
-  client = get_openai_client()
-  if context.serving_size:
-    message_content = context.message_content + " " + "Serving size: " + context.serving_size
-  else:
-    message_content = context.message_content
-
-  message_content = "The context for this chat thread is " + message_content
+async def initialize_general_chat(context: CreateThreadRequest, chat_service=Depends(get_chat_service)):
+  logging.debug(f"Received request with context: {context}")
   
+  # Existing code to add user message
+  chat_service.add_user_message(context.message_content)
+  logging.debug("User message added to chat service")
+
+  # Logging client and message content formation
+  client = get_openai_client()
+  logging.debug("OpenAI client initialized")
+
+  if context.serving_size:
+      message_content = context.message_content + " " + "Serving size: " + context.serving_size
+  else:
+      message_content = context.message_content
+  message_content = "The context for this chat thread is " + message_content
+  logging.debug(f"Formed message content: {message_content}")
+
+  # Existing code to create message thread
   message_thread = client.beta.threads.create(
     messages=[
       {
@@ -119,12 +124,21 @@ async def initialize_general_chat(context : CreateThreadRequest, chat_service = 
         "metadata": context.message_metadata  
       },
     ]
-  )
+  )  
+  
+  logging.debug(f"Message thread created with ID: {message_thread.id}")
 
   # Set the thread_id in the store
   chat_service.set_thread_id(message_thread.id)
+  logging.debug(f"Thread ID set in chat service: {message_thread.id}")
 
-  return {"thread_id" : message_thread.id, "message_content" : message_content, "chat_history" : chat_service.load_chat_history(), "session_id" : chat_service.session_id}
+  # Before returning, log the session_id and other return values
+  session_id = chat_service.session_id
+  chat_history = chat_service.load_chat_history()
+  logging.debug(f"Returning response with session_id: {session_id}, chat_history: {chat_history}, thread_id: {message_thread.id}")
+
+  return {"thread_id": message_thread.id, "message_content": message_content, "chat_history": chat_history, "session_id": session_id}
+
 
   
 @router.post("/get_chef_response", response_description=
@@ -282,64 +296,7 @@ async def add_message_and_run(message_request: CreateMessageRunRequest):
 
     return response
 
-# Define an endpoint allow the user to upload an image file and return extracted text
-@router.post("/extract_text_from_image", 
-            summary="Extract text from an image", 
-            include_in_schema=False,
-            description='This endpoint extracts text from an image.\
-            The image is uploaded and the text is extracted using\
-            Google Cloud Vision. The extracted text is returned.')
-async def extract_text_from_image(files: List[UploadFile] = File(None)):
-    """ Extract text from an image """
-    # If there are uploaded files, pass them to the upload_files function
-    #if files:
-    #    file_contents = [await file.read() for file in files]
-    # Extract the text from the image
-    #extracted_text = await extract_image_text(file_contents)
-    # Format the extracted text
-    #formatted_text = format_recipe(extracted_text)
-
-    #return formatted_text
-
-# Create upload_files endpoint
-@router.post("/upload_files", 
-            include_in_schema=False,
-            summary="Upload files", 
-            description='This endpoint uploads files to the cloud.\
-            The files are uploaded and the file IDs are returned.')
-async def upload_assistant_files(files: List[UploadFile] = File(None)):
-  """ Upload files to OpenAI and return the file IDs """
-  file_contents = [await file.read() for file in files]
-  file_ids = await upload_files(file_contents)
-  return file_ids
-
-# Create an endpoint to retrieve the run steps from a run
-@router.get("/list_run_steps", 
-            summary="List the steps from a run", 
-            include_in_schema=False,
-            description='This endpoint lists the steps from a run.\
-            The steps are returned as a JSON object.')
-async def list_run_steps(thread_id: str = None, run_id: str = None, limit: int = 20, order: str = "desc"):
-  """ List the steps from a run """
-  client = get_openai_client()
-  # Check to see if there is a thread_id in the call, if not,
-  # load the thread_id from the store
-  if not thread_id:
-      raise ValueError("Thread ID is required.")
-  # Check to see if there is a run_id in the call, if not,
-  # load the run_id from the store
-  if not run_id:
-      raise ValueError("Run ID is required.")
-  # Load the steps from redis
-  run_steps = client.beta.threads.runs.steps.list(
-      thread_id=thread_id,
-      run_id=run_id,
-      limit=limit,
-      order=order
-  )
-  return run_steps
-
-  # Create an endpoint to create a new recipe
+# Create an endpoint to create a new recipe
 @router.post("/create-recipe", 
             summary="Create a new recipe", 
             include_in_schema=False,  
