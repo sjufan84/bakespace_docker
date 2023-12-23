@@ -16,15 +16,14 @@ r = redis.Redis(
   port=11565,
   password='yvl6wEThAapkABEhVcsEMMUToNJokxP9')
 
-session_id = "test1234!"
-
+session_id=None
 class SessionMiddleware(BaseHTTPMiddleware):
     """ SessionMiddleware is a class that represents a middleware for sessions """
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
-        if request.url.path not in ["/openapi.json", "/docs", "/redoc"]:
-          session_id = request.query_params.get("session_id")
+        
+        session_id = request.query_params.get("session_id")
         
         response = await call_next(request)
 
