@@ -94,7 +94,6 @@ async def status_call(chat_service: ChatService = Depends(get_chat_service)) -> 
             "The thread id for the run to be added to, the session id, and the message content.",
             summary="Initialize a general chat session.",
             tags=["Chat Endpoints"],
-            response_model = InitializeChatResponse,
             responses={200: {"thread_id": "The thread id for the run to be added to.",
             "session_id" : "The session id.", "message_content" : "The message content."}})
 async def initialize_general_chat(context: CreateThreadRequest, chat_service=Depends(get_chat_service)):
