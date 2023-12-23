@@ -2,27 +2,25 @@
 import logging
 import os
 import sys
+import json
 from dotenv import load_dotenv
-from fastapi import Depends, Query
+from fastapi import Query
 from openai import OpenAIError
+import redis
+from redis.exceptions import RedisError
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from models.recipe import Recipe # noqa: E402
 from app.dependencies import get_openai_client # noqa: E402 
 from services.anthropic_service import AnthropicRecipe # noqa: E402
-from app.services.redis_service import RedisService
 from app.middleware.session_middleware import RedisStore, get_redis_store
 
+r = redis.Redis(
+  host='redis-11565.c124.us-central1-1.gce.cloud.redislabs.com',
+  port=11565,
+  password='yvl6wEThAapkABEhVcsEMMUToNJokxP9')
 
 def get_session_id(session_id: str = Query(...)):
     """ Dependency function to get the session id from the header """
     return session_id
-
-# A new dependency function to get the chat service
-# We need to get the session_id from the headers
-def get_redis_service(store: RedisStore = Depends(get_redis_store)):
-    """ Define a function to get the chat service.  Takes in session_id and store."""
-    return RedisService(store=store)
-
 
 # Load environment variables
 load_dotenv()
@@ -37,19 +35,24 @@ serving_size_dict = {
   "Potluck-Size": 20
 }
 
-# Convert the Recipe model to a dictionary
-recipe_dict = Recipe.schema()
 # Establish the core models that will be used by the chat service
 core_models = ["gpt-3.5-turbo-1106", "gpt-4-1106-preview",
 "gpt-3.5-turbo-16k", "gpt-3.5-turbo-0613", "gpt-3.5-turbo"]
 
-async def create_recipe(specifications: str, serving_size: str):
+def save_recipe(recipe_name: str, recipe: dict):
+    """ Save the recipe to Redis. """
+    session_id = get_session_id() # Get the session id from the header
+    try:
+        recipe_json = json.dumps(recipe)
+        r.set(f'{session_id}:{recipe_name}', recipe_json)
+    except RedisError as e:
+        print(f"Failed to save recipe to Redis: {e}")
+    return print("Recipe saved successfully.")
+
+def create_recipe(specifications: str, serving_size: str):
     """ Generate a recipe based on the specifications provided asynchronously """
     if serving_size in serving_size_dict.keys():
         serving_size = serving_size_dict[serving_size]
-
-    redis_service = get_redis_service()
-
     messages = [
       {
         "role": "system",
@@ -77,7 +80,7 @@ async def create_recipe(specifications: str, serving_size: str):
         try:
             logging.debug("Trying model: %s.", model)
             # Assuming client has an async method for chat completions
-            response = await client.chat.completions.create(
+            response = client.chat.completions.create(
                 model=model,
                 messages=messages,
                 temperature=0.75,
@@ -87,7 +90,8 @@ async def create_recipe(specifications: str, serving_size: str):
             )
             chef_response = response.choices[0].message.content
             try:
-              redis_service.save_recipe(chef_response.recipe_name, chef_response)
+              recipe = json.loads(chef_response)
+              save_recipe(recipe["recipe_name"], chef_response)
             except Exception as e:
               print(f"Error saving recipe to Redis: {str(e)}")
             return chef_response

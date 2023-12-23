@@ -39,6 +39,7 @@ class InitializeChatResponse(BaseModel):
   #session_id: str = Field(..., description="The session id for the chat session.")
   message_content: str = Field(..., description="The message content.")
   chat_history: List[dict] = Field(..., description="The chat history for the chat session.")
+  session_id: str = Field(..., description="The session id for the chat session.")
 
 class GetChefRequestResponse(BaseModel):
   """ Return class for the get_chef_response endpoint """
@@ -123,7 +124,7 @@ async def initialize_general_chat(context : CreateThreadRequest, chat_service = 
   # Set the thread_id in the store
   chat_service.set_thread_id(message_thread.id)
 
-  return {"thread_id" : message_thread.id, "message_content" : message_content, "chat_history" : chat_service.load_chat_history()}
+  return {"thread_id" : message_thread.id, "message_content" : message_content, "chat_history" : chat_service.load_chat_history(), "session_id" : chat_service.session_id}
 
   
 @router.post("/get_chef_response", response_description=
@@ -163,7 +164,6 @@ async def get_chef_response(chef_response: GetChefResponse, chat_service: ChatSe
     run = client.beta.threads.runs.create(
         assistant_id=assistant_id,
         thread_id=chef_response.thread_id,
-        tools=[]
     )
     # Poll the run status
     response = await poll_run_status(run_id=run.id, thread_id=run.thread_id)
@@ -348,5 +348,5 @@ async def list_run_steps(thread_id: str = None, run_id: str = None, limit: int =
 async def create_new_recipe(recipe_request: CreateRecipeRequest):
   """ Create a new recipe """
   # Create the recipe
-  recipe = await create_recipe(recipe_request.specifications, recipe_request.serving_size)
+  recipe = create_recipe(recipe_request.specifications, recipe_request.serving_size)
   return recipe

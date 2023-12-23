@@ -238,7 +238,7 @@ class ChatService:
         self.thread_id = None
 
         # Return the session_id, the chat_history, and "Chat history cleared" as a json object
-        return {"session_id": self.session_id, "chat_history": self.chat_history, "thread_id": self.thread_id,
+        return {"session_id": self.session_id, "chat_history": self.load_chat_history(), "thread_id": self.thread_id,
         "message": "Chat history cleared"}
 
     
