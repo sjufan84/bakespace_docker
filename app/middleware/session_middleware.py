@@ -22,13 +22,14 @@ class SessionMiddleware(BaseHTTPMiddleware):
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
-        
-        session_id = request.query_params.get("session_id")
-        
+        session_id = request.headers.get("session_id")  # Using hyphenated header field
+
+        # Optional: Validate session_id here
+
         response = await call_next(request)
 
         if session_id:  # Only set the session_id header if it's not None
-            response.headers["session_id"] = session_id
+            response.headers["session_id"] = session_id  # Ensuring header field consistency
 
         return response
 
@@ -40,8 +41,7 @@ class RedisStore:
         
 def get_redis_store(request: Request) -> RedisStore:
     """ get_redis_store is a function that returns a RedisStore object """
-    # Get the session_id from the query parameters or use "test1234!"
-    session_id = request.query_params.get("session_id")
+    session_id = request.headers.get("session_id")  # Ensuring header field consistency
     return RedisStore(session_id)
 
 # Initialize FastAPI app and add middleware

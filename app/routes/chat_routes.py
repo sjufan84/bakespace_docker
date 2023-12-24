@@ -2,7 +2,7 @@
 from typing import List, Optional, Union
 import logging
 import json
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException, Request
 from pydantic import BaseModel, Field
 from app.utils.assistant_utils import (
   poll_run_status, get_assistant_id
@@ -71,72 +71,74 @@ def get_session_id(session_id: str = Query(...)):
     """ Dependency function to get the session id from the header """
     return session_id
 
-# A new dependency function to get the chat service
-# We need to get the session_id from the headers
-def get_chat_service(store: RedisStore = Depends(get_redis_store)):
-    """ Define a function to get the chat service.  Takes in session_id and store."""
-    return ChatService(store=store)
+def get_chat_service(request: Request) -> ChatService:
+    """ Define a function to get the chat service. """
+    session_id = request.headers.get("session_id")
+    redis_store = RedisStore(session_id)
+    return ChatService(store=redis_store)
 
 
-# Add an endpoint that is a "status call" to make sure the API is working.
-# It should return the session_id and the chat history, if any.
 @router.get("/status_call")
 async def status_call(chat_service: ChatService = Depends(get_chat_service)) -> dict:
-    """ Define the function to make a status call.  Will return the session_id
-    and the chat_history to the user """
-    return chat_service.check_status()
+    logging.debug("Status call endpoint hit")
+    try:
+        status = chat_service.check_status()
+        logging.debug(f"Status call response: {status}")
+        return status
+    except Exception as e:
+        logging.error(f"Error in status call: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 
-# Define a function to initialize the chatbot with context and an optional recipe
-# Create a route to initialize a general chat session
+
 @router.post("/initialize_general_chat", response_description=
-            "The thread id for the run to be added to, the session id, and the message content.",
-            summary="Initialize a general chat session.",
-            tags=["Chat Endpoints"],
-            responses={200: {"thread_id": "The thread id for the run to be added to.",
-            "session_id" : "The session id.", "message_content" : "The message content."}})
+             "The thread id for the run to be added to, the session id, and the message content.")
 async def initialize_general_chat(context: CreateThreadRequest, chat_service=Depends(get_chat_service)):
-  logging.debug(f"Received request with context: {context}")
-  
-  # Existing code to add user message
-  chat_service.add_user_message(context.message_content)
-  logging.debug("User message added to chat service")
+    logging.debug(f"Initializing general chat with context: {context}")
 
-  # Logging client and message content formation
-  client = get_openai_client()
-  logging.debug("OpenAI client initialized")
+    try:
+        # Add user message to chat service
+        chat_service.add_user_message(context.message_content)
+        logging.debug("User message added to chat service")
 
-  if context.serving_size:
-      message_content = context.message_content + " " + "Serving size: " + context.serving_size
-  else:
-      message_content = context.message_content
-  message_content = "The context for this chat thread is " + message_content
-  logging.debug(f"Formed message content: {message_content}")
+        # Initialize OpenAI client
+        client = get_openai_client()
+        logging.debug("OpenAI client initialized")
 
-  # Existing code to create message thread
-  message_thread = client.beta.threads.create(
-    messages=[
-      {
-        "role": "user",
-        "content": f"{message_content}",
-        "metadata": context.message_metadata  
-      },
-    ]
-  )  
-  
-  logging.debug(f"Message thread created with ID: {message_thread.id}")
+        # Construct message content
+        message_content = "The context for this chat thread is " + context.message_content
+        if context.serving_size:
+            message_content += " Serving size: " + context.serving_size
+        logging.debug(f"Formed message content: {message_content}")
 
-  # Set the thread_id in the store
-  chat_service.set_thread_id(message_thread.id)
-  logging.debug(f"Thread ID set in chat service: {message_thread.id}")
+        # Create message thread
+        message_thread = client.beta.threads.create(
+            messages=[
+                {
+                    "role": "user",
+                    "content": message_content,
+                    "metadata": context.message_metadata  
+                },
+            ]
+        )
+        logging.debug(f"Message thread created with ID: {message_thread.id}")
 
-  # Before returning, log the session_id and other return values
-  session_id = chat_service.session_id
-  chat_history = chat_service.load_chat_history()
-  logging.debug(f"Returning response with session_id: {session_id}, chat_history: {chat_history}, thread_id: {message_thread.id}")
+        # Set the thread_id in the store and prepare response
+        chat_service.set_thread_id(message_thread.id)
+        session_id = chat_service.session_id
+        chat_history = chat_service.load_chat_history()
+        
+        # Log and return the response
+        response = {"thread_id": message_thread.id, "message_content": message_content, 
+                    "chat_history": chat_history, "session_id": session_id}
+        logging.debug(f"Returning response: {response}")
+        return response
 
-  return {"thread_id": message_thread.id, "message_content": message_content, "chat_history": chat_history, "session_id": session_id}
+    except Exception as e:
+        logging.error(f"Error in initializing chat: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 
   

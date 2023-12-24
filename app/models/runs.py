@@ -39,7 +39,6 @@ class CreateThreadRequest(BaseModel):
     chef_type: Optional[str] = Field(..., description="The type of chef the user is.\
     Must be one of ['adventurous_chef', 'home_cook', 'pro_chef']") 
     serving_size: Optional[str] = Field(None, description="The serving size for the recipe.")
-    #session_id: str = Field(..., description="The session id.")
 
 class GetChefResponse(BaseModel):
   """ Get Chef Response Model """
