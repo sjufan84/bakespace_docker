@@ -15,7 +15,7 @@ async def get_chat_history():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/chat_history", summary="Save chat history", tags=["Redis Routes"])
+'''@router.post("/chat_history", summary="Save chat history", tags=["Redis Routes"])
 async def save_chat_history(chat_history: List[str]):
     service = RedisService()
     try:
@@ -73,4 +73,4 @@ async def get_recipe_pairings(recipe_name: str):
     try:
         return service.get_recipe_pairings(recipe_name)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))'''

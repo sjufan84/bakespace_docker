@@ -4,8 +4,6 @@ import json
 import logging
 import os
 import sys
-from typing import List
-from fastapi import UploadFile, Query, Depends
 from dotenv import load_dotenv
 # Add the app directory to the system path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

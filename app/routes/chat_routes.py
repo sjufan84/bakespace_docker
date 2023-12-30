@@ -30,6 +30,12 @@ class ClearChatResponse(BaseModel):
   chat_history: List[dict] = Field(..., description="The chat history for the chat session.")
   thread_id: Union[str, None] = Field(None, description="The thread id for the chat session.")
 
+class ViewChatResponse(BaseModel):
+  """ Return class for the view_chat_history endpoint """
+  chat_history: List[dict] = Field(..., description="The chat history for the chat session.")
+  session_id: str = Field(..., description="The session id for the chat session.")
+  thread_id: Union[str, None] = Field(None, description="The current thread id for the chat session.")
+
 class InitializeChatResponse(BaseModel):
   """ Return class for the initialize_chat endpoint """
   thread_id: str = Field(..., description="The thread id for the run to be added to.")
@@ -43,7 +49,6 @@ class GetChefRequestResponse(BaseModel):
   thread_id: str = Field(..., description="The thread id for the chat session.")
   session_id: str = Field(..., description="The session id for the chat session.")
   chat_history: List[dict] = Field(..., description="The chat history for the chat session.")
-
 
 class RecipeSpec(BaseModel):
     specifications: str
@@ -65,13 +70,15 @@ class CheckStatusResponse(BaseModel):
     chat_history: List[dict] = Field(..., description="The chat history for the chat session.")
     thread_id: Optional[str] = Field(None, description="The thread id for the chat session.")
 
-def get_session_id(session_id: str = Query(...)):
-    """ Dependency function to get the session id from the header """
+# Define a function to get the session_id from the headers
+def get_session_id(request: Request) -> str:
+    """ Define a function to get the session_id from the headers. """
+    session_id = request.headers.get("Session-ID")
     return session_id
 
 def get_chat_service(request: Request) -> ChatService:
     """ Define a function to get the chat service. """
-    session_id = request.headers.get("Session-ID")
+    session_id = get_session_id(request)
     redis_store = RedisStore(session_id)
     return ChatService(store=redis_store)
 
@@ -89,7 +96,8 @@ async def status_call(chat_service: ChatService = Depends(get_chat_service)) -> 
 
 
 @router.post("/initialize_general_chat", response_description=
-             "The thread id for the run to be added to, the session id, and the message content.")
+             "The thread id, session id, chat history and message content.",
+             response_model=InitializeChatResponse, tags=["Chat Endpoints"])
 async def initialize_general_chat(context: CreateThreadRequest, chat_service=Depends(get_chat_service)):
     logging.debug(f"Initializing general chat with context: {context}")
 
@@ -182,13 +190,12 @@ async def get_chef_response(chef_response: GetChefResponse, chat_service:
     # Poll the run status
     response = await poll_run_status(run_id=run.id, thread_id=run.thread_id)
 
-    return response
     if response:      # Add the chef response to the chat history
       chat_service.add_chef_message(response["message"])
 
     return {"chef_response" : response["message"],
             "thread_id" : chef_response.thread_id, "chat_history" : chat_service.load_chat_history()}
-
+  
   else:
     run = client.beta.threads.create_and_run(
         assistant_id=assistant_id,
@@ -208,21 +215,24 @@ async def get_chef_response(chef_response: GetChefResponse, chat_service:
 
 @router.post(
     "/clear_chat_history",
-    response_description="The chat history is cleared.",
+    response_description="The thread id, session id, chat history and success message.",
+    description="Clear the chat history for the current session.  Pass the session id in the headers.",
     summary="Clear the chat history.",
     response_model=ClearChatResponse,
     tags=["Chat Endpoints"]
 )
-async def clear_chat_history(
-        session_id: str, chat_service: ChatService = Depends(get_chat_service)):
+async def clear_chat_history(chat_service: ChatService = Depends(get_chat_service)):
     # Clear the chat history
     response = chat_service.clear_chat_history()
     return response
 
-@router.get("/view_chat_history", response_description="The chat history returned as a dictionary.",
+@router.get("/view_chat_history", response_description="The chat history, session id and current thread id.",
+            summary="View the chat history.", response_model=ViewChatResponse,
             tags=["Chat Endpoints"])
 async def view_chat_history(chat_service: ChatService = Depends(get_chat_service)):
     """ Endpoint to view the chat history. """
     # Get the chat history from the store
     chat_history = chat_service.load_chat_history()
-    return chat_history
+    thread_id = chat_service.thread_id
+    session_id = chat_service.session_id
+    return {"chat_history": chat_history, "session_id": session_id, "thread_id": thread_id}
