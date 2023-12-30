@@ -13,7 +13,7 @@ def get_session_id(session_id: str = Query(...)):
     """ Dependency function to get the session id from the header """
     return session_id
 
-store = get_store() 
+store = get_store()
 
 class RedisService:
   """ RedisService is a class that represents a Redis service. """
@@ -109,4 +109,3 @@ class RedisService:
       except RedisError as e:
           print(f"Failed to get recipe pairings from Redis: {e}")
           return []
-

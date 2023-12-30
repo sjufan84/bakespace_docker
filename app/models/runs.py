@@ -14,14 +14,14 @@ class CreateMessageRunRequest(BaseModel):
     message_content: str = Field(..., description="The content of the message to be added to the thread.")
     message_metadata: Optional[object] = Field({}, description="The metadata for the message.  A mapping of\
     key-value pairs that can be used to store additional information about the message.")
-    #file_ids: Optional[List[str]] = []
+    # file_ids: Optional[List[str]] = []
 
 class CreateThreadRunRequest(BaseModel):
     """ Create Thread Run Request Model """
     message_content: str = Field(..., description="The content of the message to be added to the thread.")
-    message_metadata: Optional[dict] = Field({}, description="The metadata for the message.")  
+    message_metadata: Optional[dict] = Field({}, description="The metadata for the message.")
     chef_type: str = Field(..., description="The type of chef the user is.\
-    Must be one of ['adventurous_chef', 'home_cook', 'pro_chef']") 
+    Must be one of ['adventurous_chef', 'home_cook', 'pro_chef']")
     serving_size: Optional[str] = Field(None, description="The serving size for the recipe.")
 
 class ListStepsRequest(BaseModel):
@@ -35,9 +35,9 @@ class CreateThreadRequest(BaseModel):
     """ Create Thread Request Model """
     message_content: str = Field(..., description="The content of the message to be added to the thread.")
     message_metadata: Optional[object] = Field({}, description="The metadata for the message.  A mapping of\
-      key-value pairs that can be used to store additional information about the message.")  
+      key-value pairs that can be used to store additional information about the message.")
     chef_type: Optional[str] = Field(..., description="The type of chef the user is.\
-    Must be one of ['adventurous_chef', 'home_cook', 'pro_chef']") 
+    Must be one of ['adventurous_chef', 'home_cook', 'pro_chef']")
     serving_size: Optional[str] = Field(None, description="The serving size for the recipe.")
 
 class GetChefResponse(BaseModel):
@@ -45,7 +45,8 @@ class GetChefResponse(BaseModel):
   message_content: str = Field(..., description="The content of the message to be added to the thread.")
   message_metadata: Optional[object] = Field({}, description="The metadata for the message.  A mapping of\
     key-value pairs that can be used to store additional information about the message.")
-  chef_type: Optional[str] = Field("home_cook", description="The type of chef that the user wants to talk to.")
+  chef_type: Optional[str] = Field(
+      "home_cook", description="The type of chef that the user wants to talk to.")
   serving_size: Optional[str] = Field(None, description="The serving size for the recipe.")
   thread_id: str = Field(None, description="The thread id for the run to be added to.")
-  #session_id: str = Field(None, description="The session id.")
+  # session_id: str = Field(None, description="The session id.")
