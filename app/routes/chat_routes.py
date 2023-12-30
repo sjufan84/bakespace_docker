@@ -2,7 +2,7 @@
 from typing import List, Optional, Union
 import logging
 import json
-from fastapi import APIRouter, Depends, Query, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from app.utils.assistant_utils import (
     poll_run_status, get_assistant_id
@@ -195,7 +195,7 @@ async def get_chef_response(chef_response: GetChefResponse, chat_service:
 
     return {"chef_response" : response["message"],
             "thread_id" : chef_response.thread_id, "chat_history" : chat_service.load_chat_history()}
-  
+
   else:
     run = client.beta.threads.create_and_run(
         assistant_id=assistant_id,

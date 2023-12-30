@@ -32,21 +32,6 @@ id_dict = {
     "adventurous_chef": "asst_7JDTkQhCiGWTE9i0VqBdvnpX"
 }
 
-def get_thread_tool_outputs(thread_id: str = None):
-  """ Get the function outputs from the thread """
-  if not thread_id:
-    raise ValueError("Thread ID is required.")
-  function_outputs = []
-  run_steps = list_thread_run_steps(thread_id=thread_id)
-  for step in run_steps:
-    if step.step_details.tool_calls.function:
-      function_outputs.append({
-        "function_name": step.step_details.tool_calls.function.name,
-        "output": step.step_details.tool_calls.function.output,
-        "arguments": step.step_details.tool_calls.function.arguments})
-  return function_outputs
-
-
 functions_dict = {
     "adjust_recipe": {
         "function" : adjust_recipe,
@@ -67,10 +52,10 @@ functions_dict = {
         "metadata_message": "Current image: ",
     },
 
-   # "save_recipe": {
-   #     "function" : save_recipe,
-   #     "metadata_message": "Current saved recipe: ",
-   # }
+    # "save_recipe": {
+    #     "function" : save_recipe,
+    #     "metadata_message": "Current saved recipe: ",
+    # }
 }
 
 
@@ -128,7 +113,8 @@ async def poll_run_status(run_id: str, thread_id: str):
             await asyncio.gather(*(process_tool_call(tool_call) for tool_call in tool_calls))
 
             try:
-                run = client.beta.threads.runs.submit_tool_outputs(thread_id=thread_id, run_id=run_id, tool_outputs=tool_outputs)
+                run = client.beta.threads.runs.submit_tool_outputs(
+                    thread_id=thread_id, run_id=run_id, tool_outputs=tool_outputs)
                 run_status = run
             except Exception as e:
                 logging.error(f"Error submitting tool outputs: {e}")
@@ -154,7 +140,7 @@ async def poll_run_status(run_id: str, thread_id: str):
 
 def get_assistant_id(chef_type: str):
   """ Load the assistant id from the store """
-  #run_service = get_run_service()
+  # run_service = get_run_service()
   # Check to see if there is a chef_type in the call, if not,
   # load the chef_type from the store
   # Set the assistant id
