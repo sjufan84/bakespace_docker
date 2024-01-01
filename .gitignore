@@ -154,3 +154,5 @@ toml.bak/
 TOML.bak/
 
 app/front_end/node_modules/
+
+credentials.json

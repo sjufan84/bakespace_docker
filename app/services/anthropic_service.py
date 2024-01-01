@@ -34,7 +34,7 @@ class AnthropicRecipe(BaseModel):
     prep_time: int = Field(..., description="The preparation time for the recipe.")
     cook_time: Optional[int] = Field(..., description="The cooking time for the recipe.\
       This could be null if the recipe is raw or doesn't require cooking.")
-    serving_size: str = Field(..., description="The serving size of the recipe.")
+    serving_size: Optional[str] = Field(..., description="The serving size of the recipe.")
     calories: Optional[int] = Field(..., description="The estimated calories for one\
       serving of the dish.")
     fun_fact: Optional[str] = Field(..., description="A fun or interesting fact about the recipe.\

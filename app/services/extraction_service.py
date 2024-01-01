@@ -1,7 +1,7 @@
 """ Utility functions for extracting text from images and text files. """
 from typing import List
 from fastapi import UploadFile
-import google.cloud.vision as vision # pylint: disable=no-member
+import google.cloud.vision as vision  # pylint: disable=no-member
 import pdfplumber
 from app.dependencies import get_google_vision_credentials, get_openai_client
 
@@ -14,7 +14,7 @@ async def extract_text_file_contents(files) -> str:
     total_file_contents = ''
     for file in files:
         file_contents = file
-        #file_contents = self.spellcheck_text(file_contents)
+        # file_contents = self.spellcheck_text(file_contents)
         total_file_contents += file_contents
     return file_contents
 
@@ -25,17 +25,17 @@ async def extract_pdf_file_contents(files: List[UploadFile]) -> str:
         pdf = pdfplumber.open(file)
         for page in pdf.pages:
             file_contents += page.extract_text()
-            #file_contents = spellcheck_text(file_contents)
+            # file_contents = spellcheck_text(file_contents)
     return file_contents
 
 async def extract_image_text(files: List[bytes]) -> str:
     """ Extract the text from the image file. """
-    client = vision.ImageAnnotatorClient(credentials=credentials) # pylint: disable=no-member
+    client = vision.ImageAnnotatorClient(credentials=credentials)  # pylint: disable=no-member
     total_response_text = ''
     for file in files:
-        image = vision.Image(content=file) # pylint: disable=no-member
-        response = client.document_text_detection(image=image)# pylint: disable=no-member
-        response_text = response.full_text_annotation.text # pylint: disable=no-member
+        image = vision.Image(content=file)  # pylint: disable=no-member
+        response = client.document_text_detection(image=image)  # pylint: disable=no-member
+        response_text = response.full_text_annotation.text  # pylint: disable=no-member
         total_response_text += response_text
     return response_text
 
@@ -70,7 +70,10 @@ def is_image_file(file: UploadFile) -> bool:
     bool: True if the file is an image, False otherwise.
     """
     image_mime_types = {"image/jpeg", "image/png", "image/gif"}
-    text_mime_types = {"text/plain", "application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"}
+    text_mime_types = {
+        "text/plain", "application/pdf",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    }
     if file.content_type in image_mime_types:
         return True
     elif file.content_type in text_mime_types:

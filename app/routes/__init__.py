@@ -24,5 +24,4 @@ router_extraction.include_router(extraction_routes)
 router_redis.include_router(redis_routes)
 
 # Export the routers as a list for convenience
-routers = [router_chat, router_pairings, router_image,
-router_extraction, router_redis]
+routers = [router_chat, router_pairings, router_image, router_extraction, router_redis]

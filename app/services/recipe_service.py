@@ -7,7 +7,8 @@ from dotenv import load_dotenv
 from openai import OpenAIError
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app.dependencies import get_openai_client  # noqa: E402
-from services.anthropic_service import AnthropicRecipe  # noqa: E402
+from app.models.recipe import FormattedRecipe  # noqa: E402
+from app.services.anthropic_service import AnthropicRecipe  # noqa: E402
 from app.utils.redis_utils import save_recipe  # noqa: E402
 
 # Load environment variables
@@ -125,10 +126,9 @@ def adjust_recipe(recipe: dict, adjustments: str):
             Cooking Time (cook_time): Optional[Union[str, int]] The cooking time in minutes, if applicable.
             Serving Size (serving_size): Optional[Union[str, int]] A description of the serving size.
             Calories (calories): Optional[Union[str, int]] Estimated calories per serving, if known.
-            Fun Fact (fun_fact): Optional[str] An interesting fact about the recipe or its ingredients.
 
             Ensure that the recipe is presented in a clear and organized manner, adhering
-            to the 'AnthropicRecipe' {AnthropicRecipe} class structure as outlined above."""
+            to the 'FormattedRecipe' {FormattedRecipe} class structure as outlined above."""
         },
     ]
 
@@ -177,30 +177,27 @@ adjust_recipe_tool = {
 # Add the function to extract and format recipe text from the user's files
 async def format_recipe(recipe_text: str):
     """ Extract and format the text from the user's files. """
-    messages = [
-        {
-            "role" : "system", "content" : f"""You are a master chef helping a user
-            format a recipe that they have uploaded.  This may be extracted from a photo of a
-            recipe, so you may need to infer or use your knowledge as a master chef to fill out
-            the rest of the recipe.  The extracted recipe text is {recipe_text}.  The goal is
-            to return the recipe as a JSON object in the following format:\n\n
-            Recipe Name (recipe_name): A unique and descriptive title for the recipe.
-            Ingredients (ingredients): A list of ingredients required for the recipe.
-            Directions (directions): Step-by-step instructions for preparing the recipe.
-            Preparation Time (prep_time): The time taken for preparation in minutes.
-            Cooking Time (cook_time): The cooking time in minutes, if applicable.
-            Serving Size (serving_size): A description of the serving size.
-            Calories (calories): Estimated calories per serving, if known.
-            Fun Fact (fun_fact): An interesting fact about the recipe or its ingredients.\n\n
-            as in the AnthropicRecipe {AnthropicRecipe.schema()} schema\n\n
-            If you cannot fill out the entire schema, that is okay.  Just fill out as much as you
-            can and infer the rest or leave it blank.  The user will then have the chance to have
-            you adjust the recipe later.  Return only the recipe object.""",
-        }
-    ]
+    messages = [{"role" : "system", "content" :
+                f"""You are a master chef helping a user generate a format a recipe that they have uploaded
+                {recipe_text}. As closely as possible,
+                reformat the recipe and return it as a JSON object in the following format:\n\
+                Recipe Name (recipe_name): A unique and descriptive title for the recipe.
+                Ingredients (ingredients): A list of ingredients required for the recipe.
+                Directions (directions): Step-by-step instructions for preparing the recipe.
+                Preparation Time (prep_time): Optional[Union[str, int]
+                The time taken for preparation in minutes.
+                Cooking Time (cook_time): Optional[Union[str, int]]
+                The cooking time in minutes, if applicable.
+                Serving Size (serving_size): Optional[Union[str, int]] A description of the serving size.
+                Calories (calories): Optional[Union[str, int]] Estimated calories per serving, if known.\n\
+                If you cannot determine all of the values, do your best to infer the value or leave it blank.
+                The user will then have the chance to edit any incorrect values.
 
+                Ensure that the recipe is presented in a clear and organized manner, adhering
+                to the 'FormattedRecipe' {FormattedRecipe} class structure as outlined above."""
+    }]
     # models = [model, "gpt-3.5-turbo-16k-0613", "gpt-3.5-turbo-16k"]
-    models = ["gpt-4-1106-preview", "gpt-4"]
+    models = ["gpt-4-1106-preview", "gpt-3.5-turbo-1106"]
     for model in models:
         try:
             response = client.chat.completions.create(

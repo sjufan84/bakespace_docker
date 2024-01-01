@@ -1,6 +1,5 @@
 """ This file contains all the dependencies for the app. """
 import os
-import toml
 from google.oauth2 import service_account
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -19,9 +18,12 @@ def get_openai_org():
     return os.getenv("OPENAI_ORG")
 
 def get_google_vision_credentials():
-    """ Function to get the Google Vision credentials. """
-    config = toml.load("secrets.toml")
-    return service_account.Credentials.from_service_account_info(config['gcp_service_account'])
+    """ Function to get the Google Vision credentials from an environment variable. """
+    try:
+      credentials = service_account.Credentials.from_service_account_file("credentials.json")
+      return credentials
+    except Exception as e:
+      print(e)
 
 def get_stability_api_key():
     """ Get the stability API key from the environment. """
