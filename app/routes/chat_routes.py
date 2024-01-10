@@ -14,19 +14,21 @@ from app.middleware.session_middleware import RedisStore
 from app.dependencies import get_openai_client
 from app.services.chat_service import ChatService
 
+logging.basicConfig(level=logging.DEBUG)
+
 # Define a router object
 router = APIRouter()
 
 class StatusCallResponse(BaseModel):
   """ Return class for the status call endpoint """
-  session_id: str = Field(description="The session id for the chat session.")
+  session_id: Union[str, None] = Field(description="The session id for the chat session.")
   chat_history: List[dict] = Field(..., description="The chat history for the chat session.")
   thread_id: Union[str, None] = Field(None, description="The thread id for the chat session.")
 
 class ClearChatResponse(BaseModel):
   """ Return class for the clear_chat_history endpoint """
   message: str = Field("Chat history cleared", description="The message returned from the endpoint.")
-  session_id: str = Field(..., description="The session id for the chat session.")
+  session_id: Union[str, None] = Field(..., description="The session id for the chat session.")
   chat_history: List[dict] = Field(..., description="The chat history for the chat session.")
   thread_id: Union[str, None] = Field(None, description="The thread id for the chat session.")
 
@@ -41,13 +43,13 @@ class InitializeChatResponse(BaseModel):
   thread_id: str = Field(..., description="The thread id for the run to be added to.")
   message_content: str = Field(..., description="The message content.")
   chat_history: List[dict] = Field(..., description="The chat history for the chat session.")
-  session_id: str = Field(..., description="The session id for the chat session.")
+  session_id: Union[str, None] = Field(..., description="The session id for the chat session.")
 
 class GetChefRequestResponse(BaseModel):
   """ Return class for the get_chef_response endpoint """
   chef_response: str = Field(..., description="The response from the chef.")
   thread_id: str = Field(..., description="The thread id for the chat session.")
-  session_id: str = Field(..., description="The session id for the chat session.")
+  session_id: Union[str, None] = Field(..., description="The session id for the chat session.")
   chat_history: List[dict] = Field(..., description="The chat history for the chat session.")
 
 class RecipeSpec(BaseModel):
@@ -60,15 +62,29 @@ class CreateRecipeRequest(BaseModel):
     specifications: str = Field(..., description="The specifications for the recipe.")
     serving_size: Optional[str] = Field("Family-Size", description="The serving size for the recipe.")
     chef_type: Optional[str] = Field("home_cook", description="The type of chef creating the recipe.")
-    session_id: Optional[str] = Field("12345", description="The session id for the chat session.")
+    session_id: Optional[str] = Field(..., description="The session id for the chat session.")
 
 class CheckStatusResponse(BaseModel):
     """ Return class for the check_status endpoint """
     message: str = Field(..., description="The message returned from the endpoint.")
     status: str = Field(..., description="The status of the run.")
-    session_id: str = Field(..., description="The session id for the chat session.")
+    session_id: Union[str, None] = Field(..., description="The session id for the chat session.")
     chat_history: List[dict] = Field(..., description="The chat history for the chat session.")
     thread_id: Optional[str] = Field(None, description="The thread id for the chat session.")
+
+class NewGetChefResponse(BaseModel):
+  """ Get Chef Response Model """
+  message_content: str = Field(..., description="The content of the message to be added to the thread.")
+  message_metadata: Optional[object] = Field({}, description="The metadata for the message.  A mapping of\
+    key-value pairs that can be used to store additional information about the message.")
+  chef_type: Optional[str] = Field(
+      "home_cook", description="The type of chef that the user wants to talk to.")
+
+class NewChefResponse(BaseModel):
+    """ Return class for the get_chef_response endpoint """
+    chef_response: str = Field(..., description="The response from the chef.")
+    session_id: Union[str, None] = Field(..., description="The session id for the chat session.")
+    chat_history: List[dict] = Field(..., description="The chat history for the chat session.")
 
 # Define a function to get the session_id from the headers
 def get_session_id(request: Request) -> str:
@@ -236,3 +252,66 @@ async def view_chat_history(chat_service: ChatService = Depends(get_chat_service
     thread_id = chat_service.thread_id
     session_id = chat_service.session_id
     return {"chat_history": chat_history, "session_id": session_id, "thread_id": thread_id}
+
+
+@router.post(
+    "/get-chef-response",
+    response_description="The thread id for the run to be added to, the chef response, and the session id.",
+    summary="Get a response from the chef to the user's question.",
+    tags=["Chat Endpoints"],
+    responses={
+        200: {
+            # "thread_id": "The thread id for the run to be added to.",
+            "chef_response": "The response from the chef",
+            "session_id": "The session id.",
+            "chat_history": "The chat history for the chat session."
+        }
+    },
+    response_model=NewChefResponse
+)
+async def new_get_chef_response(
+    new_chef_response: NewGetChefResponse, chat_service:
+        ChatService = Depends(get_chat_service)):
+    """ Endpoint to get a response from the chatbot to a user's question. """
+
+    logging.info("Starting new_get_chef_response")
+
+    client = get_openai_client()
+
+    # Get the assistant id based on the chef type
+    assistant_id = get_assistant_id(new_chef_response.chef_type)
+    logging.debug(f"Got assistant_id: {assistant_id}")
+
+    # Add the user message to the chat history
+    chat_service.add_user_message(new_chef_response.message_content)
+
+    message_content = f"Can you help answer my question {new_chef_response.message_content}.\
+        Our chat history so far is {chat_service.load_chat_history()}"
+
+    logging.debug(f"Message content: {message_content}")
+
+    run = client.beta.threads.create_and_run(
+        assistant_id=assistant_id,
+        thread={
+            "messages": [
+                {
+                    "role" : "user",
+                    "content" : message_content,
+                    "metadata" : new_chef_response.message_metadata
+                }]})
+
+    logging.debug(f"Created and ran thread with id: {run.id}")
+
+    # Poll the run status
+    response = await poll_run_status(run_id=run.id, thread_id=run.thread_id)
+
+    logging.debug(f"Got response: {response}")
+
+    if response:      # Add the chef response to the chat history
+        chat_service.add_chef_message(response["message"])
+
+    logging.info("Finished new_get_chef_response")
+
+    return {"chef_response" : response["message"],
+            "chat_history" : chat_service.load_chat_history(),
+            "session_id" : chat_service.session_id}
