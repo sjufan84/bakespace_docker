@@ -13,6 +13,8 @@ from app.models.runs import (
 from app.middleware.session_middleware import RedisStore
 from app.dependencies import get_openai_client
 from app.services.chat_service import ChatService
+from app.services.recipe_service import create_recipe
+from app.models.recipe import Recipe
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -62,7 +64,11 @@ class CreateRecipeRequest(BaseModel):
     specifications: str = Field(..., description="The specifications for the recipe.")
     serving_size: Optional[str] = Field("Family-Size", description="The serving size for the recipe.")
     chef_type: Optional[str] = Field("home_cook", description="The type of chef creating the recipe.")
-    session_id: Optional[str] = Field(..., description="The session id for the chat session.")
+    thread_id: Optional[str] = Field(None, description="The thread id for the chat session.")
+
+class CreateRecipeResponse(BaseModel):
+    recipe: Recipe = Field(..., description="The recipe object.")
+    session_id: Union[str, None] = Field(..., description="The session id for the chat session.")
 
 class CheckStatusResponse(BaseModel):
     """ Return class for the check_status endpoint """
@@ -97,7 +103,6 @@ def get_chat_service(request: Request) -> ChatService:
     session_id = get_session_id(request)
     redis_store = RedisStore(session_id)
     return ChatService(store=redis_store)
-
 
 @router.get("/status_call")
 async def status_call(chat_service: ChatService = Depends(get_chat_service)) -> dict:
@@ -315,3 +320,29 @@ async def new_get_chef_response(
     return {"chef_response" : response["message"],
             "chat_history" : chat_service.load_chat_history(),
             "session_id" : chat_service.session_id}
+
+# Create an endpoint to generate a recipe
+@router.post(
+    "/create-recipe",
+    response_description="The thread id for the run to be added to, the chef response, and the session id.",
+    summary="Get a response from the chef to the user's question.",
+    tags=["Recipe Endpoints"],
+    responses={
+        200: {
+            "thread_id": "The thread id for the run to be added to.",
+            "chef_response": "The response from the chef",
+            "session_id": "The session id."
+        }
+    },
+    response_model=CreateRecipeResponse
+)
+async def create_new_recipe(recipe_request: CreateRecipeRequest,
+                            chat_service: ChatService = Depends(get_chat_service)):
+    """ Endpoint to get a response from the chatbot to a user's question. """
+    recipe = await create_recipe(specifications = recipe_request.specifications,
+                                 serving_size = recipe_request.serving_size)
+
+    # @TODO add the recipe to the thread
+    # @TODO add the recipe to the chat history
+
+    return {"recipe": recipe, "session_id": chat_service.session_id}

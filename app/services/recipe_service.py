@@ -7,8 +7,8 @@ from dotenv import load_dotenv
 from openai import OpenAIError
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app.dependencies import get_openai_client  # noqa: E402
-from app.models.recipe import FormattedRecipe  # noqa: E402
-from app.services.anthropic_service import AnthropicRecipe  # noqa: E402
+from app.models.recipe import FormattedRecipe, Recipe  # noqa: E402
+# from app.services.anthropic_service import AnthropicRecipe  # noqa: E402
 from app.utils.redis_utils import save_recipe  # noqa: E402
 
 # Load environment variables
@@ -29,7 +29,7 @@ core_models = [
     "gpt-3.5-turbo-1106", "gpt-4-1106-preview", "gpt-3.5-turbo-16k", "gpt-3.5-turbo-0613", "gpt-3.5-turbo"
 ]
 
-def create_recipe(specifications: str, serving_size: str):
+async def create_recipe(specifications: str, serving_size: str):
     """ Generate a recipe based on the specifications provided asynchronously """
     if serving_size in serving_size_dict.keys():
         serving_size = serving_size_dict[serving_size]
@@ -51,7 +51,7 @@ def create_recipe(specifications: str, serving_size: str):
             Fun Fact (fun_fact): Optional[str] An interesting fact about the recipe or its ingredients.
 
             Ensure that the recipe is presented in a clear and organized manner,
-            adhering to the 'AnthropicRecipe' {AnthropicRecipe} class structure
+            adhering to the 'AnthropicRecipe' {Recipe} class structure
             as outlined above."""
         },
     ]

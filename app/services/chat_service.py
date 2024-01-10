@@ -124,6 +124,8 @@ class ChatService:
             print(f"Failed to load thread_id from Redis: {e}")
             return None
 
+    # @TODO Define a function to add a message to a thread
+
     # Define a function to initialize the chatbot with context and an optional recipe
     async def initialize_general_chat(self, context: Union[str, None] = None, chef_type: str = None) -> dict:
         """ Initialize the chatbot with an optional context for general chat. """
