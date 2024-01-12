@@ -69,6 +69,7 @@ class CreateRecipeRequest(BaseModel):
 class CreateRecipeResponse(BaseModel):
     recipe: Recipe = Field(..., description="The recipe object.")
     session_id: Union[str, None] = Field(..., description="The session id for the chat session.")
+    thread_id: Union[str, None] = Field(None, description="The thread id for the chat session.")
 
 class CheckStatusResponse(BaseModel):
     """ Return class for the check_status endpoint """
@@ -330,11 +331,11 @@ async def new_get_chef_response(
     responses={
         200: {
             "thread_id": "The thread id for the run to be added to.",
-            "chef_response": "The response from the chef",
+            "recipe": "The recipe object",
             "session_id": "The session id."
         }
     },
-    # response_model=CreateRecipeResponse
+    response_model=CreateRecipeResponse
 )
 async def create_new_recipe(recipe_request: CreateRecipeRequest,
                             chat_service: ChatService = Depends(get_chat_service)):
@@ -357,4 +358,4 @@ async def create_new_recipe(recipe_request: CreateRecipeRequest,
         # Log the message
         logging.info(f"Message created: {message}")
 
-    return {"recipe": recipe, "session_id": chat_service.session_id, "thread_id": recipe_request.thread_id}
+    return {"recipe": json.loads(recipe), "session_id": chat_service.session_id, "thread_id": recipe_request.thread_id}
