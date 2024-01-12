@@ -334,7 +334,7 @@ async def new_get_chef_response(
             "session_id": "The session id."
         }
     },
-    response_model=CreateRecipeResponse
+    # response_model=CreateRecipeResponse
 )
 async def create_new_recipe(recipe_request: CreateRecipeRequest,
                             chat_service: ChatService = Depends(get_chat_service)):
