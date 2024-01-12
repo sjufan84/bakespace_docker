@@ -4,7 +4,10 @@ from app.services.pairing_service import generate_pairings
 
 router = APIRouter()
 
-@router.post("/generate_pairings", response_description="The pairings returned as a dictionary.", tags=["Pairings"])
+@router.post(
+    "/generate_pairings", response_description="The pairings returned as a dictionary.", tags=["Pairings"],
+    include_in_schema=False
+)
 async def get_pairings(pairing_type: str, recipe: dict):
     """
     POST /generate_pairings
@@ -12,10 +15,10 @@ async def get_pairings(pairing_type: str, recipe: dict):
     Parameters:
     - pairing_type: A string that represents the type of pairing. This is a required field.
     - recipe: A dictionary that represents the recipe. This is a required field.
-    
+
     Returns:
     A dictionary containing the generated pairings.
-    
+
     Example:
     Request:
     {
@@ -25,7 +28,7 @@ async def get_pairings(pairing_type: str, recipe: dict):
             "ingredients": ["spaghetti", "minced beef", "tomato sauce"]
         }
     }
-    
+
     Response:
     {
         "pairings": ["Merlot", "Cabernet Sauvignon"]

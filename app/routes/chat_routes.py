@@ -263,7 +263,7 @@ async def view_chat_history(chat_service: ChatService = Depends(get_chat_service
     "/get-chef-response",
     response_description="The thread id for the run to be added to, the chef response, and the session id.",
     summary="Get a response from the chef to the user's question.",
-    tags=["Chat Endpoints"],
+    tags=["Chat Endpoints"], include_in_schema=False,
     responses={
         200: {
             # "thread_id": "The thread id for the run to be added to.",
@@ -342,7 +342,19 @@ async def create_new_recipe(recipe_request: CreateRecipeRequest,
     recipe = await create_recipe(specifications = recipe_request.specifications,
                                  serving_size = recipe_request.serving_size)
 
-    # @TODO add the recipe to the thread
-    # @TODO add the recipe to the chat history
+    if recipe_request.thread_id:
+        # Add the recipe to the thread
+        client = get_openai_client()
+        message = client.beta.threads.messages.create(
+            recipe_request.thread_id,
+            content=f"You have create a recipe {recipe} for a user based on the specifications\
+            {recipe_request.specifications}\
+                and serving size {recipe_request.serving_size} they provided.\
+                They may want to ask questions about or make changes to the recipe.",
+            role="user",
+            metadata={},
+        )
+        # Log the message
+        logging.info(f"Message created: {message}")
 
-    return {"recipe": recipe, "session_id": chat_service.session_id}
+    return {"recipe": recipe, "session_id": chat_service.session_id, "thread_id": recipe_request.thread_id}

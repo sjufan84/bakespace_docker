@@ -2,14 +2,13 @@
 import logging
 import os
 import sys
-import json
 from dotenv import load_dotenv
 from openai import OpenAIError
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app.dependencies import get_openai_client  # noqa: E402
 from app.models.recipe import FormattedRecipe, Recipe  # noqa: E402
 # from app.services.anthropic_service import AnthropicRecipe  # noqa: E402
-from app.utils.redis_utils import save_recipe  # noqa: E402
+# from app.utils.redis_utils import save_recipe  # noqa: E402
 
 # Load environment variables
 load_dotenv()
@@ -71,12 +70,9 @@ async def create_recipe(specifications: str, serving_size: str):
                 response_format={"type": "json_object"}
             )
             chef_response = response.choices[0].message.content
-            try:
-              recipe = json.loads(chef_response)
-              save_recipe(recipe["recipe_name"], chef_response)
-            except Exception as e:
-              print(f"Error saving recipe to Redis: {str(e)}")
+
             return chef_response
+
         except OpenAIError as e:
             logging.error("Error with model: %s. Error: %s", model, e)
             continue
