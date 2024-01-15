@@ -358,4 +358,5 @@ async def create_new_recipe(recipe_request: CreateRecipeRequest,
         # Log the message
         logging.info(f"Message created: {message}")
 
-    return {"recipe": json.loads(recipe), "session_id": chat_service.session_id, "thread_id": recipe_request.thread_id}
+    return {"recipe": json.loads(recipe), "session_id": chat_service.session_id,
+            "thread_id": recipe_request.thread_id}

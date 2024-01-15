@@ -150,5 +150,5 @@ async def format_text_endpoint(recipe_text: FormatRecipeTextRequest, chat_servic
     # @TODO add a message to the thread if there is a thread_id
 
     # Return the formatted recipe
-    return {"formatted_recipe": recipe, "session_id": chat_service.session_id,
+    return {"formatted_recipe": json.loads(recipe), "session_id": chat_service.session_id,
             "thread_id": chat_service.thread_id}

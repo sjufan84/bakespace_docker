@@ -16,7 +16,7 @@ class Recipe(BaseModel):
     calories: Optional[Union[str, int]] = Field(..., description="The estimated calories for one\
       serving of the dish.")
     fun_fact: Optional[str] = Field(None, description="A fun fact about the recipe.")
-
+    is_food: bool = Field(True, description="Whether or not the submitted text is related to food.")
 
 class FormattedRecipe(BaseModel):
     """ A recipe object for the Anthropic API. """
@@ -29,3 +29,4 @@ class FormattedRecipe(BaseModel):
     serving_size: Optional[Union[str, int]] = Field("", description="The serving size of the recipe.")
     calories: Optional[Union[str, int]] = Field(None, description="The estimated calories for one\
       serving of the dish.")
+    is_food: bool = Field(True, description="Whether or not the submitted text is related to food.")

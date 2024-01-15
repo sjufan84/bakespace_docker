@@ -48,11 +48,17 @@ async def create_recipe(specifications: str, serving_size: str):
             Serving Size (serving_size): Optional[Union[str, int]] A description of the serving size.
             Calories (calories): Optional[Union[str, int]] Estimated calories per serving, if known.
             Fun Fact (fun_fact): Optional[str] An interesting fact about the recipe or its ingredients.
+            is_food (is_food): bool Whether or not the submitted text is related to food.\n\
 
             Ensure that the recipe is presented in a clear and organized manner,
-            adhering to the 'AnthropicRecipe' {Recipe} class structure
+            adhering to the 'Recipe' {Recipe} class structure
             as outlined above."""
         },
+        {
+            "role": "system",
+            "content": """ If the query seems unrelated to food, please respond with 'I'm sorry,
+            I cannot help with queries unrelated to food and return the 'is_food' flag as False."""
+        }
     ]
 
     models = core_models
@@ -173,25 +179,34 @@ adjust_recipe_tool = {
 # Add the function to extract and format recipe text from the user's files
 async def format_recipe(recipe_text: str):
     """ Extract and format the text from the user's files. """
-    messages = [{"role" : "system", "content" :
-                f"""You are a master chef helping a user generate a format a recipe that they have uploaded
-                {recipe_text}. As closely as possible,
-                reformat the recipe and return it as a JSON object in the following format:\n\
-                Recipe Name (recipe_name): A unique and descriptive title for the recipe.
-                Ingredients (ingredients): A list of ingredients required for the recipe.
-                Directions (directions): Step-by-step instructions for preparing the recipe.
-                Preparation Time (prep_time): Optional[Union[str, int]
-                The time taken for preparation in minutes.
-                Cooking Time (cook_time): Optional[Union[str, int]]
-                The cooking time in minutes, if applicable.
-                Serving Size (serving_size): Optional[Union[str, int]] A description of the serving size.
-                Calories (calories): Optional[Union[str, int]] Estimated calories per serving, if known.\n\
-                If you cannot determine all of the values, do your best to infer the value or leave it blank.
-                The user will then have the chance to edit any incorrect values.
+    messages = [
+        {
+            "role" : "system", "content" :
+            f"""You are a master chef helping a user generate a format a recipe that they have uploaded
+            {recipe_text}. As closely as possible,
+            reformat the recipe and return it as a JSON object in the following format:\n\
+            Recipe Name (recipe_name): A unique and descriptive title for the recipe.
+            Ingredients (ingredients): A list of ingredients required for the recipe.
+            Directions (directions): Step-by-step instructions for preparing the recipe.
+            Preparation Time (prep_time): Optional[Union[str, int]
+            The time taken for preparation in minutes.
+            Cooking Time (cook_time): Optional[Union[str, int]]
+            The cooking time in minutes, if applicable.
+            Serving Size (serving_size): Optional[Union[str, int]] A description of the serving size.
+            Calories (calories): Optional[Union[str, int]] Estimated calories per serving, if known.\n\
+            If you cannot determine all of the values, do your best to infer the value or leave it blank.
+            The user will then have the chance to edit any incorrect values.
+            is_food (is_food): bool Whether or not the submitted text is related to food.\n\
 
-                Ensure that the recipe is presented in a clear and organized manner, adhering
-                to the 'FormattedRecipe' {FormattedRecipe} class structure as outlined above."""
-    }]
+            Ensure that the recipe is presented in a clear and organized manner, adhering
+            to the 'FormattedRecipe' {FormattedRecipe} class structure as outlined above."""
+        },
+        {
+            "role": "system", "content": """If the query seems unrelated to food,
+            please respond with 'I'm sorry,
+            I cannot help with queries unrelated to food and return the 'is_food' flag as False."""
+        }
+    ]
     # models = [model, "gpt-3.5-turbo-16k-0613", "gpt-3.5-turbo-16k"]
     models = ["gpt-4-1106-preview", "gpt-3.5-turbo-1106"]
     for model in models:
