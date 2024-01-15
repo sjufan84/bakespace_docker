@@ -277,7 +277,6 @@ async def format_recipe(recipe_text: str):
                 response_format = {"type" : "json_object"}
             )
             recipe = response.choices[0].message.content
-            recipe["is_food"] = True
             return recipe
 
         except TimeoutError as a:
