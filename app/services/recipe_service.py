@@ -2,6 +2,7 @@
 import logging
 import os
 import sys
+import json
 from dotenv import load_dotenv
 from openai import OpenAIError
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -28,8 +29,60 @@ core_models = [
     "gpt-3.5-turbo-1106", "gpt-4-1106-preview", "gpt-3.5-turbo-16k", "gpt-3.5-turbo-0613", "gpt-3.5-turbo"
 ]
 
+async def filter_query(text: str) -> bool:
+    """ Determine if the text is related to food. """
+    messages = [
+        {
+            "role": "system",
+            "content": f"""You are a master chef helping a user determine if a text query is related to food.
+            The query is: '{text}'. Return a boolean value indicating whether
+            or not the query is related to food.
+            This is a filter to ensure that the user is only submitting food-related queries
+            to the recipe service
+            and not spam, advertisements, or inappropriate content.  Simply return True or False."""
+        }
+    ]
+    models = core_models
+    for model in models:
+        try:
+            response = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=0.5,
+                top_p=0.75,
+                max_tokens=1000
+            )
+            is_food = response.choices[0].message.content
+            return is_food
+
+        except TimeoutError as a:
+            print(f"Timeout error: {str(a)}")
+            continue\
+
+# ---------------------------------------------------------------------------------------------------------------
+
 async def create_recipe(specifications: str, serving_size: str):
     """ Generate a recipe based on the specifications provided asynchronously """
+    # First check to make sure the query is related to food
+    query = specifications + serving_size
+    is_food = await filter_query(query)
+    print(is_food)
+    logging.debug("Is food is %s.", is_food)
+    if is_food == "False":
+        logging.debug("Query is not related to food.")
+        return json.dumps(
+            {
+                "recipe_name": '',
+                "ingredients": [],
+                "directions": [],
+                "prep_time": 0,
+                "cook_time": 0,
+                "serving_size": '',
+                "calories": 0,
+                "fun_fact": '',
+                "is_food": False
+            }
+        )
     if serving_size in serving_size_dict.keys():
         serving_size = serving_size_dict[serving_size]
     messages = [
@@ -53,11 +106,6 @@ async def create_recipe(specifications: str, serving_size: str):
             Ensure that the recipe is presented in a clear and organized manner,
             adhering to the 'Recipe' {Recipe} class structure
             as outlined above."""
-        },
-        {
-            "role": "system",
-            "content": """ If the query seems unrelated to food, please respond with 'I'm sorry,
-            I cannot help with queries unrelated to food and return the 'is_food' flag as False."""
         }
     ]
 
@@ -76,7 +124,7 @@ async def create_recipe(specifications: str, serving_size: str):
                 response_format={"type": "json_object"}
             )
             chef_response = response.choices[0].message.content
-
+            logging.debug("Is food is true.")
             return chef_response
 
         except OpenAIError as e:
@@ -179,6 +227,21 @@ adjust_recipe_tool = {
 # Add the function to extract and format recipe text from the user's files
 async def format_recipe(recipe_text: str):
     """ Extract and format the text from the user's files. """
+    is_food = await filter_query(recipe_text)
+    if is_food == "False":
+        logging.debug("Query is not related to food.")
+        return json.dumps(
+            {
+                "recipe_name": '',
+                "ingredients": [],
+                "directions": [],
+                "prep_time": 0,
+                "cook_time": 0,
+                "serving_size": '',
+                "calories": 0,
+                "is_food": False
+            }
+        )
     messages = [
         {
             "role" : "system", "content" :
@@ -196,15 +259,9 @@ async def format_recipe(recipe_text: str):
             Calories (calories): Optional[Union[str, int]] Estimated calories per serving, if known.\n\
             If you cannot determine all of the values, do your best to infer the value or leave it blank.
             The user will then have the chance to edit any incorrect values.
-            is_food (is_food): bool Whether or not the submitted text is related to food.\n\
 
             Ensure that the recipe is presented in a clear and organized manner, adhering
             to the 'FormattedRecipe' {FormattedRecipe} class structure as outlined above."""
-        },
-        {
-            "role": "system", "content": """If the query seems unrelated to food,
-            please respond with 'I'm sorry,
-            I cannot help with queries unrelated to food and return the 'is_food' flag as False."""
         }
     ]
     # models = [model, "gpt-3.5-turbo-16k-0613", "gpt-3.5-turbo-16k"]
@@ -220,6 +277,7 @@ async def format_recipe(recipe_text: str):
                 response_format = {"type" : "json_object"}
             )
             recipe = response.choices[0].message.content
+            recipe["is_food"] = True
             return recipe
 
         except TimeoutError as a:
