@@ -249,13 +249,11 @@ async def format_recipe(recipe_text: str):
             f"""You are a master chef helping a user generate a format a recipe that they have uploaded
             {recipe_text}. As closely as possible,
             reformat the recipe and return it as a JSON object in the following format:\n\
-            Recipe Name (recipe_name): A unique and descriptive title for the recipe.
-            Ingredients (ingredients): A list of ingredients required for the recipe.
-            Directions (directions): Step-by-step instructions for preparing the recipe.
-            Preparation Time (prep_time): Optional[Union[str, int]
-            The time taken for preparation in minutes.
-            Cooking Time (cook_time): Optional[Union[str, int]]
-            The cooking time in minutes, if applicable.
+            Recipe Name (recipe_name): str A unique and descriptive title for the recipe.
+            Ingredients (ingredients): List[str] A list of ingredients required for the recipe.
+            Directions (directions): List[str] Step-by-step instructions for preparing the recipe.
+            Preparation Time (prep_time): Optional[Union[str, int]] The time taken for preparation in minutes.
+            Cooking Time (cook_time): Optional[Union[str, int]] The cooking time in minutes, if applicable.
             Serving Size (serving_size): Optional[Union[str, int]] A description of the serving size.
             Pairs With (pairs_with): Optional[str] A pairing for the recipe.  It could be a wine pairing, side
             dish, etc.  Whatever seems the most appropriate for the recipe.
@@ -268,7 +266,7 @@ async def format_recipe(recipe_text: str):
         }
     ]
     # models = [model, "gpt-3.5-turbo-16k-0613", "gpt-3.5-turbo-16k"]
-    models = ["gpt-4-1106-preview", "gpt-3.5-turbo-1106"]
+    models = ["gpt-3.5-turbo-1106", "gpt-4-1106-preview"]
     for model in models:
         try:
             response = client.chat.completions.create(
