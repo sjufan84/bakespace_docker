@@ -101,7 +101,8 @@ async def create_recipe(specifications: str, serving_size: str):
             Serving Size (serving_size): Optional[Union[str, int]] A description of the serving size.
             Calories (calories): Optional[Union[str, int]] Estimated calories per serving, if known.
             Fun Fact (fun_fact): Optional[str] An interesting fact about the recipe or its ingredients.
-            is_food (is_food): bool Whether or not the submitted text is related to food.\n\
+            Pairs With (pairs_with): str A pairing for the recipe.  It could be a wine pairing, side
+            dish, etc.  Whatever seems the most appropriate for the recipe.
 
             Ensure that the recipe is presented in a clear and organized manner,
             adhering to the 'Recipe' {Recipe} class structure
@@ -256,6 +257,8 @@ async def format_recipe(recipe_text: str):
             Cooking Time (cook_time): Optional[Union[str, int]]
             The cooking time in minutes, if applicable.
             Serving Size (serving_size): Optional[Union[str, int]] A description of the serving size.
+            Pairs With (pairs_with): Optional[str] A pairing for the recipe.  It could be a wine pairing, side
+            dish, etc.  Whatever seems the most appropriate for the recipe.
             Calories (calories): Optional[Union[str, int]] Estimated calories per serving, if known.\n\
             If you cannot determine all of the values, do your best to infer the value or leave it blank.
             The user will then have the chance to edit any incorrect values.

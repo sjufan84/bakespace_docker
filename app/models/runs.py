@@ -49,4 +49,4 @@ class GetChefResponse(BaseModel):
       "home_cook", description="The type of chef that the user wants to talk to.")
   serving_size: Optional[str] = Field(None, description="The serving size for the recipe.")
   thread_id: str = Field(None, description="The thread id for the run to be added to.")
-  # session_id: str = Field(None, description="The session id.")
+  save_recipe: Optional[bool] = Field(False, description="Whether or not to use the 'save_recipe' tool.")

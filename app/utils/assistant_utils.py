@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 # Add the app directory to the system path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from services.recipe_service import ( # noqa E402
-  adjust_recipe, # noqa E402
+  # adjust_recipe, # noqa E402
   format_recipe, # noqa E402
   #save_recipe, # noqa E402 # noqa E402
   create_recipe # noqa E402
@@ -17,7 +17,10 @@ from services.anthropic_service import AnthropicRecipe # noqa E402
 from services.pairing_service import generate_pairings # noqa E402
 from services.image_service import generate_image # noqa E402
 from app.models.pairing import Pairing # noqa E402
+from app.models.recipe import Recipe # noqa E402
 from app.dependencies import get_openai_client # noqa E402
+
+logging.basicConfig(level=logging.DEBUG)
 
 # Load environment variables
 load_dotenv()
@@ -31,6 +34,10 @@ id_dict = {
     "pro_chef": "asst_zt5sYkWN1nuNw6SO1e2D8RZO",
     "adventurous_chef": "asst_7JDTkQhCiGWTE9i0VqBdvnpX"
 }
+
+def adjust_recipe(adjusted_recipe):
+    """ Return an adjusted recipe object """
+    return adjusted_recipe
 
 functions_dict = {
     "adjust_recipe": {
@@ -94,14 +101,20 @@ async def poll_run_status(run_id: str, thread_id: str):
 
             async def process_tool_call(tool_call):
                 function_name = tool_call.function.name
+                logging.info(f"Processing tool call for function {function_name}")
                 tool_call_id = tool_call.id
+                logging.debug(f"Processing tool call {tool_call_id} for function {function_name}")
                 parameters = json.loads(tool_call.function.arguments)
+                logging.debug(
+                    f"Processing tool call {tool_call_id}\
+                    for function {function_name} with parameters {parameters}"
+                )
 
                 function_output = await call_named_function(function_name=function_name, **parameters)
 
                 tool_outputs.append({
                     "tool_call_id": tool_call_id,
-                    "output": function_output
+                    "output": json.dumps(function_output)
                 })
 
                 tool_return_values.append({
@@ -135,7 +148,7 @@ async def poll_run_status(run_id: str, thread_id: str):
         "thread_id": thread_id,
         "message": final_messages.data[0].content[0].text.value if final_messages else "No final message",
         "run_id": run_id,
-        "tool_return_values": tool_return_values
+        "tool_return_values": tool_return_values[0]["output"] if tool_return_values else "No tool return values"
     }
 
 def get_assistant_id(chef_type: str):

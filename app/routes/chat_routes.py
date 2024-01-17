@@ -53,6 +53,8 @@ class GetChefRequestResponse(BaseModel):
   thread_id: str = Field(..., description="The thread id for the chat session.")
   session_id: Union[str, None] = Field(..., description="The session id for the chat session.")
   chat_history: List[dict] = Field(..., description="The chat history for the chat session.")
+  adjusted_recipe: Optional[Recipe] = Field(None, description="The adjusted recipe object.")
+
 
 class RecipeSpec(BaseModel):
     specifications: str
@@ -177,63 +179,141 @@ async def initialize_general_chat(context: CreateThreadRequest, chat_service=Dep
             "session_id": "The session id."
         }
     },
+    response_model=GetChefRequestResponse
 )
 async def get_chef_response(chef_response: GetChefResponse, chat_service:
                             ChatService = Depends(get_chat_service)):
-  """ Endpoint to get a response from the chatbot to a user's question. """
-  client = get_openai_client()
+    """ Endpoint to get a response from the chatbot to a user's question. """
+    client = get_openai_client()
 
-  # Get the assistant id based on the chef type
-  assistant_id = get_assistant_id(chef_response.chef_type)
+    # Get the assistant id based on the chef type
+    assistant_id = get_assistant_id(chef_response.chef_type)
 
-  # Add the user message to the chat history
-  chat_service.add_user_message(chef_response.message_content)
+    # Add the user message to the chat history
+    chat_service.add_user_message(chef_response.message_content)
 
-  if chef_response.serving_size:
-    message_content = chef_response.message_content + " " + "Serving size: " + chef_response.serving_size
-  else:
-    message_content = chef_response.message_content
-  if chef_response.thread_id:
-    # Create and send the message
-    message = client.beta.threads.messages.create(
-        chef_response.thread_id,
-        content=message_content,
-        role="user",
-        metadata=chef_response.message_metadata,
-    )
-    # Log the message
-    logging.info(f"Message created: {message}")
+    if chef_response.serving_size:
+        message_content = chef_response.message_content + " " + "Serving size: " + chef_response.serving_size
+    else:
+        message_content = chef_response.message_content
 
-    # Create the run
-    run = client.beta.threads.runs.create(
-        assistant_id=assistant_id,
-        thread_id=chef_response.thread_id,
-    )
-    # Poll the run status
-    response = await poll_run_status(run_id=run.id, thread_id=run.thread_id)
+    if chef_response.save_recipe:
+        message_content = "I am ready to save my recipe!  Please use the 'adjust_recipe' tool\
+        to make any necessary changes based on the original recipe and our ensuing conversation."
+        instructions = "Use the adjust_recipe tool to make any necessary changes to the original recipe\
+            based on the user's requests."
+        tools = [
+            {
+                "type": "function",
+                "function": {
+                    "name": "adjust_recipe",
+                    "description": (
+                        "Adjust an existing recipe based on the original recipe object and"
+                        " the user specifications and interactions to conform to the recipe"
+                        " object schema."
+                    ),
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "adjusted_recipe": {
+                                "type": "object",
+                                "description": (
+                                    "The adjusted recipe object following the specified"
+                                    " Pydantic schema."
+                                ),
+                                "properties": {
+                                    "recipe_name": {"type": "string"},
+                                    "ingredients": {"type": "array", "items": {"type": "string"}},
+                                    "directions": {"type": "array", "items": {"type": "string"}},
+                                    "prep_time": {"type": ["integer", "string"], "nullable": True},
+                                    "cook_time": {"type": ["string", "integer"], "nullable": True},
+                                    "serving_size": {"type": ["string", "integer"], "nullable": True},
+                                    "calories": {"type": ["string", "integer"], "nullable": True},
+                                    "fun_fact": {"type": "string", "nullable": True},
+                                    "pairs_with": {"type": "string", "nullable": True}
+                                },
+                                "required": ["recipe_name", "ingredients", "directions"]
+                            },
+                        },
+                        "required": ["adjusted_recipe"]
+                    }
+                }
+            }
+        ]
 
-    if response:      # Add the chef response to the chat history
-      chat_service.add_chef_message(response["message"])
+        # Create and send the message
+        message = client.beta.threads.messages.create(
+            chef_response.thread_id,
+            content=message_content,
+            role="user",
+            metadata=chef_response.message_metadata,
+        )
+        # Log the message
+        logging.info(f"Message created: {message}")
 
-    return {"chef_response" : response["message"],
-            "thread_id" : chef_response.thread_id, "chat_history" : chat_service.load_chat_history()}
+        # Create the run
+        run = client.beta.threads.runs.create(
+            assistant_id=assistant_id,
+            thread_id=chef_response.thread_id,
+            instructions=instructions,
+            tools=tools
+        )
+        # Poll the run status
+        response = await poll_run_status(run_id=run.id, thread_id=run.thread_id)
 
-  else:
-    run = client.beta.threads.create_and_run(
-        assistant_id=assistant_id,
-        thread={
-            "messages": [
-                {
-                    "role" : "user",
-                    "content" : message_content,
-                    "metadata" : chef_response.message_metadata
-                }]}
-    )
-    # Poll the run status
-    response = await poll_run_status(run_id=run.id, thread_id=run.thread_id)
-    response = json.dumps(response)
+        if response:      # Add the chef response to the chat history
+            # chat_service.add_chef_message(response["message"])
 
-    return response
+            return {
+                "chef_response" : response["message"],
+                "thread_id" : chef_response.thread_id, "chat_history" : chat_service.load_chat_history(),
+                "adjusted_recipe" : response["tool_return_values"], "session_id": chat_service.session_id
+            }
+
+    if chef_response.thread_id:
+        # Create and send the message
+        message = client.beta.threads.messages.create(
+            chef_response.thread_id,
+            content=message_content,
+            role="user",
+            metadata=chef_response.message_metadata,
+        )
+        # Log the message
+        logging.info(f"Message created: {message}")
+
+        # Create the run
+        run = client.beta.threads.runs.create(
+            assistant_id=assistant_id,
+            thread_id=chef_response.thread_id,
+        )
+        # Poll the run status
+        response = await poll_run_status(run_id=run.id, thread_id=run.thread_id)
+
+        if response:      # Add the chef response to the chat history
+            chat_service.add_chef_message(response["message"])
+
+            return {
+                "chef_response" : response["message"],
+                "thread_id" : chef_response.thread_id, "chat_history" : chat_service.load_chat_history(),
+                "session_id": chat_service.session_id
+            }
+
+    else:
+        run = client.beta.threads.create_and_run(
+            assistant_id=assistant_id,
+            thread={
+                "messages": [
+                    {
+                        "role" : "user",
+                        "content" : message_content,
+                        "metadata" : chef_response.message_metadata
+                    }]}
+        )
+        # Poll the run status
+        response = await poll_run_status(run_id=run.id, thread_id=run.thread_id)
+        response = json.dumps(response)
+
+        return response
 
 @router.post(
     "/clear_chat_history",
