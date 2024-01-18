@@ -5,7 +5,6 @@ import logging
 from redis.exceptions import RedisError
 from app.dependencies import get_openai_client
 from app.middleware.session_middleware import RedisStore
-
 client = get_openai_client()
 # Create a dictionary to house the chef data to populate the chef model
 
@@ -162,13 +161,13 @@ class ChatService:
         self.chat_history = []
         self.save_chat_history()
         # Reset the thread_id
-        self.thread_id = None
+        self.set_thread_id("")
 
         # Return the session_id, the chat_history, and "Chat history cleared" as a json object
         return {"session_id": self.session_id, "chat_history": self.load_chat_history(),
-                "thread_id": self.thread_id, "message": "Chat history cleared"}
+                "thread_id": self.get_thread_id(), "message": "Chat history cleared"}
 
     def check_status(self):
         """ Return the session id and any user data from Redis. """
-        return {"session_id": self.session_id, "chat_history": self.chat_history, "chef_type": self.chef_type,
-                "thread_id": self.thread_id}
+        return {"session_id": self.session_id, "chat_history": self.load_chat_history(),
+                "chef_type": self.chef_type, "thread_id": self.thread_id}

@@ -13,10 +13,7 @@ from services.recipe_service import ( # noqa E402
   #save_recipe, # noqa E402 # noqa E402
   create_recipe # noqa E402
 ) # noqa E402
-from services.anthropic_service import AnthropicRecipe # noqa E402
-from services.pairing_service import generate_pairings # noqa E402
 from services.image_service import generate_image # noqa E402
-from app.models.pairing import Pairing # noqa E402
 from app.models.recipe import Recipe # noqa E402
 from app.dependencies import get_openai_client # noqa E402
 
@@ -153,9 +150,5 @@ async def poll_run_status(run_id: str, thread_id: str):
 
 def get_assistant_id(chef_type: str):
   """ Load the assistant id from the store """
-  # run_service = get_run_service()
-  # Check to see if there is a chef_type in the call, if not,
-  # load the chef_type from the store
-  # Set the assistant id
   assistant_id = id_dict[chef_type]
   return assistant_id

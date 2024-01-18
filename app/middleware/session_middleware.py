@@ -11,9 +11,9 @@ load_dotenv()
 redis_password = os.getenv('REDIS_PASSWORD')
 
 r = redis.Redis(
-    host='redis-11565.c124.us-central1-1.gce.cloud.redislabs.com',
-    port=11565,
-    password='yvl6wEThAapkABEhVcsEMMUToNJokxP9')
+    host = 'redis-11565.c124.us-central1-1.gce.cloud.redislabs.com',
+    port = 11565,
+    password = redis_password)
 
 session_id = None
 class SessionMiddleware(BaseHTTPMiddleware):

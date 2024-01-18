@@ -1,5 +1,5 @@
 """ This module defines the chat routes for the API. """
-from typing import List, Optional, Union
+from typing import List, Union, Optional
 import logging
 import json
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -8,13 +8,16 @@ from app.utils.assistant_utils import (
     poll_run_status, get_assistant_id
 )
 from app.models.runs import (
-    CreateThreadRequest, GetChefResponse
+    CreateThreadRequest, GetChefResponse, ClearChatResponse,
+    ViewChatResponse, InitializeChatResponse, GetChefRequestResponse
 )
 from app.middleware.session_middleware import RedisStore
 from app.dependencies import get_openai_client
 from app.services.chat_service import ChatService
 from app.services.recipe_service import create_recipe
-from app.models.recipe import Recipe
+from app.models.recipe import (
+    CreateRecipeRequest, CreateRecipeResponse
+)
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -26,74 +29,20 @@ class StatusCallResponse(BaseModel):
   session_id: Union[str, None] = Field(description="The session id for the chat session.")
   chat_history: List[dict] = Field(..., description="The chat history for the chat session.")
   thread_id: Union[str, None] = Field(None, description="The thread id for the chat session.")
+  chef_type: str = Field("home_cook", description="The type of chef that the user wants to talk to.")
 
-class ClearChatResponse(BaseModel):
-  """ Return class for the clear_chat_history endpoint """
-  message: str = Field("Chat history cleared", description="The message returned from the endpoint.")
-  session_id: Union[str, None] = Field(..., description="The session id for the chat session.")
-  chat_history: List[dict] = Field(..., description="The chat history for the chat session.")
-  thread_id: Union[str, None] = Field(None, description="The thread id for the chat session.")
+class AddMessageToThread(BaseModel):
+    thread_id: str = Field(..., description="The thread id for the run to be added to.")
+    message_content: str = Field(..., description="The content of the message to be added to the thread.")
+    metadata: Optional[object] = Field({}, description="The metadata for the message.  A mapping of\
+        key-value pairs that can be used to store additional information about the message.")
 
-class ViewChatResponse(BaseModel):
-  """ Return class for the view_chat_history endpoint """
-  chat_history: List[dict] = Field(..., description="The chat history for the chat session.")
-  session_id: str = Field(..., description="The session id for the chat session.")
-  thread_id: Union[str, None] = Field(None, description="The current thread id for the chat session.")
-
-class InitializeChatResponse(BaseModel):
-  """ Return class for the initialize_chat endpoint """
-  thread_id: str = Field(..., description="The thread id for the run to be added to.")
-  message_content: str = Field(..., description="The message content.")
-  chat_history: List[dict] = Field(..., description="The chat history for the chat session.")
-  session_id: Union[str, None] = Field(..., description="The session id for the chat session.")
-
-class GetChefRequestResponse(BaseModel):
-  """ Return class for the get_chef_response endpoint """
-  chef_response: str = Field(..., description="The response from the chef.")
-  thread_id: str = Field(..., description="The thread id for the chat session.")
-  session_id: Union[str, None] = Field(..., description="The session id for the chat session.")
-  chat_history: List[dict] = Field(..., description="The chat history for the chat session.")
-  adjusted_recipe: Optional[Recipe] = Field(None, description="The adjusted recipe object.")
-
-
-class RecipeSpec(BaseModel):
-    specifications: str
-    serving_size: Optional[str] = "Family-Size"
-    chef_type: Optional[str] = None
-
-class CreateRecipeRequest(BaseModel):
-    """ Request body for creating a new recipe """
-    specifications: str = Field(..., description="The specifications for the recipe.")
-    serving_size: Optional[str] = Field("Family-Size", description="The serving size for the recipe.")
-    chef_type: Optional[str] = Field("home_cook", description="The type of chef creating the recipe.")
-    thread_id: Optional[str] = Field(None, description="The thread id for the chat session.")
-
-class CreateRecipeResponse(BaseModel):
-    recipe: Recipe = Field(..., description="The recipe object.")
-    session_id: Union[str, None] = Field(..., description="The session id for the chat session.")
-    thread_id: Union[str, None] = Field(None, description="The thread id for the chat session.")
-
-class CheckStatusResponse(BaseModel):
-    """ Return class for the check_status endpoint """
-    message: str = Field(..., description="The message returned from the endpoint.")
-    status: str = Field(..., description="The status of the run.")
-    session_id: Union[str, None] = Field(..., description="The session id for the chat session.")
-    chat_history: List[dict] = Field(..., description="The chat history for the chat session.")
-    thread_id: Optional[str] = Field(None, description="The thread id for the chat session.")
-
-class NewGetChefResponse(BaseModel):
-  """ Get Chef Response Model """
-  message_content: str = Field(..., description="The content of the message to be added to the thread.")
-  message_metadata: Optional[object] = Field({}, description="The metadata for the message.  A mapping of\
-    key-value pairs that can be used to store additional information about the message.")
-  chef_type: Optional[str] = Field(
-      "home_cook", description="The type of chef that the user wants to talk to.")
-
-class NewChefResponse(BaseModel):
-    """ Return class for the get_chef_response endpoint """
-    chef_response: str = Field(..., description="The response from the chef.")
-    session_id: Union[str, None] = Field(..., description="The session id for the chat session.")
-    chat_history: List[dict] = Field(..., description="The chat history for the chat session.")
+class AddMessageResponse(BaseModel):
+    thread_id: str = Field(..., description="The thread id for the run to be added to.")
+    message_content: List = Field(..., description="The content of the message to be added to the thread.")
+    created_at: int = Field(..., description="The timestamp for when the message was created.")
+    metadata: Optional[object] = Field({}, description="The metadata for the message.  A mapping of\
+        key-value pairs that can be used to store additional information about the message.")
 
 # Define a function to get the session_id from the headers
 def get_session_id(request: Request) -> str:
@@ -107,8 +56,11 @@ def get_chat_service(request: Request) -> ChatService:
     redis_store = RedisStore(session_id)
     return ChatService(store=redis_store)
 
-@router.get("/status_call")
-async def status_call(chat_service: ChatService = Depends(get_chat_service)) -> dict:
+@router.get(
+    "/status_call", response_description="The session id, chat history and thread id\
+    of the current chat session.", response_model=StatusCallResponse
+)
+async def status_call(chat_service: ChatService = Depends(get_chat_service)):
     logging.debug("Status call endpoint hit")
     try:
         status = chat_service.check_status()
@@ -339,69 +291,6 @@ async def view_chat_history(chat_service: ChatService = Depends(get_chat_service
     session_id = chat_service.session_id
     return {"chat_history": chat_history, "session_id": session_id, "thread_id": thread_id}
 
-
-@router.post(
-    "/get-chef-response",
-    response_description="The thread id for the run to be added to, the chef response, and the session id.",
-    summary="Get a response from the chef to the user's question.",
-    tags=["Chat Endpoints"], include_in_schema=False,
-    responses={
-        200: {
-            # "thread_id": "The thread id for the run to be added to.",
-            "chef_response": "The response from the chef",
-            "session_id": "The session id.",
-            "chat_history": "The chat history for the chat session."
-        }
-    },
-    response_model=NewChefResponse
-)
-async def new_get_chef_response(
-    new_chef_response: NewGetChefResponse, chat_service:
-        ChatService = Depends(get_chat_service)):
-    """ Endpoint to get a response from the chatbot to a user's question. """
-
-    logging.info("Starting new_get_chef_response")
-
-    client = get_openai_client()
-
-    # Get the assistant id based on the chef type
-    assistant_id = get_assistant_id(new_chef_response.chef_type)
-    logging.debug(f"Got assistant_id: {assistant_id}")
-
-    # Add the user message to the chat history
-    chat_service.add_user_message(new_chef_response.message_content)
-
-    message_content = f"Can you help answer my question {new_chef_response.message_content}.\
-        Our chat history so far is {chat_service.load_chat_history()}"
-
-    logging.debug(f"Message content: {message_content}")
-
-    run = client.beta.threads.create_and_run(
-        assistant_id=assistant_id,
-        thread={
-            "messages": [
-                {
-                    "role" : "user",
-                    "content" : message_content,
-                    "metadata" : new_chef_response.message_metadata
-                }]})
-
-    logging.debug(f"Created and ran thread with id: {run.id}")
-
-    # Poll the run status
-    response = await poll_run_status(run_id=run.id, thread_id=run.thread_id)
-
-    logging.debug(f"Got response: {response}")
-
-    if response:      # Add the chef response to the chat history
-        chat_service.add_chef_message(response["message"])
-
-    logging.info("Finished new_get_chef_response")
-
-    return {"chef_response" : response["message"],
-            "chat_history" : chat_service.load_chat_history(),
-            "session_id" : chat_service.session_id}
-
 # Create an endpoint to generate a recipe
 @router.post(
     "/create-recipe",
@@ -440,3 +329,29 @@ async def create_new_recipe(recipe_request: CreateRecipeRequest,
 
     return {"recipe": json.loads(recipe), "session_id": chat_service.session_id,
             "thread_id": recipe_request.thread_id}
+
+@router.post(
+    "/add-message-to-thread",
+    response_description="The thread id, message_content, and success message.",
+    description="Add a message to a thread.  Pass the thread id and message content in the body.",
+    response_model=AddMessageResponse, tags=["Chat Endpoints"]
+)
+async def add_message_to_thread(message_request: AddMessageToThread):
+    """ Endpoint to add a message to a thread. """
+    # Add the message to the thread
+    client = get_openai_client()
+    try:
+        message = client.beta.threads.messages.create(
+            message_request.thread_id,
+            content=message_request.message_content,
+            role="user",
+            metadata=message_request.metadata,
+        )
+        # Log the message
+        logging.info(f"Message created: {message}")
+        return {"thread_id": message.thread_id, "message_content": message.content,
+                "created_at" : message.created_at, "metadata": message.metadata}
+
+    except Exception as e:
+        logging.error(f"Error in adding message to thread: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
