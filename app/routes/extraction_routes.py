@@ -22,6 +22,7 @@ from app.services.chat_service import ChatService
 from app.middleware.session_middleware import RedisStore
 
 logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 # Load the environment variables
 credentials = get_google_vision_credentials()
@@ -32,16 +33,30 @@ UPLOAD_DIR = Path(__file__).parent.parent.parent / "uploads"
 router = APIRouter()
 
 file_handlers = {
-    "jpg": ("image/jpeg", lambda contents, extraction_service:
-            extraction_service.extract_image_text(contents)),  # "image/jpeg
-    "jpeg": ("image/jpeg", lambda contents, extraction_service:
-            extraction_service.extract_image_text(contents)),
-    "png": ("image/png", lambda contents, extraction_service:
-            extraction_service.extract_image_text(contents)),
-    "pdf": ("application/pdf", lambda contents, extraction_service:
-            extraction_service.extract_pdf_file_contents(contents)),
-    "txt": ("text/plain", lambda contents, extraction_service:
-            extraction_service.extract_text_file_contents(contents)),
+    "jpg": (
+        "image/jpeg", lambda contents, extraction_service:
+        extraction_service.extract_image_text(contents)
+    ),  # "image/jpeg
+    "jpeg": (
+        "image/jpeg", lambda contents, extraction_service:
+        extraction_service.extract_image_text(contents)
+    ),
+    "png": (
+        "image/png", lambda contents, extraction_service:
+        extraction_service.extract_image_text(contents)
+    ),
+    "pdf": (
+        "application/pdf", lambda contents, extraction_service:
+        extraction_service.extract_pdf_file_contents(contents)
+    ),
+    "txt": (
+        "text/plain", lambda contents, extraction_service:
+        extraction_service.extract_text_file_contents(contents)
+    ),
+    "heic": (
+        "image/heic", lambda contents, extraction_service:
+        extraction_service.extract_image_text(contents)
+    )
 }
 
 # Define a function to get the session_id from the headers
@@ -73,51 +88,40 @@ async def extract_and_format_recipes(
     Each file's content is extracted and processed according to its type.
     """
 
-    # Debugging: Log the number of files received
-    print(f"Received {len(files)} files for processing.")
+    logger.info(f"Received {len(files)} files for processing.")
 
-    # Extract file types from the filenames
     file_types = set([file.filename.split(".")[-1] for file in files])
 
-    # Debugging: Log the types of files received
-    print(f"File types received: {file_types}")
+    logger.debug(f"File types received: {file_types}")
 
-    # Validate file types
     if not file_types.issubset(file_handlers.keys()):
         raise HTTPException(status_code=400, detail="Invalid file type")
 
-    # Ensure all files are of the same type
     if len(file_types) > 1:
         raise HTTPException(status_code=400, detail="Files must be of the same type")
 
-    # Process files based on file type
     file_type = file_types.pop()
 
-    # Debugging: Log the file type being processed
-    print(f"Processing files of type: {file_type}")
+    logger.debug(f"Processing files of type: {file_type}")
 
     if file_type == "pdf":
-        # Process PDF files
         extracted_text = await extract_pdf_file_contents([file.file for file in files])
         formatted_text = await format_recipe(extracted_text)
 
     elif file_type == "txt":
-        # Process text files
         extracted_text = extract_text_file_contents(
             [file.file.read().decode('utf-8', errors='ignore') for file in files]
         )
         formatted_text = await format_recipe(extracted_text)
 
-    elif file_type in ["jpg", "jpeg", "png"]:
-        # Process image files
+    elif file_type in ["jpg", "jpeg", "png", "heic"]:
         encoded_images = [base64.b64encode(file.file.read()).decode("utf-8") for file in files]
+        logger.debug(f"Encoded images: {encoded_images}")
         extracted_text = await extract_image_text(encoded_images)
         formatted_text = await format_recipe(extracted_text)
 
-    # Debugging: Log the formatted text (optional, could be large)
-    # print(f"Formatted text: {formatted_text}")
+    logger.debug(f"Formatted text: {formatted_text}")
 
-    # Return the response
     return {
         "formatted_recipe": json.loads(formatted_text),
         "session_id": chat_service.session_id,

@@ -208,7 +208,8 @@ async def get_chef_response(chef_response: GetChefResponse, chat_service:
             assistant_id=assistant_id,
             thread_id=chef_response.thread_id,
             instructions=instructions,
-            tools=tools
+            tools=tools,
+            model="gpt-3.5-turbo-1106"
         )
         # Poll the run status
         response = await poll_run_status(run_id=run.id, thread_id=run.thread_id)
@@ -317,10 +318,22 @@ async def create_new_recipe(recipe_request: CreateRecipeRequest,
         client = get_openai_client()
         message = client.beta.threads.messages.create(
             recipe_request.thread_id,
-            content=f"You have create a recipe {recipe} for a user based on the specifications\
-            {recipe_request.specifications}\
-                and serving size {recipe_request.serving_size} they provided.\
-                They may want to ask questions about or make changes to the recipe.",
+            content=f"""Your task is to assist a user with their recipe {recipe},
+            which was created based on their initial specifications {recipe_request.specifications}
+            and serving size {recipe_request.serving_size}. Users may have queries about
+            the recipe or wish to modify it. Your role is to engage in a natural,
+            sous-chef style conversation, providing expert advice and suggestions
+            tailored to their needs. When users request changes or have questions,
+            clarify their requirements through engaging dialogue. Once changes are confirmed,
+            display the updated format clearly and concisely in the same format as the original
+            recipe {recipe} so that they can make sure it looks correct before saving.
+            They may also want to ask you about wine pairings, general cooking questions,
+            etc.  Graciously answer those questions as well. Remember,
+            your role is crucial in ensuring clarity,
+            offering culinary expertise, and confirming the changes during the interaction.
+            Although your role is listed as 'user' due to API constraints.  Keep the conversation flowing
+            until it is clear that the user is satisfied with the recipe.  In other words,
+            you are the AI sous chef in this conversation.""",
             role="user",
             metadata={},
         )

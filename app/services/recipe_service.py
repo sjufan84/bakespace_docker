@@ -261,6 +261,7 @@ async def format_recipe(recipe_text: str):
             If you cannot determine all of the values, do your best to infer the value or leave it blank.
             The user will then have the chance to edit any incorrect values.
             Description: Optional[str] A brief description of the recipe.
+            Source: Optional[str] The source of the recipe i.e. AllRecipes, Bakespace, etc. if applicable.
 
             Ensure that the recipe is presented in a clear and organized manner, adhering
             to the 'FormattedRecipe' {FormattedRecipe} class structure as outlined above."""
