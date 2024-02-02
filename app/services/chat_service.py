@@ -97,9 +97,9 @@ class ChatService:
         return self.save_chat_history()
 
     # Define a function to add a message from the chef to the chat history
-    def add_chef_message(self, message: str):
+    def add_chef_message(self, message: str, thread_id: Optional[str] = None):
         """ Add a message from the chef to the chat history. """
-        chef_message = ChatMessage(message, "ai").format_message()
+        chef_message = ChatMessage(message, "ai", thread_id).format_message()
         self.chat_history.append(chef_message)
         # Save the chat history to redis
         return self.save_chat_history()

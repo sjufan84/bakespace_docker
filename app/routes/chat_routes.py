@@ -143,7 +143,8 @@ async def get_chef_response(chef_response: GetChefResponse, chat_service:
     assistant_id = get_assistant_id(chef_response.chef_type)
 
     # Add the user message to the chat history
-    chat_service.add_user_message(chef_response.message_content)
+    chat_service.add_user_message(message=chef_response.message_content, thread_id=chef_response.thread_id)
+    logging.debug(f"User message added to chat history: {chef_response.message_content}")
 
     if chef_response.serving_size:
         message_content = chef_response.message_content + " " + "Serving size: " + chef_response.serving_size
@@ -244,7 +245,10 @@ async def get_chef_response(chef_response: GetChefResponse, chat_service:
         response = await poll_run_status(run_id=run.id, thread_id=run.thread_id)
 
         if response:      # Add the chef response to the chat history
-            chat_service.add_chef_message(response["message"])
+            chat_service.add_chef_message(
+                message=response["message"], thread_id=chef_response.thread_id
+            )
+            logging.debug(f"Chef response added to chat history: {response['message']}")
 
             print(response["message"])
 
