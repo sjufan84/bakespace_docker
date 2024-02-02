@@ -1,6 +1,6 @@
 """ This module defines the ChatService class, which is responsible for managing the chatbot. """
 import json
-from typing import Union
+from typing import Union, Optional
 import logging
 from redis.exceptions import RedisError
 from app.dependencies import get_openai_client
@@ -13,14 +13,16 @@ core_models = ["gpt-3.5-turbo", "gpt-3.5-turbo-0613", "gpt-3.5-turbo-16k"]
 
 class ChatMessage:
     """ A class to represent a chat message. """
-    def __init__(self, content, role):
+    def __init__(self, content, role, thread_id: Optional[str] = None):
         self.content = content
         self.role = role
+        self.thread_id = thread_id
 
     def format_message(self):
         """ Format the message for the chat history. """
-        # Return a dictionary with the format {"role": role, "content": content}
-        return {"role": self.role, "content": self.content}
+        # Return a dictionary with the format {"role": role, "content": content,
+        # "thread_id": thread_id}
+        return {"role": self.role, "content": self.content, "thread_id": self.thread_id}
 
 class ChatService:
     """ A class to represent the chatbot. """
@@ -85,10 +87,10 @@ class ChatService:
             print(f"Failed to load chef type from Redis: {e}")
             return "home_cook"
 
-    def add_user_message(self, message: str):
+    def add_user_message(self, message: str, thread_id: Optional[str] = None):
         """ Add a message from the user to the chat history. """
         # Format the message and add it to the chat history
-        user_message = ChatMessage(message, "user").format_message()
+        user_message = ChatMessage(message, "user", thread_id).format_message()
         self.chat_history = self.load_chat_history()
         self.chat_history.append(user_message)
         # Save the chat history to redis
@@ -165,7 +167,7 @@ class ChatService:
 
         # Return the session_id, the chat_history, and "Chat history cleared" as a json object
         return {"session_id": self.session_id, "chat_history": self.load_chat_history(),
-                "thread_id": self.get_thread_id(), "message": "Chat history cleared"}
+                "message": "Chat history cleared"}
 
     def check_status(self):
         """ Return the session id and any user data from Redis. """

@@ -44,6 +44,9 @@ class AddMessageResponse(BaseModel):
     metadata: Optional[object] = Field({}, description="The metadata for the message.  A mapping of\
         key-value pairs that can be used to store additional information about the message.")
 
+class ViewChatHistoryRequest(BaseModel):
+    thread_id: Optional[str] = Field(None, description="The thread id for the chat session.")
+
 # Define a function to get the session_id from the headers
 def get_session_id(request: Request) -> str:
     """ Define a function to get the session_id from the headers. """
@@ -65,6 +68,7 @@ async def status_call(chat_service: ChatService = Depends(get_chat_service)):
     try:
         status = chat_service.check_status()
         logging.debug(f"Status call response: {status}")
+        logging.debug(f"Chat history: {print(chat_service.load_chat_history()[-1]['content'])}")
         return status
     except Exception as e:
         logging.error(f"Error in status call: {e}")
@@ -245,6 +249,8 @@ async def get_chef_response(chef_response: GetChefResponse, chat_service:
         if response:      # Add the chef response to the chat history
             chat_service.add_chef_message(response["message"])
 
+            print(response["message"])
+
             return {
                 "chef_response" : response["message"],
                 "thread_id" : chef_response.thread_id, "chat_history" : chat_service.load_chat_history(),
@@ -281,16 +287,21 @@ async def clear_chat_history(chat_service: ChatService = Depends(get_chat_servic
     response = chat_service.clear_chat_history()
     return response
 
-@router.get("/view_chat_history", response_description="The chat history, session id and current thread id.",
-            summary="View the chat history.", response_model=ViewChatResponse,
-            tags=["Chat Endpoints"])
-async def view_chat_history(chat_service: ChatService = Depends(get_chat_service)):
+@router.get(
+    "/view-chat-history", response_description="The chat history, session id and current thread id.",
+    summary="View the chat history.", response_model=ViewChatResponse,
+    tags=["Chat Endpoints"]
+)
+async def view_chat_history(
+        chat_service: ChatService = Depends(get_chat_service),
+        view_chat_request: Optional[ViewChatHistoryRequest] = None):
+    logging.debug(f"View chat history request: {view_chat_request}")
     """ Endpoint to view the chat history. """
     # Get the chat history from the store
-    chat_history = chat_service.load_chat_history()
-    thread_id = chat_service.thread_id
-    session_id = chat_service.session_id
-    return {"chat_history": chat_history, "session_id": session_id, "thread_id": thread_id}
+    thread_id = view_chat_request.thread_id if view_chat_request else None
+    chat_history = chat_service.view_chat_history(thread_id)
+
+    return chat_history
 
 # Create an endpoint to generate a recipe
 @router.post(
