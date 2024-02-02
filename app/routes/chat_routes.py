@@ -44,9 +44,6 @@ class AddMessageResponse(BaseModel):
     metadata: Optional[object] = Field({}, description="The metadata for the message.  A mapping of\
         key-value pairs that can be used to store additional information about the message.")
 
-class ViewChatHistoryRequest(BaseModel):
-    thread_id: Optional[str] = Field(None, description="The thread id for the chat session.")
-
 # Define a function to get the session_id from the headers
 def get_session_id(request: Request) -> str:
     """ Define a function to get the session_id from the headers. """
@@ -293,14 +290,10 @@ async def clear_chat_history(chat_service: ChatService = Depends(get_chat_servic
     tags=["Chat Endpoints"]
 )
 async def view_chat_history(
-        chat_service: ChatService = Depends(get_chat_service),
-        view_chat_request: Optional[ViewChatHistoryRequest] = None):
-    logging.debug(f"View chat history request: {view_chat_request}")
+        chat_service: ChatService = Depends(get_chat_service)):
     """ Endpoint to view the chat history. """
     # Get the chat history from the store
-    thread_id = view_chat_request.thread_id if view_chat_request else None
-    chat_history = chat_service.view_chat_history(thread_id)
-
+    chat_history = chat_service.view_chat_history()
     return chat_history
 
 # Create an endpoint to generate a recipe

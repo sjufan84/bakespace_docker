@@ -38,7 +38,6 @@ class ViewChatResponse(BaseModel):
   """ Return class for the view_chat_history endpoint """
   chat_history: List[dict] = Field(..., description="The chat history for the chat session.")
   session_id: str = Field(..., description="The session id for the chat session.")
-  thread_id: Union[str, None] = Field(None, description="The current thread id for the chat session.")
 
 class InitializeChatResponse(BaseModel):
   """ Return class for the initialize_chat endpoint """

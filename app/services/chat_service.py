@@ -169,6 +169,13 @@ class ChatService:
         return {"session_id": self.session_id, "chat_history": self.load_chat_history(),
                 "message": "Chat history cleared"}
 
+    def view_chat_history(self):
+        """ View the chat history. """
+        # Return the chat_history and the session_id as a json object
+        return {
+            "chat_history": self.load_chat_history(), "session_id": self.session_id
+        }
+
     def check_status(self):
         """ Return the session id and any user data from Redis. """
         return {"session_id": self.session_id, "chat_history": self.load_chat_history(),
