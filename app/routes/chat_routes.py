@@ -276,7 +276,7 @@ async def get_chef_response(chef_response: GetChefResponse, chat_service:
         return response
 
 @router.post(
-    "/clear_chat_history",
+    "/clear-chat-history",
     response_description="The thread id, session id, chat history and success message.",
     description="Clear the chat history for the current session.  Pass the session id in the headers.",
     summary="Clear the chat history.",
