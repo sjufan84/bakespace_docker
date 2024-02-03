@@ -18,6 +18,7 @@ from app.services.recipe_service import create_recipe
 from app.models.recipe import (
     CreateRecipeRequest, CreateRecipeResponse
 )
+from app.models.chat import ResponseMessage
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -80,7 +81,7 @@ async def initialize_general_chat(context: CreateThreadRequest, chat_service=Dep
 
     try:
         # Add user message to chat service
-        chat_service.add_user_message(context.message_content)
+        chat_service.add_user_message(message=context.message_content)
         logging.debug("User message added to chat service")
 
         # Initialize OpenAI client
@@ -108,11 +109,11 @@ async def initialize_general_chat(context: CreateThreadRequest, chat_service=Dep
         # Set the thread_id in the store and prepare response
         chat_service.set_thread_id(message_thread.id)
         session_id = chat_service.session_id
-        chat_history = chat_service.load_chat_history()
+        # chat_history = chat_service.load_chat_history()
 
         # Log and return the response
         response = {"thread_id": message_thread.id, "message_content": message_content,
-                    "chat_history": chat_history, "session_id": session_id}
+                    "session_id": session_id}
         logging.debug(f"Returning response: {response}")
         return response
 
@@ -220,8 +221,10 @@ async def get_chef_response(chef_response: GetChefResponse, chat_service:
             # chat_service.add_chef_message(response["message"])
 
             return {
-                "chef_response" : response["message"],
-                "thread_id" : chef_response.thread_id, "chat_history" : chat_service.load_chat_history(),
+                "chef_response" : ResponseMessage(
+                    content=response["message"], role="user", thread_id=chef_response.thread_id
+                ),
+                "thread_id" : chef_response.thread_id,
                 "adjusted_recipe" : response["tool_return_values"], "session_id": chat_service.session_id
             }
 
@@ -253,8 +256,10 @@ async def get_chef_response(chef_response: GetChefResponse, chat_service:
             print(response["message"])
 
             return {
-                "chef_response" : response["message"],
-                "thread_id" : chef_response.thread_id, "chat_history" : chat_service.load_chat_history(),
+                "chef_response" : ResponseMessage(
+                    content=response["message"], role="user", thread_id=chef_response.thread_id
+                ),
+                "thread_id" : chef_response.thread_id,
                 "session_id": chat_service.session_id
             }
 

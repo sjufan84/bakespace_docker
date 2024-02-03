@@ -5,6 +5,7 @@ from typing import Optional, Union, List
 from pydantic import BaseModel, Field
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(os.getcwd()))))
 from app.models.recipe import Recipe
+from app.models.chat import ResponseMessage
 
 class CreateThreadRequest(BaseModel):
     """ Create Thread Request Model """
@@ -43,13 +44,13 @@ class InitializeChatResponse(BaseModel):
   """ Return class for the initialize_chat endpoint """
   thread_id: str = Field(..., description="The thread id for the run to be added to.")
   message_content: str = Field(..., description="The message content.")
-  chat_history: List[dict] = Field(..., description="The chat history for the chat session.")
+  # chat_history: dict = Field(..., description="The chat history for the chat session.")
   session_id: Union[str, None] = Field(..., description="The session id for the chat session.")
 
 class GetChefRequestResponse(BaseModel):
   """ Return class for the get_chef_response endpoint """
-  chef_response: str = Field(..., description="The response from the chef.")
+  chef_response: ResponseMessage = Field(..., description="The response message from the chef.")
   thread_id: str = Field(..., description="The thread id for the chat session.")
   session_id: Union[str, None] = Field(..., description="The session id for the chat session.")
-  chat_history: List[dict] = Field(..., description="The chat history for the chat session.")
+  # chat_history: List[dict] = Field(..., description="The chat history for the chat session.")
   adjusted_recipe: Optional[Recipe] = Field(None, description="The adjusted recipe object.")

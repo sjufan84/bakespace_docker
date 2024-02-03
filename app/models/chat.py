@@ -1,10 +1,8 @@
-""" This module contains the ChatMessage class. """
-class ChatMessage:
+from pydantic import Field, BaseModel
+from typing import Optional
+
+class ResponseMessage(BaseModel):
     """ A class to represent a chat message. """
-    def __init__(self, content, role):
-        self.content = content
-        self.role = role
-    def format_message(self):
-        """ Format the message for the chat history. """
-        # Return a dictionary with the format {"role": role, "content": content}
-        return {"role": self.role, "content": self.content}
+    content: str = Field(..., description="The content of the message to be added to the thread.")
+    role: str = Field(..., description="The role of the message to be added to the thread.")
+    thread_id: Optional[str] = Field(None, description="The thread id for the run to be added to.")
