@@ -9,10 +9,10 @@ class Recipe(BaseModel):
     recipe_name: str = Field(..., description="The name of the recipe.")
     ingredients: List[str] = Field(..., description="The ingredients of the recipe.")
     directions: List[str] = Field(..., description="The directions for the recipe.")
-    prep_time: Optional[Union[int, str]] = Field(None, description="The preparation time for the recipe.")
+    prep_time: Union[int, str] = Field(None, description="The preparation time for the recipe.")
     cook_time: Optional[Union[str, int]] = Field(None, description="The cooking time for the recipe.\
       This could be null if the recipe is raw or doesn't require cooking.")
-    serving_size: Optional[Union[str, int]] = Field(None, description="The serving size of the recipe.")
+    serving_size: Union[str, int] = Field("4-6", description="The serving size of the recipe.")
     calories: Optional[Union[str, int]] = Field(None, description="The estimated calories for one\
       serving of the dish.")
     fun_fact: Optional[str] = Field(None, description="A fun fact about the recipe.")
@@ -52,7 +52,7 @@ class FormatRecipeTextRequest(BaseModel):
 class CreateRecipeRequest(BaseModel):
     """ Request body for creating a new recipe """
     specifications: str = Field(..., description="The specifications for the recipe.")
-    serving_size: Optional[str] = Field("General", description="The serving size for the recipe.")
+    serving_size: Optional[str] = Field("4-6", description="The serving size for the recipe.")
     chef_type: Optional[str] = Field("home_cook", description="The type of chef creating the recipe.")
     thread_id: Optional[str] = Field(None, description="The thread id for the chat session.")
 

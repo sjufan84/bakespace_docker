@@ -96,9 +96,10 @@ async def create_recipe(specifications: str, serving_size: str):
             Recipe Name (recipe_name): A unique and descriptive title for the recipe.
             Ingredients (ingredients): A list of ingredients required for the recipe.
             Directions (directions): Step-by-step instructions for preparing the recipe.
-            Preparation Time (prep_time): Optional[Union[str, int] The time taken for preparation in minutes.
-            Cooking Time (cook_time): Optional[Union[str, int]] The cooking time in minutes, if applicable.
-            Serving Size (serving_size): Optional[Union[str, int]] A description of the serving size.
+            Preparation Time (prep_time): Union[str, int] The time taken for preparation in minutes.
+            Cooking Time (cook_time): Union[str, int] The cooking time in minutes, if applicable.  Null
+            for raw recipes or recipes that don't require cooking.
+            Serving Size (serving_size): Union[str, int] A description of the serving size.
             Calories (calories): Optional[Union[str, int]] Estimated calories per serving, if known.
             Fun Fact (fun_fact): Optional[str] An interesting fact about the recipe or its ingredients.
             Pairs With (pairs_with): str A pairing for the recipe.  It could be a wine pairing, side

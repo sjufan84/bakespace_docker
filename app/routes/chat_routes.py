@@ -91,8 +91,6 @@ async def initialize_general_chat(context: CreateThreadRequest, chat_service=Dep
 
         # Construct message content
         message_content = "The context for this chat thread is " + context.message_content
-        if context.serving_size:
-            message_content += " Serving size: " + context.serving_size
         logging.debug(f"Formed message content: {message_content}")
 
         # Create message thread
@@ -148,10 +146,7 @@ async def get_chef_response(chef_response: GetChefResponse, chat_service:
     chat_service.add_user_message(message=chef_response.message_content, thread_id=chef_response.thread_id)
     logging.debug(f"User message added to chat history: {chef_response.message_content}")
 
-    if chef_response.serving_size:
-        message_content = chef_response.message_content + " " + "Serving size: " + chef_response.serving_size
-    else:
-        message_content = chef_response.message_content
+    message_content = chef_response.message_content
 
     if chef_response.save_recipe:
         message_content = "I am ready to save my recipe!  Please use the 'adjust_recipe' tool\

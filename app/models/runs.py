@@ -14,7 +14,6 @@ class CreateThreadRequest(BaseModel):
       key-value pairs that can be used to store additional information about the message.")
     chef_type: Optional[str] = Field(..., description="The type of chef the user is.\
     Must be one of ['adventurous_chef', 'home_cook', 'pro_chef']")
-    serving_size: Optional[str] = Field(None, description="The serving size for the recipe.")
     thread_id: Optional[str] = Field(None, description="The thread id for the run to be added to.")
 
 class GetChefResponse(BaseModel):
@@ -24,7 +23,6 @@ class GetChefResponse(BaseModel):
     key-value pairs that can be used to store additional information about the message.")
   chef_type: Optional[str] = Field(
       "home_cook", description="The type of chef that the user wants to talk to.")
-  serving_size: Optional[str] = Field(None, description="The serving size for the recipe.")
   thread_id: str = Field(None, description="The thread id for the run to be added to.")
   save_recipe: Optional[bool] = Field(False, description="Whether or not to use the 'save_recipe' tool.")
 
@@ -44,7 +42,6 @@ class InitializeChatResponse(BaseModel):
   """ Return class for the initialize_chat endpoint """
   thread_id: str = Field(..., description="The thread id for the run to be added to.")
   message_content: str = Field(..., description="The message content.")
-  # chat_history: dict = Field(..., description="The chat history for the chat session.")
   session_id: Union[str, None] = Field(..., description="The session id for the chat session.")
 
 class GetChefRequestResponse(BaseModel):
@@ -52,5 +49,4 @@ class GetChefRequestResponse(BaseModel):
   chef_response: ResponseMessage = Field(..., description="The response message from the chef.")
   thread_id: str = Field(..., description="The thread id for the chat session.")
   session_id: Union[str, None] = Field(..., description="The session id for the chat session.")
-  # chat_history: List[dict] = Field(..., description="The chat history for the chat session.")
   adjusted_recipe: Optional[Recipe] = Field(None, description="The adjusted recipe object.")
