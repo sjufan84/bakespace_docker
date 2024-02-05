@@ -2,6 +2,7 @@
 from typing import List, Union, Optional
 import logging
 import json
+import markdown
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from app.utils.assistant_utils import (
@@ -222,7 +223,7 @@ async def get_chef_response(chef_response: GetChefResponse, chat_service:
 
             return {
                 "chef_response" : ResponseMessage(
-                    content=response["message"], role="user", thread_id=chef_response.thread_id
+                    content=response["message"], role="ai", thread_id=chef_response.thread_id
                 ),
                 "thread_id" : chef_response.thread_id,
                 "adjusted_recipe" : response["tool_return_values"], "session_id": chat_service.session_id
@@ -255,9 +256,17 @@ async def get_chef_response(chef_response: GetChefResponse, chat_service:
 
             print(response["message"])
 
+            # Response HMTL conversion
+            try:
+                response_html = markdown.markdown(response["message"])
+            except Exception as e:
+                response_html = response["message"]
+                logging.error(f"Error in converting response to HTML: {e}")
+
             return {
                 "chef_response" : ResponseMessage(
-                    content=response["message"], role="user", thread_id=chef_response.thread_id
+                    content=response["message"], role="ai", thread_id=chef_response.thread_id,
+                    html = response_html
                 ),
                 "thread_id" : chef_response.thread_id,
                 "session_id": chat_service.session_id
