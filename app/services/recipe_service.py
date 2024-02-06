@@ -61,7 +61,7 @@ async def filter_query(text: str) -> bool:
 
 # ---------------------------------------------------------------------------------------------------------------
 
-async def create_recipe(specifications: str, serving_size: str):
+async def create_recipe(specifications: str, serving_size: str = "4"):
     """ Generate a recipe based on the specifications provided asynchronously """
     # First check to make sure the query is related to food
     query = specifications + serving_size
@@ -174,13 +174,18 @@ def adjust_recipe(recipe: dict, adjustments: str):
             Recipe Name (recipe_name): A unique and descriptive title for the recipe.
             Ingredients (ingredients): A list of ingredients required for the recipe.
             Directions (directions): Step-by-step instructions for preparing the recipe.
-            Preparation Time (prep_time): Optional[Union[str, int] The time taken for preparation in minutes.
-            Cooking Time (cook_time): Optional[Union[str, int]] The cooking time in minutes, if applicable.
-            Serving Size (serving_size): Optional[Union[str, int]] A description of the serving size.
+            Preparation Time (prep_time): Union[str, int] The time taken for preparation in minutes.
+            Cooking Time (cook_time): Union[str, int] The cooking time in minutes, if applicable.  Null
+            for raw recipes or recipes that don't require cooking.
+            Serving Size (serving_size): Union[str, int] A description of the serving size.
             Calories (calories): Optional[Union[str, int]] Estimated calories per serving, if known.
+            Fun Fact (fun_fact): Optional[str] An interesting fact about the recipe or its ingredients.
+            Pairs With (pairs_with): str A pairing for the recipe.  It could be a wine pairing, side
+            dish, etc.  Whatever seems the most appropriate for the recipe.
+
 
             Ensure that the recipe is presented in a clear and organized manner, adhering
-            to the 'FormattedRecipe' {FormattedRecipe} class structure as outlined above."""
+            to the 'Recipe' {Recipe} class structure as outlined above."""
         },
     ]
 
