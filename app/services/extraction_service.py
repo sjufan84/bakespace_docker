@@ -1,13 +1,33 @@
 """ Utility functions for extracting text from images and text files. """
 from typing import List
+import logging
+from io import BytesIO
 from fastapi import UploadFile
 import google.cloud.vision as vision  # pylint: disable=no-member
 import pdfplumber
+import docx
 from app.dependencies import get_google_vision_credentials, get_openai_client
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 # Load the environment variables
 credentials = get_google_vision_credentials()
 client = get_openai_client()
+
+async def extract_docx_file_contents(files: List[UploadFile]) -> str:
+    """ Extract the text from the docx file. """
+    file_contents = ''
+    for file in files:
+        file = BytesIO(file)
+        doc = docx.Document(file)
+        for paragraph in doc.paragraphs:
+            logger.debug(f"Paragraph: {paragraph.text}")
+            file_contents += paragraph.text
+            # file_contents = spellcheck_text(file_contents)
+
+    logger.debug(f"File contents: {file_contents}")
+    return file_contents
 
 async def extract_text_file_contents(files) -> str:
     """ Extract the text from the text file."""

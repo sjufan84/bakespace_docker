@@ -12,7 +12,7 @@ from fastapi import (
 from app.dependencies import get_google_vision_credentials, get_openai_client
 from app.services.extraction_service import (
     extract_image_text, extract_pdf_file_contents,
-    extract_text_file_contents
+    extract_text_file_contents, extract_docx_file_contents
 )
 from app.services.recipe_service import format_recipe
 from app.models.recipe import (
@@ -56,6 +56,11 @@ file_handlers = {
     "heic": (
         "image/heic", lambda contents, extraction_service:
         extraction_service.extract_image_text(contents)
+    ),
+    "docx": (
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        lambda contents, extraction_service:
+        extraction_service.extract_docx_file_contents(contents)
     )
 }
 
@@ -106,6 +111,7 @@ async def extract_and_format_recipes(
 
     if file_type == "pdf":
         extracted_text = await extract_pdf_file_contents([file.file for file in files])
+        logger.debug(f"Extracted text from pdf: {extracted_text}")
         formatted_text = await format_recipe(extracted_text)
 
     elif file_type == "txt":
@@ -118,6 +124,14 @@ async def extract_and_format_recipes(
         encoded_images = [base64.b64encode(file.file.read()).decode("utf-8") for file in files]
         logger.debug(f"Encoded images: {encoded_images}")
         extracted_text = await extract_image_text(encoded_images)
+        logger.debug(f"Extracted text from image: {extracted_text}")
+        formatted_text = await format_recipe(extracted_text)
+
+    elif file_type == "docx":
+        # Convert the docx files to bytes
+        encoded_texts = [file.file.read() for file in files]
+        extracted_text = await extract_docx_file_contents(encoded_texts)
+        logger.debug(f"Extracted text from docx: {extracted_text}")
         formatted_text = await format_recipe(extracted_text)
 
     logger.debug(f"Formatted text: {formatted_text}")
