@@ -27,19 +27,18 @@ class FormattedRecipe(BaseModel):
     recipe_name: str = Field(..., description="The name of the recipe.")
     ingredients: List[str] = Field(..., description="The ingredients of the recipe.")
     directions: List[str] = Field(..., description="The directions for the recipe.")
-    prep_time: Optional[Union[int, str]] = Field(None, description="The preparation time for the recipe.")
-    cook_time: Optional[Union[str, int]] = Field(None, description="The cooking time for the recipe.\
+    prep_time: Union[int, str] = Field(None, description="The preparation time for the recipe.")
+    cook_time: Union[str, int] = Field(None, description="The cooking time for the recipe.\
       This could be null if the recipe is raw or doesn't require cooking.")
-    serving_size: Optional[Union[str, int]] = Field("", description="The serving size of the recipe.")
+    serving_size: Union[str, int] = Field("", description="The serving size of the recipe.")
     calories: Optional[Union[str, int]] = Field(None, description="The estimated calories for one\
       serving of the dish.")
     is_food: bool = Field(True, description="Whether or not the submitted text is related to food.")
-    pairs_with: Optional[str] = Field(None, description="A pairing for the recipe.\
+    pairs_with: str = Field("", description="A pairing for the recipe.\
     It could be a wine pairing, side dish, etc.  Whatever seems the most appropriate for the recipe.")
-    fun_fact: Optional[str] = Field(None, description="A fun fact about the recipe or ingredients.  Should be\
+    fun_fact: str = Field("", description="A fun fact about the recipe or ingredients.  Should be\
     creative, interesting, and a conversation starter.  Could be a historical\
     fact about the ingredients or recipe, etc.")
-    # description: Optional[str] = Field(None, description="A description of the recipe.")
     source: Optional[str] = Field(None, description="The source of the recipe i.e. AllRecipes,\
     Bakespace, etc. if applicable.")
 
