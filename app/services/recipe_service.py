@@ -97,12 +97,14 @@ async def create_recipe(specifications: str, serving_size: str = "4"):
             Ingredients (ingredients): A list of ingredients required for the recipe.
             Directions (directions): Step-by-step instructions for preparing the recipe.
             Preparation Time (prep_time): Union[str, int] The time taken for preparation in minutes.
-            Cooking Time (cook_time): Union[str, int] The cooking time in minutes, if applicable.  Null
-            for raw recipes or recipes that don't require cooking.
+            Cooking Time (cook_time): Optional[Union[str, int]] The cooking time in minutes, if applicable.
+            Will be null if the recipe is raw or doesn't require cooking.
             Serving Size (serving_size): Union[str, int] A description of the serving size.
             Calories (calories): Optional[Union[str, int]] Estimated calories per serving, if known.
-            Fun Fact (fun_fact): Optional[str] An interesting fact about the recipe or its ingredients.
-            Pairs With (pairs_with): str A pairing for the recipe.  It could be a wine pairing, side
+            Fun Fact (fun_fact): str An interesting fact about the recipe or its ingredients.  It should be
+            a conversation starter, maybe a historical fact or something
+            else that people would find fascinating.
+            Pairs With (pairs_with): Optional[str] A pairing for the recipe.  It could be a wine pairing, side
             dish, etc.  Whatever seems the most appropriate for the recipe.
 
             Ensure that the recipe is presented in a clear and organized manner,
@@ -180,7 +182,9 @@ def adjust_recipe(recipe: dict, adjustments: str):
             Serving Size (serving_size): Union[str, int] A description of the serving size.
             Calories (calories): Optional[Union[str, int]] Estimated calories per serving, if known.
             Fun Fact (fun_fact): Optional[str] An interesting fact about the recipe or its ingredients.
-            Pairs With (pairs_with): str A pairing for the recipe.  It could be a wine pairing, side
+            Should be a conversation starter, maybe a historical fact or something
+            else that people would find fascinating.
+            Pairs With (pairs_with): Optional[str] A pairing for the recipe.  It could be a wine pairing, side
             dish, etc.  Whatever seems the most appropriate for the recipe.
 
 
@@ -258,12 +262,15 @@ async def format_recipe(recipe_text: str):
             Recipe Name (recipe_name): str A unique and descriptive title for the recipe.
             Ingredients (ingredients): List[str] A list of ingredients required for the recipe.
             Directions (directions): List[str] Step-by-step instructions for preparing the recipe.
-            Preparation Time (prep_time): Optional[Union[str, int]] The time taken for preparation in minutes.
+            Preparation Time (prep_time): Union[str, int] The time taken for preparation in minutes.
             Cooking Time (cook_time): Optional[Union[str, int]] The cooking time in minutes, if applicable.
-            Serving Size (serving_size): Optional[Union[str, int]] A description of the serving size.
-            Pairs With (pairs_with): Optional[str] A pairing for the recipe.  It could be a wine pairing, side
+            Serving Size (serving_size): Union[str, int] A description of the serving size.
+            Pairs With (pairs_with): str A creative pairing for the recipe.  It could be a wine pairing, side\
             dish, etc.  Whatever seems the most appropriate for the recipe.
-            Calories (calories): Optional[Union[str, int]] Estimated calories per serving, if known.\n\
+            Calories (calories): Union[str, int] Estimated calories per serving, if known.\n\
+            Fun Fact (fun_fact): Optional[str] An interesting fact about the recipe or its ingredients.\
+            Should be a conversation starter, maybe a historical fact or something
+            else that people would find fascinating.
             If you cannot determine all of the values, do your best to infer the value or leave it blank.
             The user will then have the chance to edit any incorrect values.
             Description: Optional[str] A brief description of the recipe.

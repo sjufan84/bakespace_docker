@@ -15,9 +15,11 @@ class Recipe(BaseModel):
     serving_size: Union[str, int] = Field("4-6", description="The serving size of the recipe.")
     calories: Optional[Union[str, int]] = Field(None, description="The estimated calories for one\
       serving of the dish.")
-    fun_fact: Optional[str] = Field(None, description="A fun fact about the recipe.")
+    fun_fact: str = Field("", description="A fun fact about the recipe.\
+    Should be creative, interesting, and a conversation starter.  Could be a historical\
+    fact about the ingredients or recipe, etc.")
     is_food: bool = Field(True, description="Whether or not the submitted text is related to food.")
-    pairs_with: str = Field(None, description="A pairing for the recipe.  It could be a wine pairing, side\
+    pairs_with: str = Field("", description="A pairing for the recipe.  It could be a wine pairing, side\
     dish, etc.  Whatever seems the most appropriate for the recipe.")
 
 class FormattedRecipe(BaseModel):
@@ -34,7 +36,10 @@ class FormattedRecipe(BaseModel):
     is_food: bool = Field(True, description="Whether or not the submitted text is related to food.")
     pairs_with: Optional[str] = Field(None, description="A pairing for the recipe.\
     It could be a wine pairing, side dish, etc.  Whatever seems the most appropriate for the recipe.")
-    description: Optional[str] = Field(None, description="A description of the recipe.")
+    fun_fact: Optional[str] = Field(None, description="A fun fact about the recipe or ingredients.  Should be\
+    creative, interesting, and a conversation starter.  Could be a historical\
+    fact about the ingredients or recipe, etc.")
+    # description: Optional[str] = Field(None, description="A description of the recipe.")
     source: Optional[str] = Field(None, description="The source of the recipe i.e. AllRecipes,\
     Bakespace, etc. if applicable.")
 
