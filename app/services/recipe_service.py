@@ -17,6 +17,9 @@ load_dotenv()
 # Set up the client
 client = get_openai_client()
 
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger("main")
+
 serving_size_dict = {
     "Family-Size": 4,
     "For Two": 2,
@@ -67,9 +70,9 @@ async def create_recipe(specifications: str, serving_size: str = "4"):
     query = specifications + serving_size
     is_food = await filter_query(query)
     print(is_food)
-    logging.debug("Is food is %s.", is_food)
+    logger.debug("Is food is %s.", is_food)
     if is_food == "False":
-        logging.debug("Query is not related to food.")
+        logger.debug("Query is not related to food.")
         return json.dumps(
             {
                 "recipe_name": '',
@@ -118,7 +121,7 @@ async def create_recipe(specifications: str, serving_size: str = "4"):
 
     for model in models:
         try:
-            logging.debug("Trying model: %s.", model)
+            logger.debug("Trying model: %s.", model)
             # Assuming client has an async method for chat completions
             response = client.chat.completions.create(
                 model=model,
@@ -129,11 +132,11 @@ async def create_recipe(specifications: str, serving_size: str = "4"):
                 response_format={"type": "json_object"}
             )
             chef_response = response.choices[0].message.content
-            logging.debug("Is food is true.")
+            logger.debug("Is food is true.")
             return chef_response
 
         except OpenAIError as e:
-            logging.error("Error with model: %s. Error: %s", model, e)
+            logger.error("Error with model: %s. Error: %s", model, e)
             continue
 
     return None  # Return None or a default response if all models fail
@@ -241,7 +244,7 @@ async def format_recipe(recipe_text: str):
     """ Extract and format the text from the user's files. """
     is_food = await filter_query(recipe_text)
     if is_food == "False":
-        logging.debug("Query is not related to food.")
+        logger.debug("Query is not related to food.")
         return json.dumps(
             {
                 "recipe_name": '',

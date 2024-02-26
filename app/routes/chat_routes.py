@@ -22,6 +22,8 @@ from app.models.recipe import (
 from app.models.chat import ResponseMessage
 
 logging.basicConfig(level=logging.DEBUG)
+# Get the "main" logger
+logger = logging.getLogger("main")
 
 # Define a router object
 router = APIRouter()
@@ -63,14 +65,13 @@ def get_chat_service(request: Request) -> ChatService:
     of the current chat session.", response_model=StatusCallResponse
 )
 async def status_call(chat_service: ChatService = Depends(get_chat_service)):
-    logging.debug("Status call endpoint hit")
+    logger.debug("Status call endpoint hit")
     try:
         status = chat_service.check_status()
-        logging.debug(f"Status call response: {status}")
-        logging.debug(f"Chat history: {print(chat_service.load_chat_history()[-1]['content'])}")
+        logger.debug(f"Status call response: {status}")
         return status
     except Exception as e:
-        logging.error(f"Error in status call: {e}")
+        logger.error(f"Error in status call: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -78,20 +79,20 @@ async def status_call(chat_service: ChatService = Depends(get_chat_service)):
              "The thread id, session id, chat history and message content.",
              response_model=InitializeChatResponse, tags=["Chat Endpoints"])
 async def initialize_general_chat(context: CreateThreadRequest, chat_service=Depends(get_chat_service)):
-    logging.debug(f"Initializing general chat with context: {context}")
+    logger.debug(f"Initializing general chat with context: {context}")
 
     try:
         # Add user message to chat service
         chat_service.add_user_message(message=context.message_content)
-        logging.debug("User message added to chat service")
+        logger.debug("User message added to chat service")
 
         # Initialize OpenAI client
         client = get_openai_client()
-        logging.debug("OpenAI client initialized")
+        logger.debug("OpenAI client initialized")
 
         # Construct message content
         message_content = "The context for this chat thread is " + context.message_content
-        logging.debug(f"Formed message content: {message_content}")
+        logger.debug(f"Formed message content: {message_content}")
 
         # Create message thread
         message_thread = client.beta.threads.create(
@@ -103,7 +104,7 @@ async def initialize_general_chat(context: CreateThreadRequest, chat_service=Dep
                 },
             ]
         )
-        logging.debug(f"Message thread created with ID: {message_thread.id}")
+        logger.debug(f"Message thread created with ID: {message_thread.id}")
 
         # Set the thread_id in the store and prepare response
         chat_service.set_thread_id(message_thread.id)
@@ -113,11 +114,11 @@ async def initialize_general_chat(context: CreateThreadRequest, chat_service=Dep
         # Log and return the response
         response = {"thread_id": message_thread.id, "message_content": message_content,
                     "session_id": session_id}
-        logging.debug(f"Returning response: {response}")
+        logger.debug(f"Returning response: {response}")
         return response
 
     except Exception as e:
-        logging.error(f"Error in initializing chat: {e}")
+        logger.error(f"Error in initializing chat: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post(
@@ -144,7 +145,7 @@ async def get_chef_response(chef_response: GetChefResponse, chat_service:
 
     # Add the user message to the chat history
     chat_service.add_user_message(message=chef_response.message_content, thread_id=chef_response.thread_id)
-    logging.debug(f"User message added to chat history: {chef_response.message_content}")
+    logger.debug(f"User message added to chat history: {chef_response.message_content}")
 
     message_content = chef_response.message_content
 
@@ -203,7 +204,7 @@ async def get_chef_response(chef_response: GetChefResponse, chat_service:
             metadata=chef_response.message_metadata,
         )
         # Log the message
-        logging.info(f"Message created: {message}")
+        logger.info(f"Message created: {message}")
 
         # Create the run
         run = client.beta.threads.runs.create(
@@ -236,7 +237,7 @@ async def get_chef_response(chef_response: GetChefResponse, chat_service:
             metadata=chef_response.message_metadata,
         )
         # Log the message
-        logging.info(f"Message created: {message}")
+        logger.info(f"Message created: {message}")
 
         # Create the run
         run = client.beta.threads.runs.create(
@@ -250,7 +251,7 @@ async def get_chef_response(chef_response: GetChefResponse, chat_service:
             chat_service.add_chef_message(
                 message=response["message"], thread_id=chef_response.thread_id
             )
-            logging.debug(f"Chef response added to chat history: {response['message']}")
+            logger.debug(f"Chef response added to chat history: {response['message']}")
 
             print(response["message"])
 
@@ -259,7 +260,7 @@ async def get_chef_response(chef_response: GetChefResponse, chat_service:
                 response_html = markdown.markdown(response["message"])
             except Exception as e:
                 response_html = response["message"]
-                logging.error(f"Error in converting response to HTML: {e}")
+                logger.error(f"Error in converting response to HTML: {e}")
 
             return {
                 "chef_response" : ResponseMessage(
@@ -358,7 +359,7 @@ async def create_new_recipe(recipe_request: CreateRecipeRequest,
             metadata={},
         )
         # Log the message
-        logging.info(f"Message created: {message}")
+        logger.info(f"Message created: {message}")
 
     return {"recipe": json.loads(recipe), "session_id": chat_service.session_id,
             "thread_id": recipe_request.thread_id}
@@ -381,10 +382,10 @@ async def add_message_to_thread(message_request: AddMessageToThread):
             metadata=message_request.metadata,
         )
         # Log the message
-        logging.info(f"Message created: {message}")
+        logger.info(f"Message created: {message}")
         return {"thread_id": message.thread_id, "message_content": message.content,
                 "created_at" : message.created_at, "metadata": message.metadata}
 
     except Exception as e:
-        logging.error(f"Error in adding message to thread: {e}")
+        logger.error(f"Error in adding message to thread: {e}")
         raise HTTPException(status_code=500, detail=str(e))

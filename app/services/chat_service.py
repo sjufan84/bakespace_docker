@@ -11,6 +11,9 @@ client = get_openai_client()
 # Establish the core models that will be used by the chat service
 core_models = ["gpt-3.5-turbo", "gpt-3.5-turbo-0613", "gpt-3.5-turbo-16k"]
 
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger("main")
+
 class ChatMessage:
     """ A class to represent a chat message. """
     def __init__(self, content, role, thread_id: Optional[str] = None):
@@ -151,10 +154,10 @@ class ChatService:
         self.save_chat_history()
 
         # Log the chat history
-        logging.log(logging.INFO, "Chat history: %s", self.chat_history)
+        logger.log(logger.INFO, "Chat history: %s", self.chat_history)
 
         # Return the initial message, session_id, and chat_history as a json object
-        logging.log(logging.INFO, "Session id: %s", self.session_id)
+        logger.log(logger.INFO, "Session id: %s", self.session_id)
 
         return {"chat_history": self.chat_history, "session_id": self.session_id}
 
