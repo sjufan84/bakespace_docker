@@ -182,10 +182,10 @@ def adjust_recipe(recipe: dict, adjustments: str):
             for raw recipes or recipes that don't require cooking.
             Serving Size (serving_size): Union[str, int] A description of the serving size.
             Calories (calories): Optional[Union[str, int]] Estimated calories per serving, if known.
-            Fun Fact (fun_fact): Optional[str] An interesting fact about the recipe or its ingredients.
+            Fun Fact (fun_fact): str An interesting fact about the recipe or its ingredients.
             Should be a conversation starter, maybe a historical fact or something
             else that people would find fascinating.
-            Pairs With (pairs_with): Optional[str] A pairing for the recipe.  It could be a wine pairing, side
+            Pairs With (pairs_with): str A pairing for the recipe.  It could be a wine pairing, side
             dish, etc.  Whatever seems the most appropriate for the recipe.
 
 

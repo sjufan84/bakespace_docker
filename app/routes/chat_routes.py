@@ -176,14 +176,17 @@ async def get_chef_response(chef_response: GetChefResponse, chat_service:
                                     "recipe_name": {"type": "string"},
                                     "ingredients": {"type": "array", "items": {"type": "string"}},
                                     "directions": {"type": "array", "items": {"type": "string"}},
-                                    "prep_time": {"type": ["integer", "string"], "nullable": True},
+                                    "prep_time": {"type": ["integer", "string"]},
                                     "cook_time": {"type": ["string", "integer"], "nullable": True},
                                     "serving_size": {"type": ["string", "integer"], "nullable": True},
                                     "calories": {"type": ["string", "integer"], "nullable": True},
-                                    "fun_fact": {"type": "string", "nullable": True},
-                                    "pairs_with": {"type": "string", "nullable": True}
+                                    "fun_fact": {"type": "string"},
+                                    "pairs_with": {"type": "string"}
                                 },
-                                "required": ["recipe_name", "ingredients", "directions"]
+                                "required": [
+                                    "recipe_name", "ingredients", "directions", "fun_fact", "pairs_with",
+                                    "prep_time", "cook_time", "serving_size", "calories"
+                                ]
                             },
                         },
                         "required": ["adjusted_recipe"]
