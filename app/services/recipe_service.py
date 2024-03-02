@@ -59,8 +59,8 @@ async def filter_query(text: str) -> bool:
             return is_food
 
         except TimeoutError as a:
-            print(f"Timeout error: {str(a)}")
-            continue\
+            logger.error("Error with model: %s. Error: %s", model, a)
+            continue
 
 # ---------------------------------------------------------------------------------------------------------------
 
@@ -69,8 +69,6 @@ async def create_recipe(specifications: str, serving_size: str = "4"):
     # First check to make sure the query is related to food
     query = specifications + serving_size
     is_food = await filter_query(query)
-    print(is_food)
-    logger.debug("Is food is %s.", is_food)
     if is_food == "False":
         logger.debug("Query is not related to food.")
         return json.dumps(
@@ -132,7 +130,6 @@ async def create_recipe(specifications: str, serving_size: str = "4"):
                 response_format={"type": "json_object"}
             )
             chef_response = response.choices[0].message.content
-            logger.debug("Is food is true.")
             return chef_response
 
         except OpenAIError as e:
@@ -200,6 +197,7 @@ def adjust_recipe(recipe: dict, adjustments: str):
     # models = [model, "gpt-3.5-turbo-16k-0613", "gpt-3.5-turbo-16k"]
     models = core_models
     for model in models:
+        logger.debug("Trying model: %s.", model)
         try:
           response = client.chat.completions.create(
               model=model,
@@ -213,7 +211,7 @@ def adjust_recipe(recipe: dict, adjustments: str):
           return recipe
 
         except TimeoutError as a:
-            print(f"Timeout error: {str(a)}")
+            logger.error("Error with model: %s. Error: %s", model, a)
             continue
 
 # Adjust recipe tool
@@ -301,7 +299,7 @@ async def format_recipe(recipe_text: str):
             return recipe
 
         except TimeoutError as a:
-            print(f"Timeout error: {str(a)}")
+            logger.error("Error with model: %s. Error: %s", model, a)
             continue
 
 # Adjust recipe tool

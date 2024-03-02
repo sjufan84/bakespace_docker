@@ -253,8 +253,6 @@ async def get_chef_response(chef_response: GetChefResponse, chat_service:
             )
             logger.debug(f"Chef response added to chat history: {response['message']}")
 
-            print(response["message"])
-
             # Response HMTL conversion
             try:
                 response_html = markdown.markdown(response["message"])

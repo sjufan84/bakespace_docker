@@ -58,7 +58,7 @@ class ChatService:
                 return json.loads(chat_history)
             return []
         except RedisError as e:
-            print(f"Failed to load chat history from Redis: {e}")
+            logger.log(logger.ERROR, "Failed to load chat history from Redis: %s", e)
             return []
 
     def save_chat_history(self):
@@ -67,7 +67,7 @@ class ChatService:
             chat_history_json = json.dumps(self.chat_history)
             self.store.redis.set(f'{self.session_id}:chat_history', chat_history_json)
         except RedisError as e:
-            print(f"Failed to save chat history to Redis: {e}")
+            logger.log(logger.ERROR, "Failed to save chat history to Redis: %s", e)
         return self.chat_history
 
     def save_chef_type(self):
@@ -75,7 +75,7 @@ class ChatService:
         try:
             self.store.redis.set(f'{self.session_id}:chef_type', self.chef_type)
         except RedisError as e:
-            print(f"Failed to save chef type to Redis: {e}")
+            logger.log(logger.ERROR, "Failed to save chef type to Redis: %s", e)
         return self.chef_type
 
     # Define a function to load the chef type from Redis
@@ -87,7 +87,7 @@ class ChatService:
                 return chef_type
             return "home_cook"
         except RedisError as e:
-            print(f"Failed to load chef type from Redis: {e}")
+            logger.log(logger.ERROR, "Failed to load chef type from Redis: %s", e)
             return "home_cook"
 
     def add_user_message(self, message: str, thread_id: Optional[str] = None):
@@ -113,7 +113,7 @@ class ChatService:
         try:
             self.store.redis.set(f'{self.session_id}:thread_id', thread_id)
         except RedisError as e:
-            print(f"Failed to save thread_id to Redis: {e}")
+            logger.log(logger.ERROR, "Failed to set thread_id in Redis: %s", e)
         return thread_id
 
     # Define a function to load the thread_id
@@ -125,7 +125,7 @@ class ChatService:
                 return thread_id
             return None
         except RedisError as e:
-            print(f"Failed to load thread_id from Redis: {e}")
+            logger.log(logger.ERROR, "Failed to load thread_id from Redis: %s", e)
             return None
 
     # @TODO Define a function to add a message to a thread
