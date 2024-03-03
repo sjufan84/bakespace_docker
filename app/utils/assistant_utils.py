@@ -13,7 +13,7 @@ from services.recipe_service import ( # noqa E402
   #save_recipe, # noqa E402 # noqa E402
   create_recipe # noqa E402
 ) # noqa E402
-from services.image_service import generate_image # noqa E402
+# from services.image_service import generate_image # noqa E402
 from app.models.recipe import Recipe # noqa E402
 from app.dependencies import get_openai_client # noqa E402
 
@@ -51,10 +51,10 @@ functions_dict = {
         "metadata_message": "Current formatted recipe: ",
     },
 
-    "generate_image": {
-        "function" : generate_image,
-        "metadata_message": "Current image: ",
-    },
+    # "generate_image": {
+    #    "function" : generate_image,
+    #    "metadata_message": "Current image: ",
+    # },
 
     # "save_recipe": {
     #     "function" : save_recipe,

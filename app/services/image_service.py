@@ -1,27 +1,27 @@
 """ Service Utilities for Image Generation """
-import os
 from typing import Union
-from dotenv import load_dotenv
-from openai import OpenAI, OpenAIError
+from app.dependencies import get_openai_client
+from openai import OpenAIError
 import logging
+import base64
+import io
+from PIL import Image
+from models.recipe import Recipe, FormattedRecipe
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-# Load the environment variables
-load_dotenv()
+client = get_openai_client()
 
-# Load the OpenAI API key and the organization ID
-OPENAI_API_KEY = os.getenv("OPENAI_KEY2")
-OPENAI_ORGANIZATION_ID = os.getenv("OPENAI_ORG2")
-
-# Create the OpenAI client
-client = OpenAI(
-    api_key=OPENAI_API_KEY,
-    organization=OPENAI_ORGANIZATION_ID,
-    max_retries=3,
-    timeout=10
-)
+# Decode Base64 JSON to Image
+async def decode_image(image_data, image_name):
+    """ Decode the image data from the given image request. """
+    # Decode the image
+    image_bytes = base64.b64decode(image_data)
+    # Convert the bytes to an image
+    image = Image.open(io.BytesIO(image_bytes))
+    # Save the image
+    return image.save(image_name)
 
 async def create_image_string(prompt : str):
     """ Generate an image from the given image request. """
@@ -37,33 +37,36 @@ async def create_image_string(prompt : str):
             # style="vivid",
             response_format="b64_json"
         )
-        # decoded_image = decode_image(image_data=response.data[0].b64_json, image_name="image.png")
-        logger.debug(f"Image response: {response}", response.data[0].b64_json)
+        await decode_image(image_data=response.data[0].b64_json, image_name="image.png")
+        logger.debug(f"Image successfully generated: {response.data[0].b64_json[:100]}...")
         return response.data[0].b64_json
 
     except OpenAIError as e:
         logger.error(f"Error generating image: {e}")
         return {"error": str(e)}
 
-async def get_image_prompt(recipe: Union[dict, str]) -> str:
+async def get_image_prompt(recipe: Union[dict, str, Recipe, FormattedRecipe]) -> str:
     logger.debug(f"Generating prompt for image generation for recipe: {recipe}")
     messages = [
         {
             "role" : "system",
             "content": f"""Given a recipe {recipe} to be posted on Instagram,
             create a DALL-E prompt for generating
-            a highly realistic image that maximizes engagement. Consider the recipe content,
-            and platform specifics to identify key visual elements.
-            Detail essential photographic aspects to guide the image generation, focusing
+            a highly realistic photo for maximum engagement.
+            Consider the recipe content, what the final dish would look like,
+            and Instagram specifics to identify key visual elements.  The photo should look as authentic
+            and true to life as possible, as if it were taken by a professional food photographer just after
+            the dish was prepared.
+            Detail essential photographic aspects to guide the photo generation, focusing
             on attributes that enhance realism and relevance, such as scene composition, lighting,
             and perspective. Include
             specific photo settings, such as lens, aperture,
             shutter speed, ISO, and any other relevant
             details that would help the AI generate the most
-            hyper-photo-realistic photo possible.Avoid including
+            hyper-photo-realistic photo possible .Avoid including
             hands or text in the image. Synthesize this
             analysis into a concise DALL-E prompt aimed at producing
-            an engaging and contextually appropriate image."""
+            an engaging and contextually appropriate photo."""
         }
     ]
     try:
