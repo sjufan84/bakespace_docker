@@ -14,14 +14,14 @@ logger = logging.getLogger("main")
 client = OpenAI(api_key=get_openai_api_key(), organization=get_openai_org(), max_retries=3, timeout=35)
 
 # Decode Base64 JSON to Image
-async def decode_image(image_data, image_name):
+'''async def decode_image(image_data, image_name):
     """ Decode the image data from the given image request. """
     # Decode the image
     image_bytes = base64.b64decode(image_data)
     # Convert the bytes to an image
     image = Image.open(io.BytesIO(image_bytes))
     # Save the image
-    return image.save(image_name)
+    return image.save(image_name)'''
 
 async def create_image_string(prompt : str):
     """ Generate an image from the given image request. """
@@ -37,7 +37,7 @@ async def create_image_string(prompt : str):
             # style="vivid",
             response_format="b64_json"
         )
-        await decode_image(image_data=response.data[0].b64_json, image_name="image.png")
+        # await decode_image(image_data=response.data[0].b64_json, image_name="image.png")
         logger.debug(f"Image successfully generated: {response.data[0].b64_json[:100]}...")
         return response.data[0].b64_json
 
