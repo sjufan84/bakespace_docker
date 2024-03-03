@@ -130,6 +130,7 @@ async def create_recipe(specifications: str, serving_size: str = "4"):
                 response_format={"type": "json_object"}
             )
             chef_response = response.choices[0].message.content
+            logger.debug(f"Recipe generated: {chef_response}")
             return chef_response
 
         except OpenAIError as e:
@@ -208,6 +209,7 @@ def adjust_recipe(recipe: dict, adjustments: str):
               response_format = {"type" : "json_object"}
           )
           recipe = response.choices[0].message.content
+          logger.debug(f"Adjusted recipe generated: {recipe}")
           return recipe
 
         except TimeoutError as a:
@@ -296,6 +298,7 @@ async def format_recipe(recipe_text: str):
                 response_format = {"type" : "json_object"}
             )
             recipe = response.choices[0].message.content
+            logger.debug(f"Formatted recipe generated: {recipe}")
             return recipe
 
         except TimeoutError as a:

@@ -68,7 +68,7 @@ async def status_call(chat_service: ChatService = Depends(get_chat_service)):
     logger.debug("Status call endpoint hit")
     try:
         status = chat_service.check_status()
-        logger.debug(f"Status call response: {status}")
+        # logger.debug(f"Status call response: {status}")
         return status
     except Exception as e:
         logger.error(f"Error in status call: {e}")
