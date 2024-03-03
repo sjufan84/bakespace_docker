@@ -1,0 +1,42 @@
+{
+    "version": 1,
+    "disable_existing_loggers": false,
+    "formatters": {
+      "json_formatter": {
+        "format": "%(asctime)s - %(name)s - %(levelname)s - %(module)s - %(funcName)s - %(message)s",
+        "class": "pythonjsonlogger.jsonlogger.JsonFormatter"
+      }
+    },
+    "handlers": {
+      "file_handler": {
+        "class": "logging.FileHandler",
+        "formatter": "json_formatter",
+        "level": "DEBUG",
+        "filename": "debug.log",
+        "encoding": "utf8"
+      }
+    },
+    "loggers": {
+      "uvicorn": {
+        "level": "DEBUG",
+        "handlers": ["file_handler"],
+        "propagate": false
+      },
+      "uvicorn.error": {
+        "level": "DEBUG",
+        "handlers": ["file_handler"],
+        "propagate": false
+      },
+      "uvicorn.access": {
+        "level": "DEBUG",
+        "handlers": ["file_handler"],
+        "propagate": false
+      },
+      "main": {
+        "level": "DEBUG",
+        "handlers": ["file_handler"],
+        "propagate": false
+      }
+    }
+  }
+  
