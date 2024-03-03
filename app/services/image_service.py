@@ -1,7 +1,7 @@
 """ Service Utilities for Image Generation """
 from typing import Union
-from app.dependencies import get_openai_client
-from openai import OpenAIError
+from app.dependencies import get_openai_api_key, get_openai_org
+from openai import OpenAI, OpenAIError
 import logging
 import base64
 import io
@@ -11,7 +11,7 @@ from models.recipe import Recipe, FormattedRecipe
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("main")
 
-client = get_openai_client()
+client = OpenAI(api_key=get_openai_api_key(), organization=get_openai_org(), max_retries=3, timeout=35)
 
 # Decode Base64 JSON to Image
 async def decode_image(image_data, image_name):
