@@ -9,7 +9,7 @@ import docx
 from app.dependencies import get_google_vision_credentials, get_openai_client
 
 logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("main")
 
 # Load the environment variables
 credentials = get_google_vision_credentials()
