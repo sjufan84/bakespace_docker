@@ -3,6 +3,7 @@ from typing import List, Union, Optional
 import logging
 import json
 import markdown
+from openai import OpenAIError
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from app.utils.assistant_utils import (
@@ -65,7 +66,7 @@ def get_chat_service(request: Request) -> ChatService:
     of the current chat session.", response_model=StatusCallResponse
 )
 async def status_call(chat_service: ChatService = Depends(get_chat_service)):
-    logger.debug("Status call endpoint hit")
+    logger.info("Status call endpoint hit")
     try:
         status = chat_service.check_status()
         # logger.debug(f"Status call response: {status}")
@@ -79,20 +80,19 @@ async def status_call(chat_service: ChatService = Depends(get_chat_service)):
              "The thread id, session id, chat history and message content.",
              response_model=InitializeChatResponse, tags=["Chat Endpoints"])
 async def initialize_general_chat(context: CreateThreadRequest, chat_service=Depends(get_chat_service)):
-    logger.debug(f"Initializing general chat with context: {context}")
+    logger.info(f"Initializing general chat with context: {context}")
 
     try:
         # Add user message to chat service
         chat_service.add_user_message(message=context.message_content)
-        logger.debug("User message added to chat service")
+        logger.info("User message added to chat service")
 
         # Initialize OpenAI client
         client = get_openai_client()
-        logger.debug("OpenAI client initialized")
 
         # Construct message content
         message_content = "The context for this chat thread is " + context.message_content
-        logger.debug(f"Formed message content: {message_content}")
+        logger.info(f"Formed message content: {message_content}")
 
         # Create message thread
         message_thread = client.beta.threads.create(
@@ -104,7 +104,7 @@ async def initialize_general_chat(context: CreateThreadRequest, chat_service=Dep
                 },
             ]
         )
-        logger.debug(f"Message thread created with ID: {message_thread.id}")
+        logger.info(f"Chat successfully initialized with message thread: {message_thread}")
 
         # Set the thread_id in the store and prepare response
         chat_service.set_thread_id(message_thread.id)
@@ -114,10 +114,10 @@ async def initialize_general_chat(context: CreateThreadRequest, chat_service=Dep
         # Log and return the response
         response = {"thread_id": message_thread.id, "message_content": message_content,
                     "session_id": session_id}
-        logger.debug(f"Returning response: {response}")
+        logger.info(f"Chat initialized with response: {response}")
         return response
 
-    except Exception as e:
+    except OpenAIError as e:
         logger.error(f"Error in initializing chat: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -145,7 +145,7 @@ async def get_chef_response(chef_response: GetChefResponse, chat_service:
 
     # Add the user message to the chat history
     chat_service.add_user_message(message=chef_response.message_content, thread_id=chef_response.thread_id)
-    logger.debug(f"User message added to chat history: {chef_response.message_content}")
+    logger.info(f"User message added to chat history: {chef_response.message_content}")
 
     message_content = chef_response.message_content
 
@@ -251,7 +251,7 @@ async def get_chef_response(chef_response: GetChefResponse, chat_service:
             chat_service.add_chef_message(
                 message=response["message"], thread_id=chef_response.thread_id
             )
-            logger.debug(f"Chef response added to chat history: {response['message']}")
+            logger.info(f"Chef response added to chat history: {response['message']}")
 
             # Response HMTL conversion
             try:
@@ -329,38 +329,51 @@ async def view_chat_history(
 async def create_new_recipe(recipe_request: CreateRecipeRequest,
                             chat_service: ChatService = Depends(get_chat_service)):
     """ Endpoint to get a response from the chatbot to a user's question. """
-    recipe = await create_recipe(specifications = recipe_request.specifications,
-                                 serving_size = recipe_request.serving_size)
+    i = 0
+    while i <= 3:
+        try:
+            recipe = await create_recipe(
+                specifications = recipe_request.specifications, serving_size = recipe_request.serving_size
+            )
+            logger.info(f"Recipe created: {recipe}")
 
-    if recipe_request.thread_id:
-        # Add the recipe to the thread
-        client = get_openai_client()
-        message = client.beta.threads.messages.create(
-            recipe_request.thread_id,
-            content=f"""Your task is to assist a user with their recipe {recipe},
-            which was created based on their initial specifications {recipe_request.specifications}
-            and serving size {recipe_request.serving_size}. Users may have queries about
-            the recipe or wish to modify it. Your role is to engage in a natural,
-            sous-chef style conversation, providing expert advice and suggestions
-            tailored to their needs. When users request changes or have questions,
-            clarify their requirements through engaging dialogue. Once changes are confirmed,
-            display the updated format clearly and concisely in the same format as the original
-            recipe {recipe} so that they can make sure it looks correct before saving.
-            They may also want to ask you about wine pairings, general cooking questions,
-            etc.  Graciously answer those questions as well. Remember,
-            your role is crucial in ensuring clarity,
-            offering culinary expertise, and confirming the changes during the interaction.
-            Although your role is listed as 'user' due to API constraints.  Keep the conversation flowing
-            until it is clear that the user is satisfied with the recipe.  In other words,
-            you are the AI sous chef in this conversation.""",
-            role="user",
-            metadata={},
-        )
-        # Log the message
-        logger.info(f"Message created: {message}")
+            if recipe_request.thread_id:
+                # Add the recipe to the thread
+                client = get_openai_client()
+                message = client.beta.threads.messages.create(
+                    recipe_request.thread_id,
+                    content=f"""Your task is to assist a user with their recipe {recipe},
+                    which was created based on their initial specifications {recipe_request.specifications}
+                    and serving size {recipe_request.serving_size}. Users may have queries about
+                    the recipe or wish to modify it. Your role is to engage in a natural,
+                    sous-chef style conversation, providing expert advice and suggestions
+                    tailored to their needs. When users request changes or have questions,
+                    clarify their requirements through engaging dialogue. Once changes are confirmed,
+                    display the updated format clearly and concisely in the same format as the original
+                    recipe {recipe} so that they can make sure it looks correct before saving.
+                    They may also want to ask you about wine pairings, general cooking questions,
+                    etc.  Graciously answer those questions as well. Remember,
+                    your role is crucial in ensuring clarity,
+                    offering culinary expertise, and confirming the changes during the interaction.
+                    Although your role is listed as 'user' due to API constraints.
+                    Keep the conversation flowing
+                    until it is clear that the user is satisfied with the recipe.  In other words,
+                    you are the AI sous chef in this conversation.""",
+                    role="user",
+                    metadata={},
+                )
+                # Log the message
+                logger.info(f"Message created: {message}")
 
-    return {"recipe": json.loads(recipe), "session_id": chat_service.session_id,
-            "thread_id": recipe_request.thread_id}
+            return {"recipe": json.loads(recipe), "session_id": chat_service.session_id,
+                    "thread_id": recipe_request.thread_id}
+        except Exception as e:
+            logger.error(f"Error creating recipe: {e}")
+            logger.debug(f"Retrying... {i + 1} attempt")
+            i += 1
+            if i == 3:
+                raise HTTPException(status_code=500, detail=str(e))
+            continue
 
 @router.post(
     "/add-message-to-thread",
@@ -384,6 +397,6 @@ async def add_message_to_thread(message_request: AddMessageToThread):
         return {"thread_id": message.thread_id, "message_content": message.content,
                 "created_at" : message.created_at, "metadata": message.metadata}
 
-    except Exception as e:
+    except OpenAIError as e:
         logger.error(f"Error in adding message to thread: {e}")
         raise HTTPException(status_code=500, detail=str(e))

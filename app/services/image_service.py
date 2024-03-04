@@ -25,7 +25,7 @@ async def decode_image(image_data, image_name):
 
 async def create_image_string(prompt : str):
     """ Generate an image from the given image request. """
-    logger.debug(f"Generating image for prompt: {prompt}")
+    logger.info(f"Generating image for prompt: {prompt}")
     # Generate the image
     try:
         response = client.images.generate(
@@ -34,11 +34,11 @@ async def create_image_string(prompt : str):
             size="1024x1024",
             quality="hd",
             n=1,
-            # style="vivid",
+            style="vivid",
             response_format="b64_json"
         )
         # await decode_image(image_data=response.data[0].b64_json, image_name="image.png")
-        logger.debug(f"Image successfully generated: {response.data[0].b64_json[:100]}...")
+        logger.info(f"Image successfully generated: {response.data[0].b64_json[:100]}...")
         await decode_image(image_data=response.data[0].b64_json, image_name="image.png")
         return response.data[0].b64_json
 
@@ -47,7 +47,7 @@ async def create_image_string(prompt : str):
         return {"error": str(e)}
 
 async def get_image_prompt(recipe: Union[dict, str, Recipe, FormattedRecipe]) -> str:
-    logger.debug(f"Generating prompt for image generation for recipe: {recipe}")
+    logger.info(f"Generating prompt for image generation for recipe: {recipe}")
     messages = [
         {
             "role" : "system",
@@ -76,9 +76,8 @@ async def get_image_prompt(recipe: Union[dict, str, Recipe, FormattedRecipe]) ->
             messages=messages,
             max_tokens=500,
         )
-        logger.debug(f"Response: {response}")
         prompt_response = response.choices[0].message.content
-        logger.debug(f"Prompt response: {prompt_response}")
+        logger.info(f"Image prompt response: {prompt_response}")
         return prompt_response
 
     except OpenAIError as e:

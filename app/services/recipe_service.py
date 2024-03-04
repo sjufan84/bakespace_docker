@@ -119,7 +119,7 @@ async def create_recipe(specifications: str, serving_size: str = "4"):
 
     for model in models:
         try:
-            logger.debug("Trying model: %s.", model)
+            logger.info("Trying model: %s for recipe generation.", model)
             # Assuming client has an async method for chat completions
             response = client.chat.completions.create(
                 model=model,
@@ -130,7 +130,7 @@ async def create_recipe(specifications: str, serving_size: str = "4"):
                 response_format={"type": "json_object"}
             )
             chef_response = response.choices[0].message.content
-            logger.debug(f"Recipe generated: {chef_response}")
+            logger.info(f"New recipe generated: {chef_response}")
             return chef_response
 
         except OpenAIError as e:
@@ -198,7 +198,7 @@ def adjust_recipe(recipe: dict, adjustments: str):
     # models = [model, "gpt-3.5-turbo-16k-0613", "gpt-3.5-turbo-16k"]
     models = core_models
     for model in models:
-        logger.debug("Trying model: %s.", model)
+        logger.info("Trying model: %s for adjusting recipe.", model)
         try:
           response = client.chat.completions.create(
               model=model,
@@ -209,7 +209,7 @@ def adjust_recipe(recipe: dict, adjustments: str):
               response_format = {"type" : "json_object"}
           )
           recipe = response.choices[0].message.content
-          logger.debug(f"Adjusted recipe generated: {recipe}")
+          logger.info(f"Adjusted recipe generated: {recipe}")
           return recipe
 
         except OpenAIError as e:
@@ -298,7 +298,7 @@ async def format_recipe(recipe_text: str):
                 response_format = {"type" : "json_object"}
             )
             recipe = response.choices[0].message.content
-            logger.debug(f"Formatted recipe generated: {recipe}")
+            logger.info(f"Formatted recipe generated: {recipe} with model {model}.")
             return recipe
 
         except OpenAIError as e:
