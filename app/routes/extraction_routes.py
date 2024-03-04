@@ -92,55 +92,58 @@ async def extract_and_format_recipes(
     Endpoint to upload and process multiple files.
     Each file's content is extracted and processed according to its type.
     """
+    try:
+        logger.info(f"Received {len(files)} files for processing.")
 
-    logger.info(f"Received {len(files)} files for processing.")
+        file_types = set([file.filename.split(".")[-1] for file in files])
 
-    file_types = set([file.filename.split(".")[-1] for file in files])
+        logger.debug(f"File types received: {file_types}")
 
-    logger.debug(f"File types received: {file_types}")
+        if not file_types.issubset(file_handlers.keys()):
+            raise HTTPException(status_code=400, detail="Invalid file type")
 
-    if not file_types.issubset(file_handlers.keys()):
-        raise HTTPException(status_code=400, detail="Invalid file type")
+        if len(file_types) > 1:
+            raise HTTPException(status_code=400, detail="Files must be of the same type")
 
-    if len(file_types) > 1:
-        raise HTTPException(status_code=400, detail="Files must be of the same type")
+        file_type = file_types.pop()
 
-    file_type = file_types.pop()
+        logger.debug(f"Processing files of type: {file_type}")
 
-    logger.debug(f"Processing files of type: {file_type}")
+        if file_type == "pdf":
+            extracted_text = await extract_pdf_file_contents([file.file for file in files])
+            logger.debug(f"Extracted text from pdf: {extracted_text}")
+            formatted_text = await format_recipe(extracted_text)
 
-    if file_type == "pdf":
-        extracted_text = await extract_pdf_file_contents([file.file for file in files])
-        logger.debug(f"Extracted text from pdf: {extracted_text}")
-        formatted_text = await format_recipe(extracted_text)
+        elif file_type == "txt":
+            extracted_text = extract_text_file_contents(
+                [file.file.read().decode('utf-8', errors='ignore') for file in files]
+            )
+            formatted_text = await format_recipe(extracted_text)
 
-    elif file_type == "txt":
-        extracted_text = extract_text_file_contents(
-            [file.file.read().decode('utf-8', errors='ignore') for file in files]
-        )
-        formatted_text = await format_recipe(extracted_text)
+        elif file_type in ["jpg", "jpeg", "png", "heic"]:
+            encoded_images = [base64.b64encode(file.file.read()).decode("utf-8") for file in files]
+            logger.debug(f"Encoded images: {encoded_images}")
+            extracted_text = await extract_image_text(encoded_images)
+            logger.debug(f"Extracted text from image: {extracted_text}")
+            formatted_text = await format_recipe(extracted_text)
 
-    elif file_type in ["jpg", "jpeg", "png", "heic"]:
-        encoded_images = [base64.b64encode(file.file.read()).decode("utf-8") for file in files]
-        logger.debug(f"Encoded images: {encoded_images}")
-        extracted_text = await extract_image_text(encoded_images)
-        logger.debug(f"Extracted text from image: {extracted_text}")
-        formatted_text = await format_recipe(extracted_text)
+        elif file_type == "docx":
+            # Convert the docx files to bytes
+            encoded_texts = [file.file.read() for file in files]
+            extracted_text = await extract_docx_file_contents(encoded_texts)
+            logger.debug(f"Extracted text from docx: {extracted_text}")
+            formatted_text = await format_recipe(extracted_text)
 
-    elif file_type == "docx":
-        # Convert the docx files to bytes
-        encoded_texts = [file.file.read() for file in files]
-        extracted_text = await extract_docx_file_contents(encoded_texts)
-        logger.debug(f"Extracted text from docx: {extracted_text}")
-        formatted_text = await format_recipe(extracted_text)
+        logger.debug(f"Formatted text: {formatted_text}")
 
-    logger.debug(f"Formatted text: {formatted_text}")
-
-    return {
-        "formatted_recipe": json.loads(formatted_text),
-        "session_id": chat_service.session_id,
-        "thread_id": chat_service.thread_id
-    }
+        return {
+            "formatted_recipe": json.loads(formatted_text),
+            "session_id": chat_service.session_id,
+            "thread_id": chat_service.thread_id
+        }
+    except Exception as e:
+        logger.error(f"Error processing files: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post(
     "/format-recipe-text",
@@ -153,12 +156,15 @@ async def extract_and_format_recipes(
 async def format_text_endpoint(recipe_text: FormatRecipeTextRequest, chat_service=Depends(get_chat_service)):
     """ Define the function to format text.  Takes in the raw
     recipe text that should have been returned from the extraction methods. """
-    recipe = await format_recipe(recipe_text.recipe_text)
-    # Add a user message to the chat history
-    chat_service.add_user_message(f"Here is a recipe that I have uploaded and formatted for you:\
-        {recipe}")
-    # @TODO add a message to the thread if there is a thread_id
+    try:
+        recipe = await format_recipe(recipe_text.recipe_text)
+        # Add a user message to the chat history
+        chat_service.add_user_message(f"Here is a recipe that I have uploaded and formatted for you:\
+            {recipe}")
 
-    # Return the formatted recipe
-    return {"formatted_recipe": json.loads(recipe), "session_id": chat_service.session_id,
-            "thread_id": chat_service.thread_id}
+        # Return the formatted recipe
+        return {"formatted_recipe": json.loads(recipe), "session_id": chat_service.session_id,
+                "thread_id": chat_service.thread_id}
+    except Exception as e:
+        logger.error(f"Error formatting recipe text: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

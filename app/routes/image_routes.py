@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 import logging
 from pydantic import BaseModel, Field
 from typing import Union
@@ -29,9 +29,13 @@ class ImageResponse(BaseModel):
 )
 async def create_image(recipe: ImageRequest) -> ImageResponse:
     """ Endpoint to generate an image based on the given recipe. """
-    logger.debug(f"Received recipe: {recipe.recipe}")
-    prompt = await get_image_prompt(recipe.recipe)
-    logger.debug(f"Generated prompt: {prompt}")
-    image_string = await create_image_string(prompt)
-    logger.debug("Image string created")
-    return ImageResponse(image_string=image_string)
+    try:
+        logger.debug(f"Received recipe: {recipe.recipe}")
+        prompt = await get_image_prompt(recipe.recipe)
+        logger.debug(f"Generated prompt: {prompt}")
+        image_string = await create_image_string(prompt)
+        logger.debug("Image string created")
+        return ImageResponse(image_string=image_string)
+    except Exception as e:
+        logger.error(f"Error creating image: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

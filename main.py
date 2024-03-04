@@ -1,6 +1,7 @@
-import uvicorn
 import logging.config
 import json
+import logging
+import uvicorn
 from app.app import app
 
 def setup_logging():

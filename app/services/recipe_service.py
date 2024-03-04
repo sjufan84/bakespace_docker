@@ -58,8 +58,8 @@ async def filter_query(text: str) -> bool:
             is_food = response.choices[0].message.content
             return is_food
 
-        except TimeoutError as a:
-            logger.error("Error with model: %s. Error: %s", model, a)
+        except OpenAIError as e:
+            logger.error("Error with model: %s. Error: %s", model, e)
             continue
 
 # ---------------------------------------------------------------------------------------------------------------
@@ -212,8 +212,8 @@ def adjust_recipe(recipe: dict, adjustments: str):
           logger.debug(f"Adjusted recipe generated: {recipe}")
           return recipe
 
-        except TimeoutError as a:
-            logger.error("Error with model: %s. Error: %s", model, a)
+        except OpenAIError as e:
+            logger.error("Error with model: %s. Error: %s", model, e)
             continue
 
 # Adjust recipe tool
@@ -301,8 +301,8 @@ async def format_recipe(recipe_text: str):
             logger.debug(f"Formatted recipe generated: {recipe}")
             return recipe
 
-        except TimeoutError as a:
-            logger.error("Error with model: %s. Error: %s", model, a)
+        except OpenAIError as e:
+            logger.error("Error with model: %s. Error: %s", model, e)
             continue
 
 # Adjust recipe tool
