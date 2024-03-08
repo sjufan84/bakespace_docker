@@ -70,7 +70,7 @@ async def create_recipe(specifications: str, serving_size: str = "4"):
     query = specifications + serving_size
     is_food = await filter_query(query)
     if is_food == "False":
-        logger.debug("Query is not related to food.")
+        logger.debug(f"Query {specifications} is not related to food.")
         raise ValueError("Query is not related to food.")
         return json.dumps(
             {
@@ -245,7 +245,7 @@ async def format_recipe(recipe_text: str):
     """ Extract and format the text from the user's files. """
     is_food = await filter_query(recipe_text)
     if is_food == "False":
-        logger.debug("Query is not related to food.")
+        logger.debug(f"Query {recipe_text} is not related to food.")
         raise ValueError("Query is not related to food.")
         return json.dumps(
             {
