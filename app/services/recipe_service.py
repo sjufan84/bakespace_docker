@@ -6,7 +6,7 @@ import json
 from dotenv import load_dotenv
 from openai import OpenAIError
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from app.dependencies import get_openai_client  # noqa: E402
+from app.dependencies import get_openai_client, get_query_filter_client  # noqa: E402
 from app.models.recipe import FormattedRecipe, Recipe  # noqa: E402
 # from app.services.anthropic_service import AnthropicRecipe  # noqa: E402
 # from app.utils.redis_utils import save_recipe  # noqa: E402
@@ -29,11 +29,14 @@ serving_size_dict = {
 
 # Establish the core models that will be used by the chat service
 core_models = [
-    "gpt-3.5-turbo-1106", "gpt-4-1106-preview", "gpt-3.5-turbo-16k", "gpt-3.5-turbo-0613", "gpt-3.5-turbo"
+    "gpt-3.5-turbo", "gpt-3.5-turbo-1106", "gpt-4-turbo-preview", "gpt-4-1106-preview"
 ]
+
+test_models = ["gpt-4-turbo-preview", "gpt-4-1106-preview"]
 
 async def filter_query(text: str) -> bool:
     """ Determine if the text is related to food. """
+    client = get_query_filter_client()
     messages = [
         {
             "role": "system",
@@ -56,6 +59,7 @@ async def filter_query(text: str) -> bool:
                 max_tokens=1000
             )
             is_food = response.choices[0].message.content
+            logger.info(f"Query {text} is related to food: {is_food}")
             return is_food
 
         except OpenAIError as e:

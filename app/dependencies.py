@@ -4,7 +4,6 @@ import json
 from google.oauth2 import service_account
 from dotenv import load_dotenv
 from openai import OpenAI
-from anthropic import Anthropic
 
 # Load environment variables
 load_dotenv()
@@ -40,8 +39,8 @@ def get_stability_api_key():
 
 def get_openai_client():
     """ Get the OpenAI client. """
-    return OpenAI(api_key=get_openai_api_key(), organization=get_openai_org(), max_retries=3, timeout=25)
+    return OpenAI(api_key=get_openai_api_key(), organization=get_openai_org(), max_retries=3, timeout=35)
 
-def get_anthropic_client():
-    """ Get the Anthropic client. """
-    return Anthropic(os.getenv("ANTHROPIC_KEY"))
+def get_query_filter_client():
+    """ Get the Query Filter client. """
+    return OpenAI(api_key=get_openai_api_key(), organization=get_openai_org(), max_retries=1, timeout=25)

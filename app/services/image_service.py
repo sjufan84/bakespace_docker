@@ -11,7 +11,7 @@ from PIL import Image
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("main")
 
-client = OpenAI(api_key=get_openai_api_key(), organization=get_openai_org(), max_retries=3, timeout=45)
+client = OpenAI(api_key=get_openai_api_key(), organization=get_openai_org(), max_retries=3, timeout=55)
 
 # Decode Base64 JSON to Image
 async def decode_image(image_data, image_name):
