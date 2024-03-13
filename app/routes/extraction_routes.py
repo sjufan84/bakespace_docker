@@ -22,7 +22,7 @@ from app.services.chat_service import ChatService
 from app.middleware.session_middleware import RedisStore
 
 logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("main")
 
 # Load the environment variables
 credentials = get_google_vision_credentials()
@@ -145,7 +145,7 @@ async def extract_and_format_recipes(
             }
         except Exception as e:
             logger.error(f"Error processing files: {e}")
-            logger.debug(f"Retrying... {i + 1} attempt")
+            logger.debug(f"Retrying... {i + 1} attempt to process files.")
             i += 1
             if i == 3:
                 raise HTTPException(status_code=500, detail=str(e))
@@ -175,7 +175,7 @@ async def format_text_endpoint(recipe_text: FormatRecipeTextRequest, chat_servic
                     "thread_id": chat_service.thread_id}
         except Exception as e:
             logger.error(f"Error formatting recipe text: {e}")
-            logger.debug(f"Retrying... {i + 1} attempt")
+            logger.debug(f"Retrying... {i + 1} attempt to format recipe text.")
             i += 1
             if i == 3:
                 raise HTTPException(status_code=500, detail=str(e))

@@ -154,10 +154,7 @@ class ChatService:
         self.save_chat_history()
 
         # Log the chat history
-        logger.log(logger.INFO, "Chat history: %s", self.chat_history)
-
-        # Return the initial message, session_id, and chat_history as a json object
-        logger.log(logger.INFO, "Session id: %s", self.session_id)
+        logger.log(logger.INFO, "Chat history successfully initialized: %s", self.chat_history)
 
         return {"chat_history": self.chat_history, "session_id": self.session_id}
 

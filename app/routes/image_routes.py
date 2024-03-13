@@ -32,12 +32,12 @@ async def create_image(recipe: ImageRequest) -> ImageResponse:
     """ Endpoint to generate an image based on the given recipe. """
     try:
         logger.debug(
-            f"Received recipe: {recipe.recipe} of type {type(recipe.recipe)}"
+            f"Received recipe: {recipe.recipe} of type {type(recipe.recipe)} to generate an image for."
         )
         # If the recipe is a JSON string, convert it to a dictionary
         if isinstance(recipe.recipe, str):
             recipe.recipe = json.loads(recipe.recipe)
-            logger.info(f"Recipe converted to dictionary: {recipe.recipe}")
+            logger.info(f"Recipe converted to dictionary: {recipe.recipe} for image generation.")
         prompt = await get_image_prompt(recipe.recipe)
         logger.debug(f"Generated prompt: {prompt}")
         image_string = await create_image_string(prompt)

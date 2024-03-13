@@ -114,7 +114,6 @@ async def initialize_general_chat(context: CreateThreadRequest, chat_service=Dep
         # Log and return the response
         response = {"thread_id": message_thread.id, "message_content": message_content,
                     "session_id": session_id}
-        logger.info(f"Chat initialized with response: {response}")
         return response
 
     except OpenAIError as e:
@@ -204,7 +203,7 @@ async def get_chef_response(chef_response: GetChefResponse, chat_service:
             metadata=chef_response.message_metadata,
         )
         # Log the message
-        logger.info(f"Message created: {message}")
+        logger.info(f"Message {message.content} added to thread {chef_response.thread_id}")
 
         # Create the run
         run = client.beta.threads.runs.create(
@@ -237,7 +236,7 @@ async def get_chef_response(chef_response: GetChefResponse, chat_service:
             metadata=chef_response.message_metadata,
         )
         # Log the message
-        logger.info(f"Message created: {message}")
+        logger.info(f"Message {message.content} added to thread {chef_response.thread_id}")
 
         # Create the run
         run = client.beta.threads.runs.create(
@@ -363,13 +362,13 @@ async def create_new_recipe(recipe_request: CreateRecipeRequest,
                     metadata={},
                 )
                 # Log the message
-                logger.info(f"Message created: {message}")
+                logger.info(f"Message {message.content} added to thread {recipe_request.thread_id}")
 
             return {"recipe": json.loads(recipe), "session_id": chat_service.session_id,
                     "thread_id": recipe_request.thread_id}
         except Exception as e:
             logger.error(f"Error creating recipe: {e}")
-            logger.debug(f"Retrying... {i + 1} attempt")
+            logger.debug(f"Retrying... {i + 1} attempt out of 3 to create recipe.")
             i += 1
             if i == 3:
                 raise HTTPException(status_code=500, detail=str(e))
@@ -393,7 +392,7 @@ async def add_message_to_thread(message_request: AddMessageToThread):
             metadata=message_request.metadata,
         )
         # Log the message
-        logger.info(f"Message created: {message}")
+        logger.info(f"Message {message.content} added to thread {message_request.thread_id}")
         return {"thread_id": message.thread_id, "message_content": message.content,
                 "created_at" : message.created_at, "metadata": message.metadata}
 
