@@ -12,7 +12,7 @@ class Recipe(BaseModel):
     prep_time: Union[int, str] = Field(None, description="The preparation time for the recipe.")
     cook_time: Optional[Union[str, int]] = Field(None, description="The cooking time for the recipe.\
       This could be null if the recipe is raw or doesn't require cooking.")
-    serving_size: Union[str, int] = Field("4-6", description="The serving size of the recipe.")
+    serving_size: Optional[Union[str, int]] = Field("", description="The serving size of the recipe.")
     calories: Optional[Union[str, int]] = Field(None, description="The estimated calories for one\
       serving of the dish.")
     fun_fact: str = Field("", description="A fun fact about the recipe.\
@@ -30,8 +30,8 @@ class FormattedRecipe(BaseModel):
     prep_time: Union[int, str] = Field(None, description="The preparation time for the recipe.")
     cook_time: Union[str, int] = Field(None, description="The cooking time for the recipe.\
       This could be null if the recipe is raw or doesn't require cooking.")
-    serving_size: Union[str, int] = Field("", description="The serving size of the recipe.")
-    calories: Optional[Union[str, int]] = Field(None, description="The estimated calories for one\
+    serving_size: Optional[Union[str, int]] = Field("", description="The serving size of the recipe.")
+    calories: Optional[Union[str, int]] = Field("", description="The estimated calories for one\
       serving of the dish.")
     is_food: bool = Field(True, description="Whether or not the submitted text is related to food.")
     pairs_with: str = Field("", description="A pairing for the recipe.\
