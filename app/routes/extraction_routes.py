@@ -124,7 +124,7 @@ async def extract_and_format_recipes(
 
             elif file_type in ["jpg", "jpeg", "png", "heic"]:
                 encoded_images = [base64.b64encode(file.file.read()).decode("utf-8") for file in files]
-                logger.info(f"Encoded images: {encoded_images} for text extraction")
+                logger.info("Encoded images for text extraction")
                 extracted_text = await extract_image_text(encoded_images)
                 logger.info(f"Extracted text from image: {extracted_text}")
                 formatted_text = await format_recipe(extracted_text)

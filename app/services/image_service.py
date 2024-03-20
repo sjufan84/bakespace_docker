@@ -38,7 +38,7 @@ async def create_image_string(prompt : str):
             response_format="b64_json"
         )
         # await decode_image(image_data=response.data[0].b64_json, image_name="image.png")
-        logger.info(f"Image successfully generated: {response.data[0].b64_json[:100]}...")
+        logger.info("Image successfully generated")
         await decode_image(image_data=response.data[0].b64_json, image_name="image.png")
         return response.data[0].b64_json
 
