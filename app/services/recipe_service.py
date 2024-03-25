@@ -173,52 +173,67 @@ async def claude_recipe(specifications: str, serving_size: str = "4") -> Recipe:
         serving_size = serving_size_dict[serving_size]
 
     messages = [
-        {
-            "role": "user",
-            "content": f"""Please create a one-of-a-kind, imaginative recipe
+    {
+        "role": "user",
+        "content": f"""Please create a one-of-a-kind, imaginative recipe based on the following
+        specifications: '{specifications}' and serving size: '{serving_size}'. Aim to astonish
+        and enchant me with your culinary creativity and the recipe's overall appeal.
 
-            based on the following specifications: '{specifications}' and serving size:
-            '{serving_size}'. Aim to astonish and enchant me with your culinary
-            creativity and the recipe's overall appeal.
+        When listing ingredients, follow these guidelines:
+        - Highlight ingredients that need advanced work, such as sitting in a marinade or getting thawed,
+        chilled, or softened.
+        - If an ingredient is used more than once, list the total amount at the place in the ingredient
+        list where it is first used, then add "divided." In the method part of the recipe, indicate the
+        amount used at each step.
+        - Unless a specific size is called for, "eggs" are large, "brown sugar" is light brown sugar,
+        "flour" is all-purpose flour, and "sugar" is granulated.
 
-            For the "fun_fact," provide an
-            engaging conversation starter, such as a fascinating historical tidbit or an
-            unexpected piece of trivia related to the recipe or its ingredients.
-            Avoid generic facts and instead opt for something that will pique
-            people's interest and spark discussion.
+        In the directions, consider the following:
+        - Note what prep needs to happen at the beginning and what might
+        be saved for later while something is cooking.
+        - Provide doneness indicators, such as ways to assess by sight, smell,
+        sound, texture, or temperature whether something is cooked correctly.
+        - If using the stove-top, indicate the level of heat (e.g., "Simmer over low heat").
+        - Be specific with measurements and instructions (e.g., "Scoop out 1
+        tablespoon of dough at a time and roll into balls").
+        - Include the total time the recipe will take, considering prep and cook time.
+        - Mention any specific equipment needed, such as a stand mixer, blender, or food processor.
+        - Include storage instructions as the last step, if applicable.
 
-            When suggesting a pairing for the recipe
-            in the "pairs_with" section, think outside the box and propose a creative and exciting
-            accompaniment. This could be an unconventional wine pairing, an inventive side dish,
-            or any other complementary item that will elevate the overall dining experience.
+        For the "fun_fact," provide an engaging conversation starter,
+        such as a fascinating historical tidbit or an unexpected piece of trivia related
+        to the recipe or its ingredients. Avoid generic facts and instead opt for something
+        that will pique people's interest and spark discussion.
 
-            Please estimate the calorie count based on your expert judgment,
-            and present the recipe in a clear, organized, and detailed manner.
+        When suggesting a pairing for the recipe in the "pairs_with" section,
+        think outside the box and propose a creative and exciting accompaniment.
+        This could be an unconventional wine pairing, an inventive side dish, or
+        any other complementary item that will elevate the overall dining experience.
 
-            Kindly return the recipe as a JSON object adhering to the following schema:
-
-            "recipe_name": str,
-            "ingredients": List[str],
-            "directions": List[str],
-            "prep_time": Union[str, int],
-            "cook_time": Optional[Union[str, int]],
-            "serving_size": Union[str, int],
-            "calories": Optional[Union[str, int]],
-            "fun_fact": str,
-            "pairs_with": str
-
-            """
-        },
-        {
-            "role" : "assistant",
-            "content" : '{'
-        }
-    ]
+        Please estimate the calorie count based on your expert judgment,
+        and present the recipe in a clear, organized, and detailed manner.
+        Kindly return the recipe as a JSON object adhering to the following schema:
+        "recipe_name": str,
+        "ingredients": List[str],
+        "directions": List[str],
+        "prep_time": Union[str, int],
+        "cook_time": Optional[Union[str, int]],
+        "serving_size": Union[str, int],
+        "calories": Optional[Union[str, int]],
+        "fun_fact": str,
+        "pairs_with": str
+        """
+    },
+    {
+        "role" : "assistant",
+        "content" : '{'
+    }
+]
 
     system_message = """You are a master chef with a flair for innovation and creativity in the kitchen.
     Your goal is to create unique, surprising, and delightful recipes that will captivate and inspire users.
-     Draw upon your extensive culinary knowledge and imagination to craft recipes that are
-    not only delicious but also memorable and conversation-worthy."""
+    Draw upon your extensive culinary knowledge and imagination to craft recipes that are not only delicious
+    but also memorable and conversation-worthy."""
 
     model = "claude-3-sonnet-20240229"
 
