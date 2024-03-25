@@ -16,7 +16,7 @@ from app.models.runs import (
 from app.middleware.session_middleware import RedisStore
 from app.dependencies import get_openai_client
 from app.services.chat_service import ChatService
-from app.services.recipe_service import create_recipe
+from app.services.recipe_service import create_recipe, claude_recipe
 from app.models.recipe import (
     CreateRecipeRequest, CreateRecipeResponse
 )
@@ -328,16 +328,22 @@ async def view_chat_history(
 async def create_new_recipe(recipe_request: CreateRecipeRequest,
                             chat_service: ChatService = Depends(get_chat_service)):
     """ Endpoint to get a response from the chatbot to a user's question. """
-    i = 0
-    while i <= 3:
-        try:
-            recipe = await create_recipe(
-                specifications = recipe_request.specifications, serving_size = recipe_request.serving_size
-            )
-            logger.info(f"Recipe created: {recipe}")
+    try:
+        recipe = await claude_recipe(
+            specifications = recipe_request.specifications, serving_size = recipe_request.serving_size
+        )
+        logger.info(f"Recipe created: {recipe}")
+    except Exception as e:
+        logger.error(f"Error creating recipe: {e} with Claude, retrying with GPT")
+        recipe = await create_recipe(
+            specifications = recipe_request.specifications, serving_size = recipe_request.serving_size
+        )
 
-            if recipe_request.thread_id:
-                # Add the recipe to the thread
+    if recipe_request.thread_id:
+        # Add the recipe to the thread
+        i = 0
+        while i <= 3:
+            try:
                 client = get_openai_client()
                 message = client.beta.threads.messages.create(
                     recipe_request.thread_id,
@@ -363,16 +369,35 @@ async def create_new_recipe(recipe_request: CreateRecipeRequest,
                 )
                 # Log the message
                 logger.info(f"Message {message.content} added to thread {recipe_request.thread_id}")
+                # Check to see if the recipe is already a JSON object
+                if isinstance(recipe, dict):
+                    return {
+                        "recipe": recipe, "session_id": chat_service.session_id,
+                        "thread_id": recipe_request.thread_id
+                    }
+                else:
+                    return {
+                        "recipe": json.loads(recipe), "session_id": chat_service.session_id,
+                        "thread_id": recipe_request.thread_id
+                    }
 
-            return {"recipe": json.loads(recipe), "session_id": chat_service.session_id,
-                    "thread_id": recipe_request.thread_id}
-        except Exception as e:
-            logger.error(f"Error creating recipe: {e}")
-            logger.debug(f"Retrying... {i + 1} attempt out of 3 to create recipe.")
-            i += 1
-            if i == 3:
-                raise HTTPException(status_code=500, detail=str(e))
-            continue
+            except OpenAIError as e:
+                logger.error(f"Error in adding recipe to thread: {e}")
+                i += 1
+                if i == 3:
+                    raise HTTPException(status_code=500, detail=str(e))
+
+            except Exception as e:
+                logger.error(f"Error in adding recipe to thread: {e}")
+                i += 1
+                if i == 3:
+                    raise HTTPException(status_code=500, detail=str(e))
+
+    else:
+        return {
+            "recipe": json.loads(recipe), "session_id": chat_service.session_id
+        }
+
 
 @router.post(
     "/add-message-to-thread",
@@ -399,3 +424,13 @@ async def add_message_to_thread(message_request: AddMessageToThread):
     except OpenAIError as e:
         logger.error(f"Error in adding message to thread: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post(
+    '/create-recipe-test',
+)
+async def create_recipe_test(recipe_request: CreateRecipeRequest):
+    """ Endpoint to create a recipe. """
+    recipe = await claude_recipe(
+        specifications = recipe_request.specifications, serving_size = recipe_request.serving_size
+    )
+    return recipe

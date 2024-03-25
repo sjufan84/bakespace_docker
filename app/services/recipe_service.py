@@ -1,12 +1,16 @@
 """ OpenAI and local functions related to recipes """
 import logging
 import os
+import time
 import sys
 import json
+import anthropic
 from dotenv import load_dotenv
 from openai import OpenAIError
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from app.dependencies import get_openai_client, get_query_filter_client  # noqa: E402
+from app.dependencies import (
+    get_anthropic_client, get_openai_client, get_query_filter_client,
+)  # noqa: E402
 from app.models.recipe import FormattedRecipe, Recipe  # noqa: E402
 # from app.services.anthropic_service import AnthropicRecipe  # noqa: E402
 # from app.utils.redis_utils import save_recipe  # noqa: E402
@@ -16,6 +20,8 @@ load_dotenv()
 
 # Set up the client
 client = get_openai_client()
+anthropic_client = get_anthropic_client()
+
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("main")
@@ -144,6 +150,128 @@ async def create_recipe(specifications: str, serving_size: str = "4"):
 
     return None  # Return None or a default response if all models fail
 
+async def claude_recipe(specifications: str, serving_size: str = "4") -> Recipe:
+    query = specifications + serving_size
+    is_food = await filter_query(query)
+    if is_food == "False":
+        logger.debug(f"Query {specifications} is not related to food.")
+        raise ValueError("Query is not related to food.")
+        return json.dumps(
+            {
+                "recipe_name": '',
+                "ingredients": [],
+                "directions": [],
+                "prep_time": 0,
+                "cook_time": 0,
+                "serving_size": '',
+                "calories": 0,
+                "fun_fact": '',
+                "is_food": False
+            }
+        )
+    if serving_size in serving_size_dict.keys():
+        serving_size = serving_size_dict[serving_size]
+
+    messages = [
+        {
+            "role": "user",
+            "content": f"""Please create a one-of-a-kind, imaginative recipe
+
+            based on the following specifications: '{specifications}' and serving size:
+            '{serving_size}'. Aim to astonish and enchant me with your culinary
+            creativity and the recipe's overall appeal.
+
+            For the "fun_fact," provide an
+            engaging conversation starter, such as a fascinating historical tidbit or an
+            unexpected piece of trivia related to the recipe or its ingredients.
+            Avoid generic facts and instead opt for something that will pique
+            people's interest and spark discussion.
+
+            When suggesting a pairing for the recipe
+            in the "pairs_with" section, think outside the box and propose a creative and exciting
+            accompaniment. This could be an unconventional wine pairing, an inventive side dish,
+            or any other complementary item that will elevate the overall dining experience.
+
+            Please estimate the calorie count based on your expert judgment,
+            and present the recipe in a clear, organized, and detailed manner.
+
+            Kindly return the recipe as a JSON object adhering to the following schema:
+
+            "recipe_name": str,
+            "ingredients": List[str],
+            "directions": List[str],
+            "prep_time": Union[str, int],
+            "cook_time": Optional[Union[str, int]],
+            "serving_size": Union[str, int],
+            "calories": Optional[Union[str, int]],
+            "fun_fact": str,
+            "pairs_with": str
+
+            """
+        },
+        {
+            "role" : "assistant",
+            "content" : '{'
+        }
+    ]
+
+    system_message = """You are a master chef with a flair for innovation and creativity in the kitchen.
+    Your goal is to create unique, surprising, and delightful recipes that will captivate and inspire users.
+     Draw upon your extensive culinary knowledge and imagination to craft recipes that are
+    not only delicious but also memorable and conversation-worthy."""
+
+    model = "claude-3-sonnet-20240229"
+
+    try:
+        response = anthropic_client.messages.create(
+            model=model,
+            max_tokens=1024,
+            messages=messages,
+            system=system_message,
+            temperature=0.75,
+        )
+        logger.debug(f"Claude Response {response}")
+        recipe = '{' + response.content[0].text
+        logger.info(f"Claude Recipe generated: {recipe}")
+
+        return recipe
+
+    except anthropic.APIConnectionError as e:
+        logger.error("The server could not be reached")
+        logger.error(e.__cause__)
+
+    except anthropic.RateLimitError as e:
+        logger.error("A 429 status code was received; we should back off a bit.")
+        logger.error(f"Response: {e.response}")
+        # Implementing a basic backoff strategy
+        time.sleep(10)  # Sleep for 10 seconds before retrying or proceeding
+
+    except anthropic.APIStatusError as e:
+        logger.error("A non-200-range status code was received")
+        logger.error(f"Status code: {e.status_code}")
+        logger.error(f"Response: {e.response}")
+
+        # Handling specific status codes with custom messages
+        if e.status_code == 400:
+            logger.error("BadRequestError: The request was invalid.")
+        elif e.status_code == 401:
+            logger.error("AuthenticationError: Authentication failed.")
+        elif e.status_code == 403:
+            logger.error("PermissionDeniedError: Access is forbidden.")
+        elif e.status_code == 404:
+            logger.error("NotFoundError: The requested resource was not found.")
+        elif e.status_code == 422:
+            logger.error("UnprocessableEntityError:\
+            The request was well-formed but was unable to be followed due to semantic errors.")
+        elif e.status_code >= 500:
+            logger.error("InternalServerError: Something went wrong on the server side.")
+
+    except Exception as e:
+        # A generic catch-all for any other unexpected errors
+        logger.error("An unexpected error occurred")
+        logger.error(e)
+
+
 # Create recipe tool
 create_recipe_tool = {
     "name": "create_new_recipe",
@@ -166,6 +294,7 @@ create_recipe_tool = {
         ]
     }
 }
+
 
 # ---------------------------------------------------------------------------------------------------------------'''
 
@@ -243,6 +372,7 @@ adjust_recipe_tool = {
         ]
     }
 }
+
 # ---------------------------------------------------------------------------------------------------------------
 # Add the function to extract and format recipe text from the user's files
 async def format_recipe(recipe_text: str):
