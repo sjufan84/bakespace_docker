@@ -173,80 +173,93 @@ async def claude_recipe(specifications: str, serving_size: str = "4") -> Recipe:
         serving_size = serving_size_dict[serving_size]
 
     messages = [
-    {
-        "role": "user",
-        "content": f"""Please create a one-of-a-kind, imaginative recipe based on the following
-        specifications: '{specifications}' and serving size: '{serving_size}'. Aim to astonish
-        and enchant me with your culinary creativity and the recipe's overall appeal.
-        The recipe should be unique, engaging, and memorable,
-        providing a delightful culinary experience for the user.  Please adhere to the following
-        guidelines when creating the recipe:\n\n
+        {
+            "role": "user",
+            "content": f"""Please create a one-of-a-kind, exceptional recipe
+            based on the following specifications: '{specifications}'
+            and serving size: '{serving_size}'.  Please adhere to the following
+            guidelines when creating the recipe:\n\n
 
-        When listing ingredients, follow these guidelines:
-        - Highlight ingredients that need advanced work, such as sitting in a marinade or getting thawed,
-        chilled, or softened.
-        - If an ingredient is used more than once, list the total amount at the place in the ingredient
-        list where it is first used, then add "divided." In the method part of the recipe, indicate the
-        amount used at each step.
-        - Unless a specific size is called for, "eggs" are large, "brown sugar" is light brown sugar,
-        "flour" is all-purpose flour, and "sugar" is granulated.
+            When listing ingredients, follow these guidelines:
+            - Highlight ingredients that need advanced work, such as sitting in a marinade or getting thawed,
+            chilled, or softened.
+            - If an ingredient is used more than once, list the total amount at the place in the ingredient
+            list where it is first used, then add "divided." In the method part of the recipe, indicate the
+            amount used at each step.
+            - Unless a specific size is called for, "eggs" are large, "brown sugar" is light brown sugar,
+            "flour" is all-purpose flour, and "sugar" is granulated.
 
-        In the directions, consider the following:
-        - Note what prep needs to happen at the beginning and what might
-        be saved for later while something is cooking.
-        - Provide doneness indicators, such as ways to assess by sight, smell,
-        sound, texture, or temperature whether something is cooked correctly.
-        - If using the stove-top, indicate the level of heat (e.g., "Simmer over low heat").
-        - Be specific with measurements and instructions (e.g., "Scoop out 1
-        tablespoon of dough at a time and roll into balls").
-        - Mention any specific equipment needed, such as a stand mixer, blender, or food processor.
-        - Include storage instructions as the last step, if applicable.
+            In the directions, consider the following:
+            - Note what prep needs to happen at the beginning and what might
+            be saved for later while something is cooking.
+            - Provide doneness indicators, such as ways to assess by sight, smell,
+            sound, texture, or temperature whether something is cooked correctly.
+            - If using the stove-top, indicate the level of heat (e.g., "Simmer over low heat").
+            - Be specific with measurements and instructions (e.g., "Scoop out 1
+            tablespoon of dough at a time and roll into balls").
+            - Mention any specific equipment needed, such as a stand mixer, blender, or food processor.
+            - Include storage instructions as the last step, if applicable.
 
-        For the "recipe_name," create a unique and descriptive title that
-        captures the essence of the dish
-        and intrigues the user. Avoid generic titles and opt
-        for something that will stand out and spark curiosity.
+            For the "recipe_name," create a unique and clever title
+            that captures the essence of the dish
 
-        For the "fun_fact," provide an engaging conversation starter,
-        such as a fascinating historical tidbit or an unexpected piece of trivia related
-        to the recipe or its ingredients. Avoid generic facts and instead opt for something
-        that will pique people's interest and spark discussion.
+            For the "fun_fact," provide an engaging conversation starter,
+            such as a fascinating historical tidbit or an unexpected piece of trivia related
+            to the recipe or its ingredients. Avoid generic facts and instead opt for something
+            that will pique people's interest and spark discussion.
 
-        If the recipe is meant for a child or children's party, make sure that the recipe
-        does not have any alcohol or other adult-oriented ingredients.  The recipe should be
-        suitable for children and should be fun, engaging, and appropriate for a younger audience.
-        The pairing should also be child-friendly and should complement the recipe in a way that
-        enhances the overall experience for children.
+            If the recipe is meant for a child or children's party, make sure that the recipe
+            does not have any alcohol or other adult-oriented ingredients.  The recipe should be
+            suitable for children and should be fun, engaging, and appropriate for a younger audience.
+            The pairing should also be child-friendly and should complement the recipe in a way that
+            enhances the overall experience for children.
 
-        When suggesting a pairing for the recipe in the "pairs_with" section,
-        think outside the box and propose a creative and exciting accompaniment.
-        This could be an unconventional wine pairing, an inventive side dish, or
-        any other complementary item that will elevate the overall dining experience.
+            When suggesting a pairing for the recipe in the "pairs_with" section,
+            think outside the box and propose a creative and exciting accompaniment.
+            This could be an unconventional wine pairing, an inventive side dish, or
+            any other complementary item that will elevate the overall dining experience.
 
-        Please estimate the calorie count per serving based on your expert judgment,
-        and present the recipe in a clear, organized, and detailed manner.
-        Kindly return the recipe as a JSON object adhering to the following schema:
-        "recipe_name": str,
-        "ingredients": List[str],
-        "directions": List[str],
-        "prep_time": Union[str, int],
-        "cook_time": Optional[Union[str, int]],
-        "serving_size": Union[str, int],
-        "calories": Optional[Union[str, int]],
-        "fun_fact": str,
-        "pairs_with": str
-        """
-    },
-    {
-        "role" : "assistant",
-        "content" : '{'
-    }
-]
+            Before finalizing the recipe, think through:
+            - Is the recipe of the highest quality based on my culinary expertise?
+            - Is the recipe innovative and creative while still being approachable, easy to follow,
+            and adhering to the user's specifications?
+            - Is the recipe appropriate for the target audience, whether it be adults, children,
+            or a specific group?
+            - Are the ingredients and directions clear, concise, and well-organized?
+            Are they ingredients that are readily available to the average home cook?
+            - Would I be proud to serve this recipe to friends, family, or customers?
+            - If the recipe includes something that would require its own recipe
+            (e.g., a sauce, dough, frosting), have I included directions for that as well?
 
-    system_message = """You are a master chef with a flair for innovation and creativity in the kitchen.
-    Your goal is to create unique, surprising, and delightful recipes that will captivate and inspire users.
-    Draw upon your extensive culinary knowledge and imagination to craft recipes that are not only delicious
-    but also memorable and conversation-worthy."""
+            Please estimate the calorie count per serving based on your expert judgment,
+            and present the recipe in a clear, organized, and detailed manner.
+            Kindly return the recipe as a JSON object adhering to the following schema:
+            "recipe_name": str,
+            "ingredients": List[str],
+            "directions": List[str],
+            "prep_time": Union[str, int],
+            "cook_time": Optional[Union[str, int]],
+            "serving_size": Union[str, int],
+            "calories": Optional[Union[str, int]],
+            "fun_fact": str,
+            "pairs_with": str
+            """
+        },
+        {
+            "role" : "assistant",
+            "content" : '{'
+        }
+    ]
+
+    system_message = """You are a master chef with knowledge and training that extends to
+    every style of cooking imagineable.  Strive to seamlessly merge
+    the expertise of a trusted culinary source
+    with the creative finesse of a professional chef. Your goal is to craft a recipe
+    of exceptional quality and reliability, evoking the standards of gourmet cooking while
+    remaining accessible to home cooks. Create a culinary masterpiece that captivates with its
+    imaginative twist, promising a satisfying and enjoyable dining experience for all. Aim
+    to impress with your culinary creativity, ensuring ease of preparation and enjoyment
+    while delivering a memorable and delightful culinary journey."""
 
     model = "claude-3-sonnet-20240229"
 
