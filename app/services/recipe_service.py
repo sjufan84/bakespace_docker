@@ -178,6 +178,9 @@ async def claude_recipe(specifications: str, serving_size: str = "4") -> Recipe:
         "content": f"""Please create a one-of-a-kind, imaginative recipe based on the following
         specifications: '{specifications}' and serving size: '{serving_size}'. Aim to astonish
         and enchant me with your culinary creativity and the recipe's overall appeal.
+        The recipe should be unique, engaging, and memorable,
+        providing a delightful culinary experience for the user.  Please adhere to the following
+        guidelines when creating the recipe:\n\n
 
         When listing ingredients, follow these guidelines:
         - Highlight ingredients that need advanced work, such as sitting in a marinade or getting thawed,
@@ -196,21 +199,31 @@ async def claude_recipe(specifications: str, serving_size: str = "4") -> Recipe:
         - If using the stove-top, indicate the level of heat (e.g., "Simmer over low heat").
         - Be specific with measurements and instructions (e.g., "Scoop out 1
         tablespoon of dough at a time and roll into balls").
-        - Include the total time the recipe will take, considering prep and cook time.
         - Mention any specific equipment needed, such as a stand mixer, blender, or food processor.
         - Include storage instructions as the last step, if applicable.
+
+        For the "recipe_name," create a unique and descriptive title that
+        captures the essence of the dish
+        and intrigues the user. Avoid generic titles and opt
+        for something that will stand out and spark curiosity.
 
         For the "fun_fact," provide an engaging conversation starter,
         such as a fascinating historical tidbit or an unexpected piece of trivia related
         to the recipe or its ingredients. Avoid generic facts and instead opt for something
         that will pique people's interest and spark discussion.
 
+        If the recipe is meant for a child or children's party, make sure that the recipe
+        does not have any alcohol or other adult-oriented ingredients.  The recipe should be
+        suitable for children and should be fun, engaging, and appropriate for a younger audience.
+        The pairing should also be child-friendly and should complement the recipe in a way that
+        enhances the overall experience for children.
+
         When suggesting a pairing for the recipe in the "pairs_with" section,
         think outside the box and propose a creative and exciting accompaniment.
         This could be an unconventional wine pairing, an inventive side dish, or
         any other complementary item that will elevate the overall dining experience.
 
-        Please estimate the calorie count based on your expert judgment,
+        Please estimate the calorie count per serving based on your expert judgment,
         and present the recipe in a clear, organized, and detailed manner.
         Kindly return the recipe as a JSON object adhering to the following schema:
         "recipe_name": str,
