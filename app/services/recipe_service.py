@@ -117,8 +117,12 @@ async def create_recipe(specifications: str, serving_size: str = "4"):
             Should be a conversation starter, maybe a historical fact\
             or something else that people would find fascinating,\
             not just a generic fact about the ingredients or recipe.
-            Pairs With (pairs_with): str A creative pairing for the recipe.  It could be a wine pairing, side\
-            dish, etc.  Whatever seems the most appropriate for the recipe and will delight the user.
+            Pairs With (pairs_with): str A creative beverage pairing for the recipe.
+            It could be a wine pairing, tea, coffee, or any other drink that would complement
+            the recipe and enhance the dining experience. If the recipe is for children,
+            ensure that the pairing is child-friendly and complements the recipe.
+            This should be less than 200 characters and delight
+            the user with a creative and exciting beverage pairing.
 
             Ensure that the recipe is presented in a clear and organized manner,
             adhering to the 'Recipe' {Recipe} class structure
@@ -215,9 +219,12 @@ async def claude_recipe(specifications: str, serving_size: str = "4") -> Recipe:
             enhances the overall experience for children.
 
             When suggesting a pairing for the recipe in the "pairs_with" section,
-            think outside the box and propose a creative and exciting accompaniment.
-            This could be an unconventional wine pairing, an inventive side dish, or
-            any other complementary item that will elevate the overall dining experience.
+            think outside the box and propose a creative and exciting beverage accompaniment.
+            This could be an unconventional wine pairing, a unique cocktail, a special tea or coffee,
+            or any other drink that would enhance the dining experience and make the recipe even more enjoyable.
+            If the recipe is geared towards children, the pairing should be suitable for a younger audience
+            and should complement the recipe in a way that enhances the overall experience for children.
+            Keep the pairing concise.  It should be less than 200 characters.
 
             Before finalizing the recipe, think through:
             - Is the recipe of the highest quality based on my culinary expertise?
@@ -361,8 +368,11 @@ def adjust_recipe(recipe: dict, adjustments: str):
             Fun Fact (fun_fact): str An interesting fact about the recipe or its ingredients.
             Should be a conversation starter, maybe a historical fact or something
             else that people would find fascinating.
-            Pairs With (pairs_with): str A pairing for the recipe.  It could be a wine pairing, side
-            dish, etc.  Whatever seems the most appropriate for the recipe.
+            Pairs With (pairs_with): str A creative beverage pairing for the recipe.
+            This could be a wine pairing, tea, coffee, or any other drink that would complement the recipe.
+            If the recipe is for children, ensure that the pairing is child-friendly and complements the recipe.
+            This should be less than 200 characters and delight the user with a creative and exciting beverage pairing.
+
 
 
             Ensure that the recipe is presented in a clear and organized manner, adhering
@@ -446,8 +456,13 @@ async def format_recipe(recipe_text: str):
             Preparation Time (prep_time): Union[str, int] The time taken for preparation in minutes.
             Cooking Time (cook_time): Union[str, int] The cooking time in minutes, if applicable.
             Serving Size (serving_size): Union[str, int] A description of the serving size.
-            Pairs With (pairs_with): str A creative pairing for the recipe.  It could be a wine pairing, side\
-            dish, etc.  Whatever seems the most appropriate for the recipe and will delight the user.
+            Pairs With (pairs_with): str A creative pairing for the recipe.  This could be a wine pairing,
+            tea, coffee, or any other drink that would complement
+            the recipe and enhance the dining experience.
+            If the recipe is for children, ensure that the pairing
+            is child-friendly and complements the recipe.
+            This should be less than 200 characters and delight
+            the user with a creative and exciting beverage pairing.
             Calories (calories): Union[str, int] Estimated calories per serving, if known.  If not, do your\
             best to infer the amount of calories per one serving of the recipe.
             Fun Fact (fun_fact): str An interesting and unique fact about the recipe or its ingredients.\
