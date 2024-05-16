@@ -141,6 +141,7 @@ async def get_chef_response(chef_response: GetChefResponse, chat_service:
 
     # Get the assistant id based on the chef type
     assistant_id = get_assistant_id(chef_response.chef_type)
+    logger.info(f'Assistant ID: {assistant_id}')
 
     # Add the user message to the chat history
     chat_service.add_user_message(message=chef_response.message_content, thread_id=chef_response.thread_id)
@@ -211,7 +212,8 @@ async def get_chef_response(chef_response: GetChefResponse, chat_service:
             thread_id=chef_response.thread_id,
             instructions=instructions,
             tools=tools,
-            model="gpt-3.5-turbo-1106"
+            model="gpt-4o",
+            timeout=6000,
         )
         # Poll the run status
         response = await poll_run_status(run_id=run.id, thread_id=run.thread_id)

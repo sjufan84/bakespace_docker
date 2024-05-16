@@ -40,7 +40,7 @@ def get_stability_api_key():
 
 def get_openai_client():
     """ Get the OpenAI client. """
-    return OpenAI(api_key=get_openai_api_key(), organization=get_openai_org(), max_retries=3, timeout=35)
+    return OpenAI(api_key=get_openai_api_key(), organization=get_openai_org(), max_retries=3, timeout=55)
 
 def get_query_filter_client():
     """ Get the Query Filter client. """
