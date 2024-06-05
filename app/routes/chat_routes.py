@@ -342,63 +342,46 @@ async def create_new_recipe(recipe_request: CreateRecipeRequest,
         )
 
     if recipe_request.thread_id:
-        # Add the recipe to the thread
-        i = 0
-        while i <= 3:
-            try:
-                client = get_openai_client()
-                message = client.beta.threads.messages.create(
-                    recipe_request.thread_id,
-                    content=f"""Your task is to assist a user with their recipe {recipe},
-                    which was created based on their initial specifications {recipe_request.specifications}
-                    and serving size {recipe_request.serving_size}. Users may have queries about
-                    the recipe or wish to modify it. Your role is to engage in a natural,
-                    sous-chef style conversation, providing expert advice and suggestions
-                    tailored to their needs. When users request changes or have questions,
-                    clarify their requirements through engaging dialogue. Once changes are confirmed,
-                    display the updated format clearly and concisely in the same format as the original
-                    recipe {recipe} so that they can make sure it looks correct before saving.
-                    They may also want to ask you about wine pairings, general cooking questions,
-                    etc.  Graciously answer those questions as well. Remember,
-                    your role is crucial in ensuring clarity,
-                    offering culinary expertise, and confirming the changes during the interaction.
-                    Although your role is listed as 'user' due to API constraints.
-                    Keep the conversation flowing
-                    until it is clear that the user is satisfied with the recipe.  In other words,
-                    you are the AI sous chef in this conversation.""",
-                    role="user",
-                    metadata={},
-                )
-                # Log the message
-                logger.info(f"Message {message.content} added to thread {recipe_request.thread_id}")
-                # Check to see if the recipe is already a JSON object
-                if isinstance(recipe, dict):
-                    return {
-                        "recipe": recipe, "session_id": chat_service.session_id,
-                        "thread_id": recipe_request.thread_id
-                    }
-                else:
-                    return {
-                        "recipe": json.loads(recipe), "session_id": chat_service.session_id,
-                        "thread_id": recipe_request.thread_id
-                    }
-
-            except OpenAIError as e:
-                logger.error(f"Error in adding recipe to thread: {e}")
-                i += 1
-                if i == 3:
-                    raise HTTPException(status_code=500, detail=str(e))
-
-            except Exception as e:
-                logger.error(f"Error in adding recipe to thread: {e}")
-                i += 1
-                if i == 3:
-                    raise HTTPException(status_code=500, detail=str(e))
-
-    else:
-        return {
-            "recipe": json.loads(recipe), "session_id": chat_service.session_id
-        }
+        client = get_openai_client()
+        message = client.beta.threads.messages.create(
+          recipe_request.thread_id,
+          content=f"""Your task is to assist a user with their recipe {recipe},
+          which was created based on their initial specifications {recipe_request.specifications}
+          and serving size {recipe_request.serving_size}. Users may have queries about
+          the recipe or wish to modify it. Your role is to engage in a natural,
+          sous-chef style conversation, providing expert advice and suggestions
+          tailored to their needs. When users request changes or have questions,
+          clarify their requirements through engaging dialogue. Once changes are confirmed,
+          display the updated format clearly and concisely in the same format as the original
+          recipe {recipe} so that they can make sure it looks correct before saving.
+          They may also want to ask you about wine pairings, general cooking questions,
+          etc.  Graciously answer those questions as well. Remember,
+          your role is crucial in ensuring clarity,
+          offering culinary expertise, and confirming the changes during the interaction.
+          Although your role is listed as 'user' due to API constraints.
+          Keep the conversation flowing
+          until it is clear that the user is satisfied with the recipe.  In other words,
+          you are the AI sous chef in this conversation.""",
+          role="user",
+          metadata={},
+      )
+      # Log the message
+      logger.info(f"Message {message.content} added to thread {recipe_request.thread_id}")
+      # Check to see if the recipe is already a JSON object
+      if isinstance(recipe, dict):
+          return {
+              "recipe": recipe, "session_id": chat_service.session_id,
+              "thread_id": recipe_request.thread_id
+          }
+      else:
+          return {
+              "recipe": json.loads(recipe), "session_id": chat_service.session_id,
+              "thread_id": recipe_request.thread_id
+          }
+  else:
+      return {
+          "recipe": json.loads(recipe), "session_id": chat_service.session_id
+      }
 
 
 @router.post(
