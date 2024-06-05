@@ -153,7 +153,8 @@ async def get_chef_response(chef_response: GetChefResponse, chat_service:
         message_content = "I am ready to save my recipe!  Please use the 'adjust_recipe' tool\
         to make any necessary changes based on the original recipe and our ensuing conversation."
         instructions = "Use the adjust_recipe tool to make any necessary changes to the original recipe\
-            based on the user's requests."
+            based on the user's requests.  Just use the tool, do not return a message to the user. This is just to\
+            save the recipe in the database.  Thanks!"
         tools = [
             {
                 "type": "function",
