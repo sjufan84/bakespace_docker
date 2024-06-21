@@ -268,7 +268,7 @@ async def claude_recipe(specifications: str, serving_size: str = "4") -> Recipe:
     to impress with your culinary creativity, ensuring ease of preparation and enjoyment
     while delivering a memorable and delightful culinary journey."""
 
-    model = "claude-3-sonnet-20240229"
+    model = "claude-3-5-sonnet-20240620"
 
     try:
         response = anthropic_client.messages.create(
