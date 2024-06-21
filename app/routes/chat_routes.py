@@ -221,13 +221,15 @@ async def get_chef_response(chef_response: GetChefResponse, chat_service:
 
         if response:      # Add the chef response to the chat history
             # chat_service.add_chef_message(response["message"])
+            logger.info(f"Tool outputs: {response['tool_return_values']}")
 
             return {
                 "chef_response" : ResponseMessage(
                     content=response["message"], role="ai", thread_id=chef_response.thread_id
                 ),
                 "thread_id" : chef_response.thread_id,
-                "adjusted_recipe" : response["tool_return_values"], "session_id": chat_service.session_id
+                "adjusted_recipe" : response["tool_return_values"],
+                "session_id": chat_service.session_id
             }
 
     if chef_response.thread_id:
@@ -371,17 +373,17 @@ async def create_new_recipe(recipe_request: CreateRecipeRequest,
       # Check to see if the recipe is already a JSON object
       if isinstance(recipe, dict):
           return {
-              "recipe": recipe, "session_id": chat_service.session_id,
+              "recipe": json.dumps(recipe), "session_id": chat_service.session_id,
               "thread_id": recipe_request.thread_id
           }
       else:
           return {
-              "recipe": json.loads(recipe), "session_id": chat_service.session_id,
+              "recipe": recipe, "session_id": chat_service.session_id,
               "thread_id": recipe_request.thread_id
           }
     else:
         return {
-            "recipe": json.loads(recipe), "session_id": chat_service.session_id
+            "recipe": json.dumps(recipe), "session_id": chat_service.session_id
         }
 
 

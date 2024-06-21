@@ -5,6 +5,7 @@ import time
 import sys
 import json
 import anthropic
+from pydantic import ValidationError
 from dotenv import load_dotenv
 from openai import OpenAIError
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -240,17 +241,29 @@ async def claude_recipe(specifications: str, serving_size: str = "4") -> Recipe:
 
             Please estimate the calorie count per serving based on your expert judgment,
             and present the recipe in a clear, organized, and detailed manner.
-            Kindly return the recipe as a JSON object adhering to the following schema:
-            "recipe_name": str,
-            "ingredients": List[str],
-            "directions": List[str],
-            "prep_time": Union[str, int],
-            "cook_time": Optional[Union[str, int]],
-            "serving_size": Union[str, int],
-            "calories": Optional[Union[str, int]],
-            "fun_fact": str,
-            "pairs_with": str
-            """
+            Kindly return the recipe as a JSON object following this schema:
+            Recipe Name (recipe_name): A unique and descriptive title for the recipe.
+            Ingredients (ingredients): A list of ingredients required for the recipe.
+            Directions (directions): Step-by-step instructions for preparing the recipe.
+            Preparation Time (prep_time): Union[str, int] The time taken for preparation in minutes.
+            Cooking Time (cook_time): Optional[Union[str, int]] The cooking time in minutes, if applicable.\
+            Will be null if the recipe is raw or doesn't require cooking.
+            Serving Size (serving_size): Union[str, int] A description of the serving size.
+            Calories (calories): Optional[Union[str, int]] Estimated calories per serving, if known.
+            Fun Fact (fun_fact): str An interesting and unique fact about the recipe or its ingredients.\
+            Should be a conversation starter, maybe a historical fact\
+            or something else that people would find fascinating,\
+            not just a generic fact about the ingredients or recipe.
+            Pairs With (pairs_with): str A creative beverage pairing for the recipe.
+            It could be a wine pairing, tea, coffee, or any other drink that would complement
+            the recipe and enhance the dining experience. If the recipe is for children,
+            ensure that the pairing is child-friendly and complements the recipe.
+            This should be less than 200 characters and delight
+            the user with a creative and exciting beverage pairing.
+
+            Ensure that the recipe is presented in a clear and organized manner,
+            adhering to the 'Recipe' {Recipe} class structure
+            as outlined above."""
         },
         {
             "role" : "assistant",
@@ -280,9 +293,9 @@ async def claude_recipe(specifications: str, serving_size: str = "4") -> Recipe:
         )
         logger.debug(f"Claude Response {response}")
         recipe = '{' + response.content[0].text
-        logger.info(f"Claude Recipe generated: {recipe}")
+        logger.info(f"Claude Recipe generated: {Recipe(**json.loads(recipe))}")
 
-        return recipe
+        return Recipe(**json.loads(recipe))
 
     except anthropic.APIConnectionError as e:
         logger.error("The server could not be reached")
@@ -313,6 +326,10 @@ async def claude_recipe(specifications: str, serving_size: str = "4") -> Recipe:
             The request was well-formed but was unable to be followed due to semantic errors.")
         elif e.status_code >= 500:
             logger.error("InternalServerError: Something went wrong on the server side.")
+
+    except ValidationError as e:
+        logger.error("A validation error occurred")
+        logger.error(e)
 
     except Exception as e:
         # A generic catch-all for any other unexpected errors
