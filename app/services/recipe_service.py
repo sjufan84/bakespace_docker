@@ -47,12 +47,12 @@ async def filter_query(text: str) -> bool:
     messages = [
         {
             "role": "system",
-            "content": f"""You are a master chef helping a user determine if a text query is related to food.
-            The query is: '{text}'. Return a boolean value indicating whether
-            or not the query is related to food.
-            This is a filter to ensure that the user is only submitting food-related queries
-            to the recipe service
-            and not spam, advertisements, or inappropriate content.  Simply return True or False."""
+            "content": f"""You are a master chef helping a user determine if a text query is related to
+            food, drinks, or anything else that could be considered a recipe or culinary-related content.
+            '{text}'. Return a boolean value indicating whether
+            the query satisfies the criteria for a food-related query.
+            This is primarily to filter out spam, advertisements,
+            or inappropriate content.  Simply return True or False."""
         }
     ]
     models = core_models
@@ -182,8 +182,9 @@ async def claude_recipe(specifications: str, serving_size: str = "4") -> Recipe:
             "role": "user",
             "content": f"""Please create a one-of-a-kind, exceptional recipe
             based on the following specifications: '{specifications}'
-            and serving size: '{serving_size}'.  Please adhere to the following
-            guidelines when creating the recipe:\n\n
+            and serving size: '{serving_size}'.  This may be a food recipe or a drink (i.e. cocktail) recipe.
+            Please adhere to the following
+            guidelines when creating the recipe, and adjust accordingly depending on the type of recipe:\n\n
 
             When listing ingredients, follow these guidelines:
             - Highlight ingredients that need advanced work, such as sitting in a marinade or getting thawed,
@@ -222,7 +223,11 @@ async def claude_recipe(specifications: str, serving_size: str = "4") -> Recipe:
             When suggesting a pairing for the recipe in the "pairs_with" section,
             think outside the box and propose a creative and exciting beverage accompaniment.
             This could be an unconventional wine pairing, a unique cocktail, a special tea or coffee,
-            or any other drink that would enhance the dining experience and make the recipe even more enjoyable.
+            or any other drink that would enhance the dining experience and make
+            the recipe even more enjoyable.  If the recipe is for a cocktail or other drink,
+            suggest a food pairing that would complement the beverage and create a harmonious
+            dining experience.
+
             If the recipe is geared towards children, the pairing should be suitable for a younger audience
             and should complement the recipe in a way that enhances the overall experience for children.
             Keep the pairing concise.  It should be less than 200 characters.
@@ -245,7 +250,7 @@ async def claude_recipe(specifications: str, serving_size: str = "4") -> Recipe:
             Recipe Name (recipe_name): A unique and descriptive title for the recipe.
             Ingredients (ingredients): A list of ingredients required for the recipe.
             Directions (directions): Step-by-step instructions for preparing the recipe.
-            Preparation Time (prep_time): Union[str, int] The time taken for preparation in minutes.
+            Preparation Time (prep_time): Optional[Union[str, int]] The time taken for preparation in minutes.
             Cooking Time (cook_time): Optional[Union[str, int]] The cooking time in minutes, if applicable.\
             Will be null if the recipe is raw or doesn't require cooking.
             Serving Size (serving_size): Union[str, int] A description of the serving size.
@@ -387,8 +392,10 @@ def adjust_recipe(recipe: dict, adjustments: str):
             else that people would find fascinating.
             Pairs With (pairs_with): str A creative beverage pairing for the recipe.
             This could be a wine pairing, tea, coffee, or any other drink that would complement the recipe.
-            If the recipe is for children, ensure that the pairing is child-friendly and complements the recipe.
-            This should be less than 200 characters and delight the user with a creative and exciting beverage pairing.
+            If the recipe is for children, ensure that the pairing is child-friendly
+            and complements the recipe.
+            This should be less than 200 characters
+            and delight the user with a creative and exciting beverage pairing.
 
 
 

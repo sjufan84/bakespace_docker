@@ -9,7 +9,7 @@ class Recipe(BaseModel):
     recipe_name: str = Field(..., description="The name of the recipe.")
     ingredients: List[str] = Field(..., description="The ingredients of the recipe.")
     directions: List[str] = Field(..., description="The directions for the recipe.")
-    prep_time: Union[int, str] = Field(None, description="The preparation time for the recipe.")
+    prep_time: Optional[Union[int, str]] = Field(None, description="The preparation time for the recipe.")
     cook_time: Optional[Union[str, int]] = Field(None, description="The cooking time for the recipe.\
       This could be null if the recipe is raw or doesn't require cooking.")
     serving_size: Optional[Union[str, int]] = Field("", description="The serving size of the recipe.")
@@ -20,7 +20,8 @@ class Recipe(BaseModel):
     fact about the ingredients or recipe, etc.")
     is_food: bool = Field(True, description="Whether or not the submitted text is related to food.")
     pairs_with: str = Field("", description="A pairing for the recipe.  It could be a wine pairing, side\
-    dish, etc.  Whatever seems the most appropriate for the recipe.")
+    dish, etc.  Or, if the recipe is for a drink, perhaps what food items would pair well with it.\
+    Whatever seems the most appropriate for the recipe.")
 
 class FormattedRecipe(BaseModel):
     """ A recipe object for the Anthropic API. """
