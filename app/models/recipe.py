@@ -9,7 +9,7 @@ class Recipe(BaseModel):
     recipe_name: str = Field(..., description="The name of the recipe.")
     ingredients: List[str] = Field(..., description="The ingredients of the recipe.")
     directions: List[str] = Field(..., description="The directions for the recipe.")
-    prep_time: Optional[Union[int, str]] = Field(None, description="The preparation time for the recipe.")
+    prep_time: Union[int, str] = Field(None, description="The preparation time for the recipe.")
     cook_time: Optional[Union[str, int]] = Field(None, description="The cooking time for the recipe.\
       This could be null if the recipe is raw or doesn't require cooking.")
     serving_size: Optional[Union[str, int]] = Field("", description="The serving size of the recipe.")
@@ -20,8 +20,13 @@ class Recipe(BaseModel):
     fact about the ingredients or recipe, etc.")
     is_food: bool = Field(True, description="Whether or not the submitted text is related to food.")
     pairs_with: str = Field("", description="A pairing for the recipe.  It could be a wine pairing, side\
-    dish, etc.  Or, if the recipe is for a drink, perhaps what food items would pair well with it.\
-    Whatever seems the most appropriate for the recipe.")
+    dish, etc.  Whatever seems the most appropriate for the recipe.")
+    additional_info: Optional[str] = Field(None, description="Additional information about the recipe.\
+    This could be extra details the user\
+    wants to include, additional notes, etc.  For example, if the user wants\
+    you to include the reasons why you chose the recipe, or\
+    explanations for certain steps, etc., or generally anything that\
+    doesn't fit into the other fields, it can be placed here.")
 
 class FormattedRecipe(BaseModel):
     """ A recipe object for the Anthropic API. """
@@ -65,3 +70,11 @@ class CreateRecipeResponse(BaseModel):
     recipe: Recipe = Field(..., description="The recipe object.")
     session_id: Union[str, None] = Field(..., description="The session id for the chat session.")
     thread_id: Union[str, None] = Field(None, description="The thread id for the chat session.")
+
+class IngredientsRecipeRequest(BaseModel):
+    """ Request body for creating a new recipe """
+    specifications: str = Field(..., description="The specifications for the recipe.")
+    ingredients: Union[List[str], str] = Field(..., description="The ingredients for the recipe.")
+    serving_size: Optional[str] = Field("4-6", description="The serving size for the recipe.")
+    chef_type: Optional[str] = Field("home_cook", description="The type of chef creating the recipe.")
+    thread_id: Optional[str] = Field(None, description="The thread id for the chat session.")

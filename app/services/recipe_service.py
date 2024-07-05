@@ -5,6 +5,7 @@ import time
 import sys
 import json
 import anthropic
+# from typing import List
 from pydantic import ValidationError
 from dotenv import load_dotenv
 from openai import OpenAIError
@@ -543,3 +544,143 @@ adjust_recipe_tool = {
         ]
     }
 }
+
+async def claude_ingredients_recipe(
+        specifications: str, ingredients_list: str, serving_size: str = "4") -> Recipe:
+    query = specifications + serving_size
+    is_food = await filter_query(query)
+    if is_food == "False":
+        logger.debug(f"Query {specifications} is not related to food.")
+        raise ValueError("Query is not related to food.")
+        return json.dumps(
+            {
+                "recipe_name": '',
+                "ingredients": [],
+                "directions": [],
+                "prep_time": 0,
+                "cook_time": 0,
+                "serving_size": '',
+                "calories": 0,
+                "fun_fact": '',
+                "is_food": False
+            }
+        )
+    if serving_size in serving_size_dict.keys():
+        serving_size = serving_size_dict[serving_size]
+
+    messages = [
+        {
+            "role": "user",
+            "content": f"""You are a creative and skilled chef AI assistant. Your task is to generate a unique
+            and delightful recipe based on user-provided specifications, serving size, and a list of ingredients
+            they want to use up. The recipe can be for food or a cocktail/drink. Your goal is to create a thorough,
+            detailed recipe that surprises and delights the user with its quality, originality, and creativity.
+
+            You will receive the following inputs:
+
+            <specifications>
+            {specifications}
+            </specifications>
+
+            <serving_size>
+            {serving_size}
+            </serving_size>
+
+            <ingredients_list>
+            {ingredients_list}
+            </ingredients_list>
+
+            When generating the recipe, follow these guidelines:
+            1. Prioritize using the ingredients from the ingredients_list
+            without compromising the quality of the recipe.
+            2. Adhere to the specifications and serving size provided.
+            3. Be creative and original in your approach to the recipe.
+            4. Ensure the recipe is thorough and detailed.
+            5. If the specifications or ingredients suggest a cocktail or drink recipe,
+            create one accordingly.
+
+            Your output should be in JSON format with the following structure:
+
+            
+            "recipe_name": "A unique and descriptive title for the recipe",
+            "ingredients": ["List of ingredients required for the recipe"],
+            "directions": ["Step-by-step instructions for preparing the recipe"],
+            "prep_time": "Time taken for preparation in minutes (optional)",
+            "cook_time": "Cooking time in minutes, if applicable
+            (optional, null if raw or no cooking required)",
+            "serving_size": "Description of the serving size",
+            "calories": "Estimated calories per serving, if known (optional)",
+            "fun_fact": "An interesting and unique fact about the recipe or its ingredients",
+            "pairs_with": "A creative beverage pairing for the recipe (less than 200 characters)"
+            
+
+            Remember to surprise and delight the user with the quality, originality,
+            and creativity of your recipe. The fun fact should be a conversation starter,
+            perhaps a historical fact or something fascinating about the recipe or ingredients.
+            The beverage pairing should be creative and exciting, complementing the recipe
+            and enhancing the dining experience. If the recipe is for children,
+            ensure that the pairing is child-friendly.
+
+            Now, based on the provided specifications, serving size, and ingredients list,
+            generate a unique and delightful recipe. Output your response in the JSON
+            format described above, ensuring all fields are filled appropriately."""
+        },
+        {
+            "role" : "assistant",
+            "content" : '{'
+        }
+    ]
+
+    model = "claude-3-5-sonnet-20240620"
+
+    try:
+        response = anthropic_client.messages.create(
+            model=model,
+            max_tokens=1024,
+            messages=messages,
+            temperature=0.75,
+        )
+        logger.debug(f"Claude Response {response}")
+        recipe = '{' + response.content[0].text
+        logger.info(f"Claude Recipe generated: {Recipe(**json.loads(recipe))}")
+
+        return Recipe(**json.loads(recipe))
+
+    except anthropic.APIConnectionError as e:
+        logger.error("The server could not be reached")
+        logger.error(e.__cause__)
+
+    except anthropic.RateLimitError as e:
+        logger.error("A 429 status code was received; we should back off a bit.")
+        logger.error(f"Response: {e.response}")
+        # Implementing a basic backoff strategy
+        time.sleep(10)  # Sleep for 10 seconds before retrying or proceeding
+
+    except anthropic.APIStatusError as e:
+        logger.error("A non-200-range status code was received")
+        logger.error(f"Status code: {e.status_code}")
+        logger.error(f"Response: {e.response}")
+
+        # Handling specific status codes with custom messages
+        if e.status_code == 400:
+            logger.error("BadRequestError: The request was invalid.")
+        elif e.status_code == 401:
+            logger.error("AuthenticationError: Authentication failed.")
+        elif e.status_code == 403:
+            logger.error("PermissionDeniedError: Access is forbidden.")
+        elif e.status_code == 404:
+            logger.error("NotFoundError: The requested resource was not found.")
+        elif e.status_code == 422:
+            logger.error("UnprocessableEntityError:\
+            The request was well-formed but was unable to be followed due to semantic errors.")
+        elif e.status_code >= 500:
+            logger.error("InternalServerError: Something went wrong on the server side.")
+
+    except ValidationError as e:
+        logger.error("A validation error occurred")
+        logger.error(e)
+
+    except Exception as e:
+        # A generic catch-all for any other unexpected errors
+        logger.error("An unexpected error occurred")
+        logger.error(e)

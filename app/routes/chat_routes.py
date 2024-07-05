@@ -7,7 +7,7 @@ from openai import OpenAIError
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from app.utils.assistant_utils import (
-    poll_run_status, get_assistant_id
+    poll_run_status, get_assistant_id, create_thread
 )
 from app.models.runs import (
     CreateThreadRequest, GetChefResponse, ClearChatResponse,
@@ -16,9 +16,11 @@ from app.models.runs import (
 from app.middleware.session_middleware import RedisStore
 from app.dependencies import get_openai_client
 from app.services.chat_service import ChatService
-from app.services.recipe_service import create_recipe, claude_recipe
+from app.services.recipe_service import (
+    create_recipe, claude_recipe, claude_ingredients_recipe
+)
 from app.models.recipe import (
-    CreateRecipeRequest, CreateRecipeResponse
+    CreateRecipeRequest, CreateRecipeResponse, IngredientsRecipeRequest
 )
 from app.models.chat import ResponseMessage
 
@@ -87,32 +89,21 @@ async def initialize_general_chat(context: CreateThreadRequest, chat_service=Dep
         chat_service.add_user_message(message=context.message_content)
         logger.info("User message added to chat service")
 
-        # Initialize OpenAI client
-        client = get_openai_client()
-
         # Construct message content
         message_content = "The context for this chat thread is " + context.message_content
         logger.info(f"Formed message content: {message_content}")
 
         # Create message thread
-        message_thread = client.beta.threads.create(
-            messages=[
-                {
-                    "role": "user",
-                    "content": message_content,
-                    "metadata": context.message_metadata
-                },
-            ]
-        )
-        logger.info(f"Chat successfully initialized with message thread: {message_thread}")
+        thread_id = create_thread(role="user", content=message_content)
+        logger.info(f"Chat successfully initialized with message thread: {thread_id}")
 
         # Set the thread_id in the store and prepare response
-        chat_service.set_thread_id(message_thread.id)
+        chat_service.set_thread_id(thread_id)
         session_id = chat_service.session_id
         # chat_history = chat_service.load_chat_history()
 
         # Log and return the response
-        response = {"thread_id": message_thread.id, "message_content": message_content,
+        response = {"thread_id": thread_id, "message_content": message_content,
                     "session_id": session_id}
         return response
 
@@ -143,8 +134,16 @@ async def get_chef_response(chef_response: GetChefResponse, chat_service:
     assistant_id = get_assistant_id(chef_response.chef_type)
     logger.info(f'Assistant ID: {assistant_id}')
 
+    thread_id = None
+    if chef_response.thread_id:
+      thread_id = chef_response.thread_id
+      logger.info(f"Chef response thread ID: {thread_id}")
+    else:
+      thread_id = chat_service.get_thread_id()
+      logger.info(f"Chat service thread ID: {thread_id}")
+
     # Add the user message to the chat history
-    chat_service.add_user_message(message=chef_response.message_content, thread_id=chef_response.thread_id)
+    chat_service.add_user_message(message=chef_response.message_content, thread_id=thread_id)
     logger.info(f"User message added to chat history: {chef_response.message_content}")
 
     message_content = chef_response.message_content
@@ -153,7 +152,8 @@ async def get_chef_response(chef_response: GetChefResponse, chat_service:
         message_content = "I am ready to save my recipe!  Please use the 'adjust_recipe' tool\
         to make any necessary changes based on the original recipe and our ensuing conversation."
         instructions = "Use the adjust_recipe tool to make any necessary changes to the original recipe\
-            based on the user's requests.  Just use the tool, do not return a message to the user. This is just to\
+            based on the user's requests.  Just use the tool,\
+            do not return a message to the user. This is just to\
             save the recipe in the database.  Thanks!"
         tools = [
             {
@@ -199,18 +199,18 @@ async def get_chef_response(chef_response: GetChefResponse, chat_service:
 
         # Create and send the message
         message = client.beta.threads.messages.create(
-            chef_response.thread_id,
+            thread_id,
             content=message_content,
             role="user",
             metadata=chef_response.message_metadata,
         )
         # Log the message
-        logger.info(f"Message {message.content} added to thread {chef_response.thread_id}")
+        logger.info(f"Message {message.content} added to thread {thread_id}")
 
         # Create the run
         run = client.beta.threads.runs.create(
             assistant_id=assistant_id,
-            thread_id=chef_response.thread_id,
+            thread_id=thread_id,
             instructions=instructions,
             tools=tools,
             model="gpt-4o",
@@ -225,35 +225,35 @@ async def get_chef_response(chef_response: GetChefResponse, chat_service:
 
             return {
                 "chef_response" : ResponseMessage(
-                    content=response["message"], role="ai", thread_id=chef_response.thread_id
+                    content=response["message"], role="ai", thread_id=run.thread_id
                 ),
-                "thread_id" : chef_response.thread_id,
+                "thread_id" : run.thread_id,
                 "adjusted_recipe" : response["tool_return_values"],
                 "session_id": chat_service.session_id
             }
 
-    if chef_response.thread_id:
+    if thread_id:
         # Create and send the message
         message = client.beta.threads.messages.create(
-            chef_response.thread_id,
+            thread_id,
             content=message_content,
             role="user",
             metadata=chef_response.message_metadata,
         )
         # Log the message
-        logger.info(f"Message {message.content} added to thread {chef_response.thread_id}")
+        logger.info(f"Message {message.content} added to thread {thread_id}")
 
         # Create the run
         run = client.beta.threads.runs.create(
             assistant_id=assistant_id,
-            thread_id=chef_response.thread_id,
+            thread_id=thread_id,
         )
         # Poll the run status
         response = await poll_run_status(run_id=run.id, thread_id=run.thread_id)
 
         if response:      # Add the chef response to the chat history
             chat_service.add_chef_message(
-                message=response["message"], thread_id=chef_response.thread_id
+                message=response["message"], thread_id=run.thread_id
             )
             logger.info(f"Chef response added to chat history: {response['message']}")
 
@@ -266,10 +266,10 @@ async def get_chef_response(chef_response: GetChefResponse, chat_service:
 
             return {
                 "chef_response" : ResponseMessage(
-                    content=response["message"], role="ai", thread_id=chef_response.thread_id,
+                    content=response["message"], role="ai", thread_id=run.thread_id,
                     html = response_html
                 ),
-                "thread_id" : chef_response.thread_id,
+                "thread_id" : run.thread_id,
                 "session_id": chat_service.session_id
             }
 
@@ -286,6 +286,9 @@ async def get_chef_response(chef_response: GetChefResponse, chat_service:
         )
         # Poll the run status
         response = await poll_run_status(run_id=run.id, thread_id=run.thread_id)
+        # Set the thread_id in the store
+        chat_service.set_thread_id(run.thread_id)
+        logger.info(f"Thread ID set in chat service: {run.thread_id}")
         response = json.dumps(response)
 
         return response
@@ -343,48 +346,71 @@ async def create_new_recipe(recipe_request: CreateRecipeRequest,
         recipe = await create_recipe(
             specifications = recipe_request.specifications, serving_size = recipe_request.serving_size
         )
-
-    if recipe_request.thread_id:
+    thread_id = chat_service.get_thread_id()
+    if thread_id:
       client = get_openai_client()
       message = client.beta.threads.messages.create(
-        recipe_request.thread_id,
-        content=f"""Your task is to assist a user with their recipe {recipe},
-        which was created based on their initial specifications {recipe_request.specifications}
-        and serving size {recipe_request.serving_size}. Users may have queries about
-        the recipe or wish to modify it. Your role is to engage in a natural,
-        sous-chef style conversation, providing expert advice and suggestions
-        tailored to their needs. When users request changes or have questions,
-        clarify their requirements through engaging dialogue. Once changes are confirmed,
-        display the updated format clearly and concisely in the same format as the original
-        recipe {recipe} so that they can make sure it looks correct before saving.
-        They may also want to ask you about wine pairings, general cooking questions,
-        etc.  Graciously answer those questions as well. Remember,
-        your role is crucial in ensuring clarity,
-        offering culinary expertise, and confirming the changes during the interaction.
-        Although your role is listed as 'user' due to API constraints.
-        Keep the conversation flowing
-        until it is clear that the user is satisfied with the recipe.  In other words,
-        you are the AI sous chef in this conversation.""",
-        role="user",
-        metadata={},
+          thread_id,
+          content=f"""Your task is to assist a user with their recipe {recipe},
+          which was created based on their initial specifications {recipe_request.specifications}
+          and serving size {recipe_request.serving_size}. Users may have queries about
+          the recipe or wish to modify it. Your role is to engage in a natural,
+          sous-chef style conversation, providing expert advice and suggestions
+          tailored to their needs. When users request changes or have questions,
+          clarify their requirements through engaging dialogue. Once changes are confirmed,
+          display the updated format clearly and concisely in the same format as the original
+          recipe {recipe} so that they can make sure it looks correct before saving.
+          They may also want to ask you about wine pairings, general cooking questions,
+          etc.  Graciously answer those questions as well. Remember,
+          your role is crucial in ensuring clarity,
+          offering culinary expertise, and confirming the changes during the interaction.
+          Although your role is listed as 'user' due to API constraints.
+          Keep the conversation flowing
+          until it is clear that the user is satisfied with the recipe.  In other words,
+          you are the AI sous chef in this conversation.""",
+          role="user",
+          metadata={},
       )
       # Log the message
-      logger.info(f"Message {message.content} added to thread {recipe_request.thread_id}")
+      logger.info(f"Message {message.content} added to thread {thread_id}")
       # Check to see if the recipe is already a JSON object
       if isinstance(recipe, dict):
           return {
               "recipe": json.dumps(recipe), "session_id": chat_service.session_id,
-              "thread_id": recipe_request.thread_id
+              "thread_id": thread_id
           }
       else:
           return {
               "recipe": recipe, "session_id": chat_service.session_id,
-              "thread_id": recipe_request.thread_id
+              "thread_id": thread_id
           }
     else:
-        return {
-            "recipe": json.dumps(recipe), "session_id": chat_service.session_id
-        }
+      thread_id = create_thread(role="user", content=f"""
+      Your task is to assist a user with their recipe {recipe},
+      which was created based on their initial specifications {recipe_request.specifications}
+      and serving size {recipe_request.serving_size}. Users may have queries about
+      the recipe or wish to modify it. Your role is to engage in a natural,
+      sous-chef style conversation, providing expert advice and suggestions
+      tailored to their needs. When users request changes or have questions,
+      clarify their requirements through engaging dialogue. Once changes are confirmed,
+      display the updated format clearly and concisely in the same format as the original
+      recipe {recipe} so that they can make sure it looks correct before saving.
+      They may also want to ask you about wine pairings, general cooking questions,
+      etc.  Graciously answer those questions as well. Remember,
+      your role is crucial in ensuring clarity,
+      offering culinary expertise, and confirming the changes during the interaction.
+      Although your role is listed as 'user' due to API constraints.
+      Keep the conversation flowing
+      until it is clear that the user is satisfied with the recipe.  In other words,
+      you are the AI sous chef in this conversation.
+      """)
+      chat_service.set_thread_id(thread_id)
+      logger.info(f"Thread ID set in chat service: {thread_id} for recipe message with recipe {recipe}")
+      return {
+          "recipe": recipe, "session_id": chat_service.session_id,
+          "thread_id": thread_id
+      }
+
 
 
 @router.post(
@@ -420,5 +446,21 @@ async def create_recipe_test(recipe_request: CreateRecipeRequest):
     """ Endpoint to create a recipe. """
     recipe = await claude_recipe(
         specifications = recipe_request.specifications, serving_size = recipe_request.serving_size
+    )
+    return recipe
+
+
+@router.post(
+    '/create-ingredients-recipe-test'
+)
+async def create_ingredients_recipe_test(recipe_request: IngredientsRecipeRequest):
+    """ Endpoint to create a recipe. """
+    logger.info(
+        f"""Creating ingredients recipe with ingredients: {recipe_request.ingredients},
+        serving size: {recipe_request.serving_size} and specifications: {recipe_request.specifications}"""
+    )
+    recipe = await claude_ingredients_recipe(
+        specifications = recipe_request.specifications, serving_size = recipe_request.serving_size,
+        ingredients_list=recipe_request.ingredients
     )
     return recipe

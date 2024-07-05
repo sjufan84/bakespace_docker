@@ -2,6 +2,7 @@
 import json
 from typing import Union, Optional
 import logging
+import base64
 from redis.exceptions import RedisError
 from app.dependencies import get_openai_client
 from app.middleware.session_middleware import RedisStore
@@ -45,7 +46,8 @@ class ChatService:
             self.save_chef_type()
         self.thread_id = self.store.redis.get(f'{self.session_id}:thread_id')
         if self.thread_id:
-            self.thread_id = self.thread_id
+            self.thread_id = self.thread_id.decode()
+            logger.info(f"Thread ID loaded from Redis: {self.thread_id}")
         else:
             self.thread_id = None
 
@@ -112,6 +114,7 @@ class ChatService:
         """ Set the thread_id. """
         try:
             self.store.redis.set(f'{self.session_id}:thread_id', thread_id)
+            logger.info(f"Thread ID set to {thread_id} in Redis")
         except RedisError as e:
             logger.log(logger.ERROR, "Failed to set thread_id in Redis: %s", e)
         return thread_id
@@ -122,7 +125,8 @@ class ChatService:
         try:
             thread_id = self.store.redis.get(f'{self.session_id}:thread_id')
             if thread_id:
-                return thread_id
+                return thread_id.decode()
+            # Create a new thread_id if one does not exist
             return None
         except RedisError as e:
             logger.log(logger.ERROR, "Failed to load thread_id from Redis: %s", e)

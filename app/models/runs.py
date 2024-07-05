@@ -23,7 +23,7 @@ class GetChefResponse(BaseModel):
     key-value pairs that can be used to store additional information about the message.")
   chef_type: Optional[str] = Field(
       "home_cook", description="The type of chef that the user wants to talk to.")
-  thread_id: str = Field(None, description="The thread id for the run to be added to.")
+  thread_id: Optional[str] = Field(None, description="The thread id for the run to be added to.")
   save_recipe: Optional[bool] = Field(False, description="Whether or not to use the 'save_recipe' tool.")
 
 class ClearChatResponse(BaseModel):

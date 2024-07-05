@@ -22,6 +22,8 @@ logging.basicConfig(level=logging.DEBUG)
 # Load environment variables
 load_dotenv()
 
+logger = logging.getLogger("main")
+
 # Create the OpenAI client
 client = get_openai_client()
 
@@ -152,3 +154,17 @@ def get_assistant_id(chef_type: str):
   """ Load the assistant id from the store """
   assistant_id = id_dict[chef_type]
   return assistant_id
+
+def create_thread(role: str, content: str, metadata = None):
+  logger.info(f"Creating thread with role {role} and content {content}")
+  thread = client.beta.threads.create(
+      messages=[
+          {
+              "role": role,
+              "content": content,
+              "metadata": metadata
+          },
+      ]
+  )
+  logger.info(f"Created thread with id {thread.id}")
+  return thread.id
