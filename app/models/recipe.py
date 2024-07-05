@@ -74,7 +74,7 @@ class CreateRecipeResponse(BaseModel):
 class IngredientsRecipeRequest(BaseModel):
     """ Request body for creating a new recipe """
     specifications: str = Field(..., description="The specifications for the recipe.")
-    ingredients: Union[List[str], str] = Field(..., description="The ingredients for the recipe.")
+    ingredients: str = Field(..., description="The ingredients for the recipe.")
     serving_size: Optional[str] = Field("4-6", description="The serving size for the recipe.")
     chef_type: Optional[str] = Field("home_cook", description="The type of chef creating the recipe.")
     thread_id: Optional[str] = Field(None, description="The thread id for the chat session.")
